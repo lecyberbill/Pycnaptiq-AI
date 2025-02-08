@@ -505,7 +505,3 @@ with gr.Blocks(theme=theme_gradio) as interface:
 
     
 interface.launch(inbrowser=True, pwa=True, share=False)
-
-
-    
-interface.launch(inbrowser=True, pwa=True, share=False)
