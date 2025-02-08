@@ -7,7 +7,7 @@
 
 
 ## 📥 Installation
-1. **Télécharger (code et choisir zip) décompresser à l'endroit voulu
+1. **Télécharger (code et choisir zip ou cyberbill_SDXL.zip) décompresser à l'endroit voulu
 2. **Téléchargez et installez** [CUDA 11.8](https://developer.nvidia.com/cuda-11-8-0-download-archive)
 3. **Lancez** `install.bat`
 4. **Lancez start.bat**
