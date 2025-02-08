@@ -117,3 +117,6 @@ pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\repertoire\\mes
 	- Glass: Thème bleu avec effet de verre grâce à des dégradés verticaux.
  
 	- Ocean: Thème bleu-vert avec dégradés horizontaux.
+
+
+![image](https://github.com/user-attachments/assets/c4f1311f-e00c-4f4d-969d-db367100eeeb)
