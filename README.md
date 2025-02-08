@@ -30,8 +30,6 @@
 	- Le logiciel est fourni **sans modèle**, vous pouvez télécharger des modèles sur différentes sources (modèle checkpoints SDXL 1.0 au format .safetensors à placer dans le repertoire /models/checkpoints)
 		Exemples de sites : https://civitai.com/ | https://lexica.art/ | https://huggingface.co
  	- D'abord cliquer sur **"Lister les modèles"**
-	- Choisir un modèle (placer vos modèles **.safetensors** uniquement dans /models/checkpoints/ )
-		https://civitai.com est une bonne source pour se procurer des modèle (SDXL 1.0)
 	- Choisir un VAE (Auto-Encodeur Variationnel, placer vos vae **.safetensors** uniquemen dans /models/vae/ ) 
 		*Le VAE prend l'image générée dans l'espace latent et la "décompresse" pour la rendre visible et détaillée. C'est comme si vous demandiez au peintre de transformer la version miniature du tableau en une œuvre d'art complète
 		*SDXL est livré avec un VAE intégré, ce qui signifie que vous n'avez pas besoin de télécharger ou d'installer de VAE supplémentaire. Cependant, il existe également des VAE personnalisés que vous pouvez utiliser pour obtenir des résultats différents
