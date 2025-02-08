@@ -89,17 +89,31 @@ pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\repertoire\\mes
 
 
 **MODELS_DIR** : endroit où sont stoké les modèles de base SDXL 1.0
+
 **VAE_DIR** : endroit où sont stoké les VAE (attention uniquement SDXL 1.0)
+
 **SAVE_DIR** : endroit où sont stoké les photos produites, un repertoire à la date du jour sera créé pour stoker les photos
+
 **NEGATIVE_PROMPT** : permet de changer le prompt négatif, il sera utiliser pour toutes les images, c'est un choix que j'ai de mettre un prompt négatif générique.
+
 **IMAGE_FORMAT** correspond au type de fichier, webp | jpeg | png
+
 **FORMATS** correspond à la taille impérativement des multiples de 4,  il est conseillé d'utiliser des résolutions proches de 1024x1024 pixels
+
 **GRADIO_THEME** : permet de choisir le theme de l'application parmis les thèmes suivant : 
-	Base: Thème minimaliste avec une couleur primaire bleue.
-	Default: Thème par défaut de Gradio 5, orange et gris.
-	Origin: Similaire au style de Gradio 4, couleurs plus sobres.
-	Citrus: Thème jaune avec effets 3D sur les boutons.
-	Monochrome: Thème noir et blanc avec des polices de caractères de style journal.
-	Soft: Thème violet avec bords arrondis et étiquettes mises en évidence.
-	Glass: Thème bleu avec effet de verre grâce à des dégradés verticaux.
-	Ocean: Thème bleu-vert avec dégradés horizontaux.
+
+	- Base: Thème minimaliste avec une couleur primaire bleue.
+ 
+	- Default: Thème par défaut de Gradio 5, orange et gris.
+ 
+	- Origin: Similaire au style de Gradio 4, couleurs plus sobres.
+ 
+	- Citrus: Thème jaune avec effets 3D sur les boutons.
+ 
+	- Monochrome: Thème noir et blanc avec des polices de caractères de style journal.
+ 
+	- Soft: Thème violet avec bords arrondis et étiquettes mises en évidence.
+ 
+	- Glass: Thème bleu avec effet de verre grâce à des dégradés verticaux.
+ 
+	- Ocean: Thème bleu-vert avec dégradés horizontaux.
