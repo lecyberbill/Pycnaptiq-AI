@@ -1,4 +1,4 @@
-# Mon Application d'IA 🚀
+# cyberbill générateur d'image 🚀
 
 ## 📌 Prérequis
 - **CUDA 11.8** installé ✅
