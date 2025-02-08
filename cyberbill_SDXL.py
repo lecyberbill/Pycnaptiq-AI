@@ -405,12 +405,17 @@ with gr.Blocks(theme=theme_gradio) as interface:
             format_dropdown = gr.Dropdown(choices=FORMATS, value="768*1280", label="Format", info="Choisissez le format de sortie souhaité pour votre image")
             seed_input = gr.Number(label="Seed", value=-1, info="Saisir une valeur pour générer des images identiques à chaque fois ou laisser -1 pour des résultats aléatoires")
             num_images_input = gr.Number(label="Nombre d'images", value=1)
+            with gr.Row():
+                btn_stop = gr.Button("Arrêter")
+                btn_generate = gr.Button("Générer")
+  
 
         with gr.Column():
             image_output = gr.Gallery(label="Images générées")
             seed_output = gr.Textbox(label="Seed utilisé")
             time_output = gr.Textbox(label="Temps de rendu", interactive=False)
-    
+            
+            bouton_lister = gr.Button("Lister les modèles")
             # Dropdown pour sélectionner le modèle
             modele_dropdown = gr.Dropdown(label="Sélectionner un modèle", choices=[])
             # Nouveau dropdown pour sélectionner le VAE, valeur par défaut "Défaut VAE"
@@ -421,15 +426,17 @@ with gr.Blocks(theme=theme_gradio) as interface:
                 info="Choisissez un VAE externe ou 'Défaut VAE' pour utiliser le VAE par défaut"
             )
     
-            bouton_lister = gr.Button("Lister les modèles")
-            bouton_charger = gr.Button("Charger le modèle")
-            message_chargement = gr.Textbox(label="Statut", value="Aucun modèle chargé.")
-    
             sampler_dropdown = gr.Dropdown(
                 label="Sélectionner un sampler",
                 choices=sampler_options,
                 info="Choisissez un sampler pour la génération d'images"
             )
+            
+            
+            bouton_charger = gr.Button("Charger le modèle")
+            message_chargement = gr.Textbox(label="Statut", value="Aucun modèle chargé.")
+    
+
     
             # Mise à jour des dropdowns pour modèles et VAE lors du clic sur le bouton lister
             bouton_lister.click(
@@ -452,9 +459,7 @@ with gr.Blocks(theme=theme_gradio) as interface:
                 inputs=sampler_dropdown,
                 outputs=message_chargement
             )
-            with gr.Row():
-                btn_generate = gr.Button("Générer")
-                btn_stop = gr.Button("Arrêter")
+            
 
 
     text_input.input(count_tokens, text_input, token_count_output)
@@ -496,6 +501,10 @@ with gr.Blocks(theme=theme_gradio) as interface:
     inputs = [image_input,  contrast, saturation, color_boost, grayscale, blur_radius, sharpness_factor, rotation_angle, mirror_type]
     for inp in inputs:
             inp.change(apply_filters, inputs=inputs, outputs=image_output)
+
+
+    
+interface.launch(inbrowser=True, pwa=True, share=False)
 
 
     
