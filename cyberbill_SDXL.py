@@ -406,10 +406,6 @@ with gr.Blocks(theme=theme_gradio) as interface:
             seed_input = gr.Number(label="Seed", value=-1, info="Saisir une valeur pour générer des images identiques à chaque fois ou laisser -1 pour des résultats aléatoires")
             num_images_input = gr.Number(label="Nombre d'images", value=1)
 
-            with gr.Row():
-                btn_generate = gr.Button("Générer")
-                btn_stop = gr.Button("Arrêter")
-
         with gr.Column():
             image_output = gr.Gallery(label="Images générées")
             seed_output = gr.Textbox(label="Seed utilisé")
@@ -456,6 +452,9 @@ with gr.Blocks(theme=theme_gradio) as interface:
                 inputs=sampler_dropdown,
                 outputs=message_chargement
             )
+            with gr.Row():
+                btn_generate = gr.Button("Générer")
+                btn_stop = gr.Button("Arrêter")
 
 
     text_input.input(count_tokens, text_input, token_count_output)
