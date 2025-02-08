@@ -27,7 +27,9 @@
    
 ## ▶️ Utilisation
 1. **Charger un modèle impérativement pour utiliser la génération d'image**
-	- D'abord cliquer sur **"Lister les modèles"**
+	- Le logiciel est fourni **sans modèle**, vous pouvez télécharger des modèles sur différentes sources (modèle checkpoints SDXL 1.0 au format .safetensors à placer dans le repertoire /models/checkpoints)
+		Exemples de sites : https://civitai.com/ | https://lexica.art/ | https://huggingface.co
+ 	- D'abord cliquer sur **"Lister les modèles"**
 	- Choisir un modèle (placer vos modèles **.safetensors** uniquement dans /models/checkpoints/ )
 		https://civitai.com est une bonne source pour se procurer des modèle (SDXL 1.0)
 	- Choisir un VAE (Auto-Encodeur Variationnel, placer vos vae **.safetensors** uniquemen dans /models/vae/ ) 
