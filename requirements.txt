@@ -10,5 +10,6 @@ einops
 timm
 scipy
 torchsde
-xformers
 triton
+xformers
+
