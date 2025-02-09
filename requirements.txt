@@ -8,3 +8,5 @@ sentencepiece
 sacremoses
 einops
 timm
+scipy
+torchsde
