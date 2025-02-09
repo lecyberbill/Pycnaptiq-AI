@@ -21,7 +21,8 @@
    - Cela active l’environnement et lance l’application.
 2. **Ou utilisez la ligne de commande :**
    ```sh
-   venv\Scripts\activate
+   cd venv\Scripts\
+   activate.bat
    python cyberbill_SDXL.py
    ```
    
