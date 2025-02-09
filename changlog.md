@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- py was used instead of python se which prevented pip from being updated 
+- py was used instead of python se which prevented pip from being updated
+- Image generation problem on low vram level configurations: addition of an additional argument max_split_size_mb:38 to try to resolve this problem
 
 ### Changed
 
