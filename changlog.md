@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- An entry for Author in confi.json
+- An entry for Author in config.json
 - Author support for HTML report
 - Adding additional samplers see documentation
 - Feedback in Gradio for sampler loading
