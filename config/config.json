@@ -1,4 +1,5 @@
 {
+    "AUTOR": "Cyberbill_SDXL",
     "MODELS_DIR": "models\\checkpoints",
     "VAE_DIR": "models\\vae",
 	"SAVE_DIR": "output",
