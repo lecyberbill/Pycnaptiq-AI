@@ -3,7 +3,7 @@
 ## 📌 Prérequis
 - **CUDA 12.6** installé ✅
 - **Carte Nvidia RTX** pas testé sur d'autres cartes.
-- **Testé sur GTX 1650 Ti* avec 4 go de vram
+- **Testé sur GTX 1650 Ti** avec 4 go de vram mais ne fonctionne pas, si quelqu'un à des idées...
 - **8 go de vram recommandés** pour le moment je n'ai pas encore optimisé pour les petites cartes graphique GTX etc.
 
 
