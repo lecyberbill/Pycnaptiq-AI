@@ -11,3 +11,4 @@ timm
 scipy
 torchsde
 xformers
+triton
