@@ -139,7 +139,7 @@ echo [OK] Environnement virtuel cree
 
 
 echo [INFO] Installation des dépendances...
-py -m pip install --upgrade pip
+python -m pip install --upgrade pip
 pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 pip install --no-cache-dir -r requirements.txt
 
