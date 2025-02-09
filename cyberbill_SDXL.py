@@ -1,5 +1,7 @@
 import gradio as gr
-from diffusers import StableDiffusionXLPipeline, AutoencoderKL, EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler
+from diffusers import StableDiffusionXLPipeline, AutoencoderKL, EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler, \
+    LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, \
+    KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler
 import torch
 import random
 import os
@@ -28,6 +30,7 @@ IMAGE_FORMAT = config["IMAGE_FORMAT"].upper()
 FORMATS = config["FORMATS"]
 NEGATIVE_PROMPT = config["NEGATIVE_PROMPT"]
 GRADIO_THEME = config["GRADIO_THEME"]
+AUTOR= config["AUTOR"]
 
 # Vérifier que le format est valide
 if IMAGE_FORMAT not in ["PNG", "JPG", "WEBP"]:
@@ -88,8 +91,21 @@ caption_processor = AutoProcessor.from_pretrained(
 sampler_options = [
     "EulerDiscreteScheduler (Rapide et détaillé)",
     "DPM++ 2M Karras (Photoréaliste et détaillé)",
-    "Euler Ancestral (Artistique et fluide)"
-    ]
+    "Euler Ancestral (Artistique et fluide)",
+    "LMSDiscreteScheduler (Équilibré et polyvalent)",
+    "DDIMScheduler (Rapide et créatif)",
+    "PNDMScheduler (Stable et photoréaliste)",
+    "KDPM2DiscreteScheduler (Détaillé et net)",
+    "KDPM2AncestralDiscreteScheduler (Artistique et net)",
+    "DPMSolverMultistepScheduler (Rapide et de haute qualité)",
+    "DEISMultistepScheduler (Excellent pour les détails fins)",
+    "HeunDiscreteScheduler (Bon compromis vitesse/qualité)",
+    "DPM++ SDE Karras (Photoréaliste et avec réduction du bruit)",
+    "DPM++ 2M SDE Karras (Combine photoréalisme et réduction du bruit)",
+    "Euler A (Euler Ancestral, version abrégée)",
+    "LMS (Linear Multistep Method, version abrégée)",
+    "PLMS (P-sampler - Pseudo Linear Multistep Method)"
+]
 
 # =========================
 # Définition des fonctions
@@ -117,11 +133,52 @@ def apply_sampler(sampler_selection):
         elif sampler_selection == "Euler Ancestral (Artistique et fluide)":
             pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
             print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "LMSDiscreteScheduler (Équilibré et polyvalent)":
+            pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config)
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "DDIMScheduler (Rapide et créatif)":
+            pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "PNDMScheduler (Stable et photoréaliste)":
+            pipe.scheduler = PNDMScheduler.from_config(pipe.scheduler.config)
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "KDPM2DiscreteScheduler (Détaillé et net)":
+            pipe.scheduler = KDPM2DiscreteScheduler.from_config(pipe.scheduler.config)
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "KDPM2AncestralDiscreteScheduler (Artistique et net)":
+            pipe.scheduler = KDPM2AncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "DPMSolverMultistepScheduler (Rapide et de haute qualité)":
+            pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "DEISMultistepScheduler (Excellent pour les détails fins)":
+            pipe.scheduler = DEISMultistepScheduler.from_config(pipe.scheduler.config)
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "HeunDiscreteScheduler (Bon compromis vitesse/qualité)":
+            pipe.scheduler = HeunDiscreteScheduler.from_config(pipe.scheduler.config)
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "DPM++ SDE Karras (Photoréaliste et avec réduction du bruit)":
+            pipe.scheduler = DPMSolverSDEScheduler.from_config(pipe.scheduler.config) # Note: Utilisation de DPMSolverSDEScheduler
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "DPM++ 2M SDE Karras (Combine photoréalisme et réduction du bruit)":
+            pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config) # Note:  Pour rester cohérent avec votre précédent 'DPM++ 2M Karras',  vous pouvez ajuster si besoin.
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "Euler A (Euler Ancestral, version abrégée)":
+            pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config) # Similaire à Euler Ancestral
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "LMS (Linear Multistep Method, version abrégée)":
+            pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config) # Similaire à LMSDiscreteScheduler
+            print(f"Le sampler a été changé en {sampler_selection}")
+        elif sampler_selection == "PLMS (P-sampler - Pseudo Linear Multistep Method)":
+            pipe.scheduler = PNDMScheduler.from_config(pipe.scheduler.config) #  PLMS souvent implémenté via PNDMScheduler ou une variante
+            print(f"Le sampler a été changé en {sampler_selection}")
+        # "Restart Euler" -  Sampler plus spécifique, pourrait nécessiter une implémentation plus personnalisée.
+
+        else:
+            print(f"Sampler non reconnu : {sampler_selection}") # Gestion pour les options non reconnues
+
     else:
         return "Merci de charger un modèle avant de changer le sampler."
-    
-    # Retourner un message confirmant le changement
-    return f"Le sampler a été changé en : {sampler_selection}"
 
 #Compteur de token
 def count_tokens(text):
