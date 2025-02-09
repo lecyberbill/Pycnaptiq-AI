@@ -30,7 +30,7 @@ IMAGE_FORMAT = config["IMAGE_FORMAT"].upper()
 FORMATS = config["FORMATS"]
 NEGATIVE_PROMPT = config["NEGATIVE_PROMPT"]
 GRADIO_THEME = config["GRADIO_THEME"]
-AUTOR= config["AUTOR"]
+AUTHOR= config["AUTHOR"]
 
 # Vérifier que le format est valide
 if IMAGE_FORMAT not in ["PNG", "JPG", "WEBP"]:
@@ -50,7 +50,7 @@ if torch.cuda.is_available():
 
     # Activer expandable_segments si VRAM < 10 Go
     if vram_total_gb < 10:
-        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+                os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True max_split_size_mb:38"
         print("PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True activé")
 
     # Détermination du device et du type de données
@@ -123,57 +123,72 @@ def enregistrer_image(image, chemin_image, donnees_xmp):
 
 # selection des sampler
 def apply_sampler(sampler_selection):
+    info = f"Le sampler a été changé en : {sampler_selection}"
     if pipe is not None:
         if sampler_selection == "EulerDiscreteScheduler (Rapide et détaillé)":
             pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "DPM++ 2M Karras (Photoréaliste et détaillé)":
             pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "Euler Ancestral (Artistique et fluide)":
             pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "LMSDiscreteScheduler (Équilibré et polyvalent)":
             pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "DDIMScheduler (Rapide et créatif)":
             pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "PNDMScheduler (Stable et photoréaliste)":
             pipe.scheduler = PNDMScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "KDPM2DiscreteScheduler (Détaillé et net)":
             pipe.scheduler = KDPM2DiscreteScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "KDPM2AncestralDiscreteScheduler (Artistique et net)":
             pipe.scheduler = KDPM2AncestralDiscreteScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "DPMSolverMultistepScheduler (Rapide et de haute qualité)":
             pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "DEISMultistepScheduler (Excellent pour les détails fins)":
             pipe.scheduler = DEISMultistepScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "HeunDiscreteScheduler (Bon compromis vitesse/qualité)":
             pipe.scheduler = HeunDiscreteScheduler.from_config(pipe.scheduler.config)
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "DPM++ SDE Karras (Photoréaliste et avec réduction du bruit)":
             pipe.scheduler = DPMSolverSDEScheduler.from_config(pipe.scheduler.config) # Note: Utilisation de DPMSolverSDEScheduler
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "DPM++ 2M SDE Karras (Combine photoréalisme et réduction du bruit)":
-            pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config) # Note:  Pour rester cohérent avec votre précédent 'DPM++ 2M Karras',  vous pouvez ajuster si besoin.
-            print(f"Le sampler a été changé en {sampler_selection}")
+            pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config) # 
+            print(info)
+            return info
         elif sampler_selection == "Euler A (Euler Ancestral, version abrégée)":
-            pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config) # Similaire à Euler Ancestral
-            print(f"Le sampler a été changé en {sampler_selection}")
+            pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+            print(info)
+            return info
         elif sampler_selection == "LMS (Linear Multistep Method, version abrégée)":
             pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config) # Similaire à LMSDiscreteScheduler
-            print(f"Le sampler a été changé en {sampler_selection}")
+            print(info)
+            return info
         elif sampler_selection == "PLMS (P-sampler - Pseudo Linear Multistep Method)":
             pipe.scheduler = PNDMScheduler.from_config(pipe.scheduler.config) #  PLMS souvent implémenté via PNDMScheduler ou une variante
-            print(f"Le sampler a été changé en {sampler_selection}")
-        # "Restart Euler" -  Sampler plus spécifique, pourrait nécessiter une implémentation plus personnalisée.
-
+            print(info)
+            return info
         else:
             print(f"Sampler non reconnu : {sampler_selection}") # Gestion pour les options non reconnues
 
@@ -259,7 +274,8 @@ def charger_modele(nom_fichier, nom_vae):
         # Attention slicing : permet de découper le calcul de l'attention
             pipe.enable_attention_slicing()
             pipe.enable_vae_slicing()
-            print("Optimisation : Attention slicing activé")
+            pipe.enable_xformers_memory_efficient_attention()
+            print("Optimisation : Attention slicing activé - VAE slicing activé - xformers activé")
         
         # Met à jour le nom du modèle sélectionné et retourne un message de succès
         model_selectionne = nom_fichier
@@ -357,7 +373,7 @@ def generate_image(text, guidance_scale, num_steps, selected_format, traduire, s
             
             donnees_xmp =  {
                     "IMAGE": f"{idx+1} sur {num_images}",
-                    "Creator": "William GODEFROID",
+                    "Creator": AUTHOR,
                     "Seed": seed,
                     "Inference": num_steps,
                     "Guidance": guidance_scale,
