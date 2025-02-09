@@ -3,6 +3,7 @@
 ## 📌 Prérequis
 - **CUDA 12.6** installé ✅
 - **Carte Nvidia RTX** pas testé sur d'autres cartes.
+- **Testé sur GTX 1650 Ti* avec 4 go de vram
 - **8 go de vram recommandés** pour le moment je n'ai pas encore optimisé pour les petites cartes graphique GTX etc.
 
 
@@ -63,7 +64,7 @@
 ## ▶️ Configuration avancée
 Il est possible de modifier le fichier de configuration
 Allez dans le dossier /config ouvrez le fichier config.json dans un éditeur de texte simple
-
+Pour les petites configuration je recommande fortement d'utiliser des tailles d'images de 512 x 512 maximun. Des images plus grandes feront planter la génération.
 le fichier se présente ainsi : 
 ```json
 {
