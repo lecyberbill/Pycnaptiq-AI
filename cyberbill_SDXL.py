@@ -50,7 +50,7 @@ if torch.cuda.is_available():
 
     # Activer expandable_segments si VRAM < 10 Go
     if vram_total_gb < 10:
-                os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True max_split_size_mb:38"
+                os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True max_split_size_mb:512"
         print("PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True activé")
 
     # Détermination du device et du type de données
@@ -274,7 +274,7 @@ def charger_modele(nom_fichier, nom_vae):
         # Attention slicing : permet de découper le calcul de l'attention
             pipe.enable_attention_slicing()
             pipe.enable_vae_slicing()
-            #pipe.enable_xformers_memory_efficient_attention()
+            pipe.enable_xformers_memory_efficient_attention()
             print("Optimisation : Attention slicing activé - VAE slicing activé - xformers activé")
         
         # Met à jour le nom du modèle sélectionné et retourne un message de succès
