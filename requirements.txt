@@ -10,3 +10,4 @@ einops
 timm
 scipy
 torchsde
+xformers
