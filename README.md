@@ -1,14 +1,14 @@
 # cyberbill générateur d'image 🚀
 
 ## 📌 Prérequis
-- **CUDA 11.8** installé ✅
+- **CUDA 12.6** installé ✅
 - **Carte Nvidia RTX** pas testé sur d'autres cartes.
 - **8 go de vram recommandés** pour le moment je n'ai pas encore optimisé pour les petites cartes graphique GTX etc.
 
 
 ## 📥 Installation
 1. **Télécharger (code et choisir zip ou cyberbill_SDXL.zip) décompresser à l'endroit voulu
-2. **Téléchargez et installez** [CUDA 11.8](https://developer.nvidia.com/cuda-11-8-0-download-archive)
+2. **Téléchargez et installez** [CUDA 12.6] https://developer.nvidia.com/cuda-12-6-0-download-archive
 3. **Lancez** `install.bat`
 4. **Lancez start.bat**
 4. **Profitez !** 🎨
