@@ -274,7 +274,7 @@ def charger_modele(nom_fichier, nom_vae):
         # Attention slicing : permet de découper le calcul de l'attention
             pipe.enable_attention_slicing()
             pipe.enable_vae_slicing()
-            pipe.enable_xformers_memory_efficient_attention()
+            #pipe.enable_xformers_memory_efficient_attention()
             print("Optimisation : Attention slicing activé - VAE slicing activé - xformers activé")
         
         # Met à jour le nom du modèle sélectionné et retourne un message de succès
