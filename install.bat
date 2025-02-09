@@ -116,12 +116,12 @@ del "%get_pip_file%"
 
 :: Vérification de CUDA...
 echo [INFO] Vérification de CUDA...
-nvcc --version 2>NUL | findstr /C:"release 11.8" >nul
+nvcc --version 2>NUL | findstr /C:"release 12.6" >nul
 if errorlevel 1 (
-    echo [/!\ Erreur] CUDA 11.8 non detecte. Veuillez installer CUDA 11.8 et ses drivers.
+    echo [/!\ Erreur] CUDA 12.6 non detecte. Veuillez installer CUDA 12.6 et ses drivers.
     exit /b 1
 ) else (
-    echo [OK] CUDA 11.8 detecte.
+    echo [OK] CUDA 12.6 detecte.
 )
 
 echo [INFO] Création de l'environnement virtuel...
