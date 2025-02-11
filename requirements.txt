@@ -12,4 +12,4 @@ scipy
 torchsde
 triton
 xformers
-
+tqdm
