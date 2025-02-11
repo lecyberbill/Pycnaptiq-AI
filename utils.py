@@ -239,7 +239,8 @@ def gradio_change_theme(theme):
       return gr.themes.Ocean()
     case _:  # Cas par défaut (si aucun thème ne correspond)
       return gr.themes.Default()
-
+      
+      
 # liste fichiers .safetensors
 def lister_fichiers(dir, ext=".safetensors"):
     """List files in a directory with a specific extension."""
