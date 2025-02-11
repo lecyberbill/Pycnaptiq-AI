@@ -5,6 +5,8 @@ from pathlib import Path
 import re
 import html
 import json
+import requests
+from tqdm import tqdm
 
 
 def fichier_recap(chemin_image, etiquettes):
@@ -237,3 +239,52 @@ def gradio_change_theme(theme):
       return gr.themes.Ocean()
     case _:  # Cas par défaut (si aucun thème ne correspond)
       return gr.themes.Default()
+
+# liste fichiers .safetensors
+def lister_fichiers(dir, ext=".safetensors"):
+    """List files in a directory with a specific extension."""
+    
+    # Try to get the list of files from the specified directory. 
+    try:
+        fichiers = [f for f in os.listdir(dir) if f.endswith(ext)]
+        
+        # If no files are found, print a specific message and return an empty list.
+        if not fichiers:
+            print("No models found.")
+            return ["Aucun modèle trouvé."]
+            
+    except FileNotFoundError:
+        # If the directory doesn't exist, print a specific error message and return an empty list. 
+        print(f"Directory not found : {dir}")
+        return ["Répertoire non trouvé."]
+        
+    else:
+        # If files are found, print them out and return the file_list. 
+        print(f"Files found in {dir}: {fichiers}")
+        return fichiers
+        
+        
+def telechargement_modele(lien_modele, nom_fichier, models_dir):
+    """Télécharge un modèle depuis un lien et l'enregistre dans models_dir."""
+    try:
+        response = requests.get(lien_modele, stream=True)
+        response.raise_for_status()  # Vérifie si le téléchargement a réussi
+        taille_totale = int(response.headers.get('content-length', 0))  # Taille du fichier
+        
+        chemin_destination = os.path.join(models_dir, nom_fichier)  # Chemin complet
+        with open(chemin_destination, "wb") as f:
+            with tqdm(total=taille_totale, unit='B', unit_scale=True, desc=nom_fichier) as pbar:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:  # Filtre les chunks vides
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+
+        print(f"Modèle téléchargé avec succès : {nom_fichier}")
+        return True  # Indique que le téléchargement a réussi
+
+    except requests.exceptions.RequestException as e:
+        print(f"Erreur lors du téléchargement du modèle : {e}")
+        return False  # Indique que le téléchargement a échoué
+    except Exception as e:
+        print(f"Une erreur s'est produite : {e}")
+        return False
