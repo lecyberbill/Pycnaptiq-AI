@@ -220,29 +220,6 @@ def count_tokens(text):
     else:
         return f"✅ Nombre de tokens valide : {token_count}"
 
-# liste fichiers .safetensors
-def lister_fichiers(dir, ext=".safetensors"):
-    """List files in a directory with a specific extension."""
-    
-    # Try to get the list of files from the specified directory. 
-    try:
-        fichiers = [f for f in os.listdir(dir) if f.endswith(ext)]
-        
-        # If no files are found, print a specific message and return an empty list.
-        if not fichiers:
-            print("No models found.")
-            return ["Aucun modèle trouvé."]
-            
-    except FileNotFoundError:
-        # If the directory doesn't exist, print a specific error message and return an empty list. 
-        print(f"Directory not found : {dir}")
-        return ["Répertoire non trouvé."]
-        
-    else:
-        # If files are found, print them out and return the file_list. 
-        print(f"Files found in {dir}: {fichiers}")
-        return fichiers
-
 
 def charger_modele(nom_fichier, nom_vae):
     """Charge un modèle spécifique."""
