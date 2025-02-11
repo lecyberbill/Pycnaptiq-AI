@@ -17,9 +17,12 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 
 
+
 # =========================
 # Initialisation des variables
 # =========================
+
+
 print (f"cyberbill_SDXL version {version()}")
 config = charger_configuration()
 # Dossiers contenant les modèles
@@ -31,6 +34,8 @@ FORMATS = config["FORMATS"]
 NEGATIVE_PROMPT = config["NEGATIVE_PROMPT"]
 GRADIO_THEME = config["GRADIO_THEME"]
 AUTHOR= config["AUTHOR"]
+
+#initialisation des modèles 
 
 modeles_disponibles = lister_fichiers(MODELS_DIR)
 
@@ -64,9 +69,9 @@ if torch.cuda.is_available():
 
     # Activer expandable_segments si VRAM < 10 Go
     if vram_total_gb < 10:
-                os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True max_split_size_mb:512"
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True max_split_size_mb:512"
+        medvram = True
         print("PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True activé")
-
     # Détermination du device et du type de données
     device = "cuda"
     torch_dtype = torch.float16
@@ -95,10 +100,10 @@ print(f"Modèle de traduction '{translation_model}' chargé")
 
 # Charger le modèle et le processeur
 caption_model = AutoModelForCausalLM.from_pretrained(
-    "MiaoshouAI/Florence-2-base-PromptGen-v1.5", trust_remote_code=True
+    "MiaoshouAI/Florence-2-base-PromptGen-v2.0", trust_remote_code=True
 ).to(device)
 caption_processor = AutoProcessor.from_pretrained(
-    "MiaoshouAI/Florence-2-base-PromptGen-v1.5", trust_remote_code=True
+    "MiaoshouAI/Florence-2-base-PromptGen-v2.0", trust_remote_code=True
 )
 
 # Sampler disponibles
@@ -221,11 +226,18 @@ def count_tokens(text):
         return f"✅ Nombre de tokens valide : {token_count}"
 
 
+
+
 def charger_modele(nom_fichier, nom_vae):
     """Charge un modèle spécifique."""
     
     # Importation global non recommandée, mais ici utilisée pour simplifier l'exemple
-    global pipe, model_selectionne, vae_selctionne
+    global pipe, model_selectionne, vae_selctionne 
+    
+    # Si aucun modèle n'est sélectionné, affiche un message et retourne
+    if nom_fichier == "Aucun modèle trouvé.":
+        print("Aucun modèle sélectionné.")
+        return "Aucun modèle sélectionné. Veuillez choisir un modèle dans la liste."
     
     # Construit le chemin vers le fichier de modèle en se basant sur la constante MODELS_DIR et le nom du fichier
     chemin_modele = os.path.join(MODELS_DIR, nom_fichier)
@@ -249,6 +261,8 @@ def charger_modele(nom_fichier, nom_vae):
             low_cpu_mem_usage=True if (device == "cuda" and vram_total_gb < 10) else False,
             load_device=device
          )
+        
+        
          
         if not nom_vae == "Défaut VAE":
             pipe.vae = vae=AutoencoderKL.from_single_file(chemin_vae, torch_dtype=torch_dtype)
@@ -266,7 +280,7 @@ def charger_modele(nom_fichier, nom_vae):
             pipe.enable_attention_slicing()
             pipe.enable_vae_slicing()
             pipe.enable_xformers_memory_efficient_attention()
-            print("Optimisation : Attention slicing activé - VAE slicing activé - xformers activé")
+            print("Optimisation : Attention slicing activé")
         
         # Met à jour le nom du modèle sélectionné et retourne un message de succès
         model_selectionne = nom_fichier
@@ -336,6 +350,9 @@ def generate_image(text, guidance_scale, num_steps, selected_format, traduire, s
         
         seeds = [random.randint(1, 10**19 - 1) for _ in range(num_images)] if seed_input == -1 else [seed_input] * num_images
         prompt_en = traduire_prompt(text) if traduire else text 
+            
+           
+        
         width, height = map(int, selected_format.split("*"))
         images = []
         
@@ -348,10 +365,10 @@ def generate_image(text, guidance_scale, num_steps, selected_format, traduire, s
             print(f"Génération d'image {idx+1} avec seed {seed}")
             generator = torch.Generator(device=device).manual_seed(seed)
             generated_image = pipe(
-                prompt_en,
+                prompt=prompt_en,
                 num_inference_steps=num_steps,
-                # guidance_scale=guidance_scale,
-                negative_prompt= NEGATIVE_PROMPT,
+                guidance_scale=guidance_scale,
+                negative_prompt=NEGATIVE_PROMPT, # Fournir le prompt négatif textuel
                 generator=generator,
                 width=width,
                 height=height
