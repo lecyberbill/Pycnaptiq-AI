@@ -11,7 +11,7 @@ from datetime import datetime
 import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, AutoProcessor
-from utils import fichier_recap, enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme
+from utils import fichier_recap, enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, telechargement_modele
 from version import version
 from concurrent.futures import ThreadPoolExecutor
 import json
@@ -31,6 +31,20 @@ FORMATS = config["FORMATS"]
 NEGATIVE_PROMPT = config["NEGATIVE_PROMPT"]
 GRADIO_THEME = config["GRADIO_THEME"]
 AUTHOR= config["AUTHOR"]
+
+modeles_disponibles = lister_fichiers(MODELS_DIR)
+
+if "Aucun modèle trouvé." in modeles_disponibles:
+    reponse = input("Aucun modèle trouvé. Voulez-vous télécharger un modèle maintenant (O/N) oui ou non ? ")
+    if reponse.lower() == "O":
+        lien_modele = "https://huggingface.co/QuadPipe/MegaChonkXL/resolve/main/MegaChonk-XL-v2.3.1.safetensors?download=true"
+        nom_fichier = "MegaChonk-XL-v2.3.1.safetensors"
+        if telechargement_modele(lien_modele, nom_fichier,MODELS_DIR):
+            # Recharge la liste des modèles après le téléchargement
+            modeles_disponibles = lister_fichiers(MODELS_DIR)
+            if not modeles_disponibles:
+                modeles_disponibles = ["Aucun modèle trouvé."]
+
 
 # Vérifier que le format est valide
 if IMAGE_FORMAT not in ["PNG", "JPG", "WEBP"]:
@@ -490,7 +504,7 @@ with gr.Blocks(theme=theme_gradio) as interface:
             
             bouton_lister = gr.Button("Lister les modèles")
             # Dropdown pour sélectionner le modèle
-            modele_dropdown = gr.Dropdown(label="Sélectionner un modèle", choices=[])
+            modele_dropdown = gr.Dropdown(label="Sélectionner un modèle", choices=modeles_disponibles)
             # Nouveau dropdown pour sélectionner le VAE, valeur par défaut "Défaut VAE"
             vae_dropdown = gr.Dropdown(
                 label="Sélectionner un VAE",
