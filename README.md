@@ -29,19 +29,22 @@
    
 ## ▶️ Utilisation
 1. **Charger un modèle impérativement pour utiliser la génération d'image**
-	- Le logiciel est fourni **sans modèle**, vous pouvez télécharger des modèles sur différentes sources (modèle checkpoints SDXL 1.0 au format .safetensors à placer dans le repertoire /models/checkpoints)
+	- Le logiciel est fourni **sans modèle**
+	- Si aucun modèle n'est trouvé au lancement le programme vous demandera si vous shouaitez en charger un, répondre par o ou n (oui ou non), le model sera alors chargé il s'agit d'un modèle générique qui donne de bons résultas : MegaChonkXL 
+   	- Part ailleurs vous pouvez télécharger vos propres modèles sur différentes sources (modèle checkpoints SDXL 1.0 au format .safetensors à placer dans le repertoire /models/checkpoints)
 		Exemples de sites : https://civitai.com/ | https://lexica.art/ | https://huggingface.co
- 	- D'abord cliquer sur **"Lister les modèles"**
-	- Choisir un VAE (Auto-Encodeur Variationnel, placer vos vae **.safetensors** uniquemen dans /models/vae/ ) 
+ 	- Au lancement de l'application, cliquer sur **"Lister les modèles"**
+  	- Les modèles présents dans le dossier models seront affichés 
+	- [FACULTATIF] Choisir un VAE (Auto-Encodeur Variationnel, placer vos vae **.safetensors** uniquement dans /models/vae/ ) 
 		*Le VAE prend l'image générée dans l'espace latent et la "décompresse" pour la rendre visible et détaillée. C'est comme si vous demandiez au peintre de transformer la version miniature du tableau en une œuvre d'art complète
 		*SDXL est livré avec un VAE intégré, ce qui signifie que vous n'avez pas besoin de télécharger ou d'installer de VAE supplémentaire. Cependant, il existe également des VAE personnalisés que vous pouvez utiliser pour obtenir des résultats différents
 	- Choisir un sampler. 
 		*En termes simples, le sampler est l'algorithme qui guide le processus de transformation du bruit aléatoire en une image cohérente
 	- Cliqer sur **"Charger le modèle"**
-2. **Taper un prompt le compteur de tokens vous indique la longueur à ne pas dépasser**
+3. **Taper un prompt le compteur de tokens vous indique la longueur à ne pas dépasser**
 	- Cocher la case Traduire en anglais vous permez de taper votre prompt en français et de le faire Traduire
 	- Générer un prompt à partir d'une image permet de générer automatiquement un prompt
-3. **Régler les paramètres**
+4. **Régler les paramètres**
 	- Guidage :
 		*En termes simples, le guidage détermine à quel point l'image générée est fidèle au prompt.
 		*Valeurs faibles (par exemple, 3-7) : L'image aura plus de liberté créative et pourra s'éloigner du prompt. Cela peut donner des résultats plus surprenants et artistiques, mais aussi moins précis par rapport à la description.
@@ -52,14 +55,14 @@
 		*Vitesse de génération: Un nombre d'étapes plus élevé signifie un temps de génération plus long. Il existe donc un compromis entre la qualité de l'image et la vitesse de génération.
 		**Nombre d'étapes recommandé pour SDXL :
 		*Pour SDXL, un nombre d'étapes d'échantillonnage d'environ 30 est souvent considéré comme un bon équilibre entre qualité et vitesse. Au-delà de 30, chaque étape supplémentaire offre un rendement décroissant en termes d'amélioration de la qualité. Il est rare de voir des améliorations significatives au-delà de 50 étapes.
-4. **Choisir un format pour les dimensions de votre image
-5. **Seed la valeur par défaut -1 génére un seed aléatoire 
+5. **Choisir un format pour les dimensions de votre image
+6. **Seed la valeur par défaut -1 génére un seed aléatoire 
 		*Reproductibilité : Si vous utilisez le même seed, le même prompt et les mêmes autres paramètres, vous obtiendrez exactement la même image à chaque fois. Cela est extrêmement utile pour affiner un résultat particulier, expérimenter avec d'autres paramètres tout en conservant la même base, ou partager vos créations avec d'autres en leur permettant de les reproduire à l'identique.
 		*Variété : En changeant le seed, vous obtiendrez une image différente, même avec le même prompt. Cela vous permet d'explorer un large éventail de possibilités créatives à partir d'une même idée de base.
-6. **Nombre d'image permet de lancer plusieurs images avec le même prompt
-7. **Générer ou arrêter
+7. **Nombre d'image permet de lancer plusieurs images avec le même prompt
+8. **Générer ou arrêter
 	- Générer, génère l'image, vous retrouverez l'image ainsi qu'un rapport au format html dans le dossier output
-8. **Activer la retouche d'image
+9. **Activer la retouche d'image
 	- cocher cette case ouvre un accès à des outils basiques pour retoucher des images, il est possible de retoucher une image générée, pour cela faire un clic droit sur l'image et "copier l'image", coller l'image dans la zone "Sélectionner une image" en cliquant sur l'icone presse papier 📋
 
 ## ▶️ Configuration avancée
@@ -69,31 +72,43 @@ Pour les petites configuration je recommande fortement d'utiliser des tailles d'
 le fichier se présente ainsi : 
 ```json
 {
-    "AUTOR": "Cyberbill_SDXL",
-	"MODELS_DIR": "models\\checkpoints",
+    "AUTHOR": "Cyberbill_SDXL",
+    "MODELS_DIR": "models\\checkpoints",
     "VAE_DIR": "models\\vae",
-	"SAVE_DIR": "output",
+    "LORAS_DIR": "models\\loras",
+    "SAVE_DIR": "output",
     "IMAGE_FORMAT": "webp",
+	"DEFAULT_MODEL": "CHEYENNE_.safetensors",
 	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
         "704*1408", "704*1344", "768*1344", "768*1280", "832*1216",
         "832*1152", "896*1152", "896*1088", "960*1088", "960*1024",
         "1024*1024", "1024*960", "1088*960", "1088*896"
     ],
-	"GRADIO_THEME": "Default"
+	"GRADIO_THEME": "Defaut",
+	"SHARE":"False" 
 }
+
 
 ```
 #changer les repertoirs par défauts des modèles et de la sortie des images
 **MODELS_DIR, VAE_DIR, SAVE_DIR, REPORT_PATH
-Vous pouvez personnaliser l'endroit où sont stokés les modèles, attention il faut **"écahpper"** le \ exemple :
+Personnalisation du stockage des modèles
 
+Vous pouvez personnaliser l'emplacement où sont stockés vos modèles, vos vae, vos loaras et vos images. Veuillez noter qu'il est nécessaire d'échapper le caractère \.
+Exemple
+Au lieu d'utiliser un chemin de fichier comme ceci :
+C:\dossier\de\modeles
+Vous devrez l'écrire comme ceci :
+C:\\dossier\\de\\modeles
 pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\repertoire\\mes_modeles\\checkpoints
 
 
 **MODELS_DIR** : endroit où sont stoké les modèles de base SDXL 1.0
 
 **VAE_DIR** : endroit où sont stoké les VAE (attention uniquement SDXL 1.0)
+
+**LORAS_DIR** : endroit où sont stocké vos Loras (attention uniquement SDXL 1.0)
 
 **SAVE_DIR** : endroit où sont stoké les photos produites, un repertoire à la date du jour sera créé pour stoker les photos
 
@@ -120,6 +135,7 @@ pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\repertoire\\mes
 	- Glass: Thème bleu avec effet de verre grâce à des dégradés verticaux.
  
 	- Ocean: Thème bleu-vert avec dégradés horizontaux.
+ **SHARE** Si vous vous mettez True, alors un lien sera créé pour utiliser l'application depuis un autre ordinateur, ATTENTION pour le moment il n'y a pas de système de queue, aussi, si vous partagez le lien et que plusieurs personnes utilisent le logiciel, il y a un gros risque de bug. 
 
 ## Savoir plus sur le choix des Samplers :
     EulerDiscreteScheduler (Rapide et détaillé): Un sampler Euler classique, rapide et qui produit des images détaillées. Bon point de départ et souvent utilisé pour son efficacité. Vous l'avez déjà.
