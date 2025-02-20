@@ -35,12 +35,13 @@
 		Exemples de sites : https://civitai.com/ | https://lexica.art/ | https://huggingface.co
  	- Au lancement de l'application, cliquer sur **"Lister les modèles"**
   	- Les modèles présents dans le dossier models seront affichés 
-	- [FACULTATIF] Choisir un VAE (Auto-Encodeur Variationnel, placer vos vae **.safetensors** uniquement dans /models/vae/ ) 
+	- **[FACULTATIF]** Choisir un VAE (Auto-Encodeur Variationnel, placer vos vae **.safetensors** uniquement dans /models/vae/ ) 
 		*Le VAE prend l'image générée dans l'espace latent et la "décompresse" pour la rendre visible et détaillée. C'est comme si vous demandiez au peintre de transformer la version miniature du tableau en une œuvre d'art complète
 		*SDXL est livré avec un VAE intégré, ce qui signifie que vous n'avez pas besoin de télécharger ou d'installer de VAE supplémentaire. Cependant, il existe également des VAE personnalisés que vous pouvez utiliser pour obtenir des résultats différents
 	- Choisir un sampler. 
 		*En termes simples, le sampler est l'algorithme qui guide le processus de transformation du bruit aléatoire en une image cohérente
 	- Cliqer sur **"Charger le modèle"**
+ - **[FACULTATIF]** Cocher la case Lora pour utiliser un lora
 3. **Taper un prompt le compteur de tokens vous indique la longueur à ne pas dépasser**
 	- Cocher la case Traduire en anglais vous permez de taper votre prompt en français et de le faire Traduire
 	- Générer un prompt à partir d'une image permet de générer automatiquement un prompt
