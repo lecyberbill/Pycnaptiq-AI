@@ -15,9 +15,12 @@ I'm moving the app to beta because a lot of work has been done to integrate new 
 
 ### Changed
 - StableDiffusionXLPipeline is now passed on parameter to  AutoPipelineForText2Image for the gestion of loras
+- Documentation update
+- Rearrangement of buttons on the front end
 
 ### Fixed
 - error message when Loras formats are not compatible with SDXL 1.0
+- and a lot of bugs !
 
 ## [A.0.4] - 2025-02-11
 ### Added
