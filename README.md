@@ -70,6 +70,39 @@
 **Au premier lancement si il n'y a pas de modèle l'application vous invite à en télécharger un :**
 L'avertissement sur Triton n'est pas bloquant. Triton est une bibliothèque qui permet d'optimiser les calculs d'inférence. Triton ne fonctionne pas sur Windows
 ![image](https://github.com/user-attachments/assets/c12ebfa5-779a-47d8-8f53-5b2df4cfd484)
+![image](https://github.com/user-attachments/assets/9f9a192e-f04e-4c0f-9c77-9fd81507aa08)
+
+L'application au lancement :
+
+![image](https://github.com/user-attachments/assets/5d9cd3b8-e4ce-4dfb-9a0c-91f42149b6bc)
+
+Choisir le modèle et cliquer sur charger, attendre que le modèle soit charger pour utiliser la génération d'image :
+![image](https://github.com/user-attachments/assets/ad69af2a-a2c8-4195-93e9-a5020a7df058)
+
+Indique que le modèle est chargé : 
+![image](https://github.com/user-attachments/assets/2ddf3d56-8d27-4be0-98f7-ce960f3d909b)
+
+On tappe un prompt que l'on peut traduire en cochant la case :
+![image](https://github.com/user-attachments/assets/2324a269-d88e-416a-b950-0bc3cd9aff91)
+
+On régle les paramètre comme indiqué plus haut :
+![image](https://github.com/user-attachments/assets/a1948d2d-f1c3-4ed8-a4db-c0cec87e0f1d)
+
+On clique sur générer : 
+![image](https://github.com/user-attachments/assets/471e1820-4f4c-4a10-a67e-29a257d8cfd9)
+
+![image](https://github.com/user-attachments/assets/a8f33682-5c67-45d1-bc69-f3e3cb9527e8)
+
+Les images d'affichent au fur et à mesure de la production :
+![image](https://github.com/user-attachments/assets/b0986577-329f-4ff6-833a-2d1145a765a4)
+![image](https://github.com/user-attachments/assets/b1dfcc4a-af49-4a03-aeb8-c829f45fd07a)
+
+Un fichier `rapport.html` est créé dans le même répertoire que les images. Il permettra de consulter les images produites et de mémoriser les paramètres.
+
+![image](https://github.com/user-attachments/assets/e37d134b-84c1-44a1-a816-fabf4a44460c)
+
+![image](https://github.com/user-attachments/assets/3d790458-f301-4d02-9c79-d8f7a66c2f77)
+Cliquer sur l'image pour l'agrandir
 
 
 ## ▶️ Configuration avancée
