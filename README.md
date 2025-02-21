@@ -238,4 +238,4 @@ Ces samplers sont souvent des versions abrégées ou des variantes d'autres samp
 *   Les descriptions ci-dessus sont des généralisations basées sur les caractéristiques typiques de chaque sampler. Les résultats réels peuvent varier en fonction du modèle utilisé, du prompt, des paramètres de génération et d'autres facteurs.
 *   L'expérimentation est la clé !  N'hésitez pas à tester différents samplers pour voir ceux qui correspondent le mieux à votre style et à vos besoins spécifiques.
 
-![image](https://github.com/user-attachments/assets/c4f1311f-e00c-4f4d-969d-db367100eeeb)
+
