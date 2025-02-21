@@ -118,10 +118,11 @@ del "%get_pip_file%"
 echo [INFO] Vérification de CUDA...
 nvcc --version 2>NUL | findstr /C:"release 12.6" >nul
 if errorlevel 1 (
-    echo [/!\ Erreur] CUDA 12.6 non detecte. Veuillez installer CUDA 12.6 et ses drivers.
+    echo [/!\ Erreur] CUDA 12.6 non détecté. Veuillez installer CUDA 12.6 et ses drivers.
+	pause
     exit /b 1
 ) else (
-    echo [OK] CUDA 12.6 detecte.
+    echo [OK] CUDA 12.6 détecté.
 )
 
 echo [INFO] Création de l'environnement virtuel...
@@ -140,7 +141,7 @@ echo [OK] Environnement virtuel cree
 
 echo [INFO] Installation des dépendances...
 python -m pip install --upgrade pip
-pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
 pip install --no-cache-dir -r requirements.txt
 
 echo [INFO] Installation terminée ! lancer le programme avec start.bat
