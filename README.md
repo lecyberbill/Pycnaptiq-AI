@@ -67,6 +67,9 @@
 14. **Activer la retouche d'image** :
     - Cocher cette case ouvre un accès à des outils basiques pour retoucher des images. Il est possible de retoucher une image générée. Pour cela, faites un clic droit sur l'image et sélectionnez "copier l'image", puis collez l'image dans la zone "Sélectionner une image" en cliquant sur l'icône presse-papier 📋.
 
+**Au premier lancement si il n'y a pas de modèle l'application vous invite à en télécharger un :**
+L'avertissement sur Triton n'est pas bloquant. Triton est une bibliothèque qui permet d'optimiser les calculs d'inférence. Triton ne fonctionne pas sur Windows
+![image](https://github.com/user-attachments/assets/c12ebfa5-779a-47d8-8f53-5b2df4cfd484)
 
 
 ## ▶️ Configuration avancée
