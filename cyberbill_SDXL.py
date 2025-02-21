@@ -46,9 +46,9 @@ modeles_disponibles = lister_fichiers(MODELS_DIR)
 
 
 
-if "Aucun modèle trouvé." in modeles_disponibles:
+if modeles_disponibles and modeles_disponibles[0] == "Aucun modèle trouvé.":
     reponse = input(f"{txt_color('Attention','erreur')} Aucun modèle trouvé. Voulez-vous télécharger un modèle maintenant (O/N) oui ou non ? ")
-    if reponse.lower() == "O":
+    if reponse.lower() == "o":
         lien_modele = "https://huggingface.co/QuadPipe/MegaChonkXL/resolve/main/MegaChonk-XL-v2.3.1.safetensors?download=true"
         nom_fichier = "MegaChonk-XL-v2.3.1.safetensors"
         if telechargement_modele(lien_modele, nom_fichier,MODELS_DIR):
