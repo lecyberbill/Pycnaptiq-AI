@@ -7,6 +7,10 @@ import html
 import json
 import requests
 from tqdm import tqdm
+import torch
+from colorama import init, Fore, Style
+
+init()
 
 
 def fichier_recap(chemin_image, etiquettes):
@@ -29,10 +33,10 @@ def fichier_recap(chemin_image, etiquettes):
             for etiquette, valeur in etiquettes.items():
                 f.write(f"{etiquette}: {valeur}\n")
 
-        print(f"Les étiquettes ont été enregistrées dans : {chemin_fichier_txt}")
+        print(txt_color("[INFO] ","info"), f"Les étiquettes ont été enregistrées dans : {chemin_fichier_txt}")
 
     except Exception as e:
-        print(f"Une erreur s'est produite : {e}")
+        print(txt_color("[ERREUR] ","erreur"), f"Une erreur s'est produite : {e}")
         
   
 
@@ -101,7 +105,7 @@ def enregistrer_etiquettes_image_html(chemin_image, etiquettes):
                 with open(chemin_fichier_html, "w", encoding='utf-8') as f:
                     f.write(nouveau_contenu)
                     
-                print(f"Mise à jour : {chemin_fichier_html}")
+                print(txt_color("[OK] ","ok"), f"Mise à jour", txt_color(f"{chemin_fichier_html}","ok"))
 
         else:  # Fichier n'existe pas
             with open(chemin_fichier_html, 'w', encoding='utf-8') as f:
@@ -170,10 +174,10 @@ def enregistrer_etiquettes_image_html(chemin_image, etiquettes):
                 f.write(image_html)  # Ajouter le contenu de la première image
                 f.write("</body>\n")  # Fermeture du body
                 f.write("</html>\n")
-            print(f"Création du fichier rapport : {chemin_fichier_html}")
+            print(txt_color("[OK] ","ok"), f"Création du fichier rapport : {chemin_fichier_html}")
     
     except Exception as e:
-        print(f"Erreur lors de la génération : {e}")
+        print(txt_color("[ERREUR] ","erreur"), f"Erreur lors de la génération : {e}")
 
 
 
@@ -199,10 +203,10 @@ def charger_configuration():
                 config[key] = os.path.join(script_dir, config[key])
         
         
-        print("Configuration chargée avec succès.")
+        print(txt_color("[OK] ","ok"),"Configuration chargée avec succès.")
         return config
     except Exception as e:
-        print(f"Erreur lors du chargement de la configuration : {e}")
+        print(txt_color("[ERREUR] ","erreur"),f"Erreur lors du chargement de la configuration : {e}")
         return None
         
         
@@ -251,17 +255,17 @@ def lister_fichiers(dir, ext=".safetensors"):
         
         # If no files are found, print a specific message and return an empty list.
         if not fichiers:
-            print("No models found.")
+            print(txt_color("[INFO] ","info"), "No models found.")
             return ["Aucun modèle trouvé."]
             
     except FileNotFoundError:
         # If the directory doesn't exist, print a specific error message and return an empty list. 
-        print(f"Directory not found : {dir}")
+        print(txt_color("[ERREUR] ","erreur"),f"Directory not found : {dir}")
         return ["Répertoire non trouvé."]
         
     else:
         # If files are found, print them out and return the file_list. 
-        print(f"Files found in {dir}: {fichiers}")
+        print(txt_color("[INFO] ","info"),f"Files found in {dir}: {fichiers}")
         return fichiers
         
         
@@ -280,12 +284,86 @@ def telechargement_modele(lien_modele, nom_fichier, models_dir):
                         f.write(chunk)
                         pbar.update(len(chunk))
 
-        print(f"Modèle téléchargé avec succès : {nom_fichier}")
+        print(txt_color("[ok] ","ok"),f"Modèle téléchargé avec succès : {nom_fichier}")
         return True  # Indique que le téléchargement a réussi
 
     except requests.exceptions.RequestException as e:
-        print(f"Erreur lors du téléchargement du modèle : {e}")
+        print(txt_color("[ERREUR] ","erreur"),f"Erreur lors du téléchargement du modèle : {e}")
         return False  # Indique que le téléchargement a échoué
     except Exception as e:
-        print(f"Une erreur s'est produite : {e}")
+        print(txt_color("[ERREUR] ","erreur"),f"Une erreur s'est produite : {e}")
         return False
+        
+
+def txt_color(texte, statut):
+    """
+    Ajoute de la couleur à un texte en fonction du statut spécifié.
+
+    Args:
+        texte (str): La chaîne de caractères à colorer.
+        statut (str): Le statut du message, parmi 'info', 'erreur', 'ok'.
+
+    Returns:
+        str: La chaîne de caractères colorée en fonction du statut.
+             - 'info': retourne le texte en bleu.
+             - 'erreur': retourne le texte en rouge.
+             - 'ok': retourne le texte en vert.
+             Pour tout autre statut ou si le statut n'est pas reconnu,
+             retourne le texte sans couleur.
+    """
+    if statut == "erreur":
+        return Fore.RED + texte + Style.RESET_ALL
+    elif statut == "ok":
+        return Fore.GREEN + texte + Style.RESET_ALL
+    elif statut == "info":
+        return Fore.CYAN + texte + Style.RESET_ALL
+    else:
+        return texte
+        
+        
+def cprint(*args, statut=None, **kwargs):
+    """
+    Fonction d'impression personnalisée qui ajoute de la couleur si le paramètre 'statut' est fourni.
+
+    Args:
+        *args: Arguments à passer à la fonction print originale.
+        statut (str, optional): Le statut pour la coloration ('info', 'erreur', 'ok'). Par défaut: None (pas de couleur).
+        **kwargs: Arguments additionnels à passer à la fonction print originale (sep, end, file, flush).
+    """
+    if statut:
+        colored_args = [txt_color(str(arg), statut) for arg in args] # Utilisation d'une compréhension de liste pour simplifier
+        print(*colored_args, **kwargs) # Utiliser la fonction print originale (sans la redéfinir)
+    else:
+        print(*args, **kwargs) # Utiliser la fonction print originale sans coloration 
+        # cprint("VRAM détectée :", f'{vram_total_gb:.2f} Go', statut='info')
+        
+def str_to_bool(s):
+    """
+    Convertit une chaîne de caractères en une valeur booléenne.
+
+    Cette fonction convertit la chaîne d'entrée en minuscules et vérifie si celle-ci
+    correspond à une des valeurs considérées comme représentant True.
+    Les valeurs reconnues comme True sont : "true", "1", "yes", "oui", "o", "ok" et "y".
+    Toute autre valeur sera évaluée à False.
+
+    Paramètres :
+      s (str) : La chaîne de caractères à convertir.
+
+    Retourne :
+      bool : True si la chaîne représente une valeur vraie, sinon False.
+
+    Exemples :
+      >>> str_to_bool("True")
+      True
+      >>> str_to_bool("false")
+      False
+      >>> str_to_bool("1")
+      True
+      >>> str_to_bool("0")
+      False
+      False
+    """
+    return s.lower() in ("true", "1", "yes", "y", "ok", "oui", "o")
+
+
+    
