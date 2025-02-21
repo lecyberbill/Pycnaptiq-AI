@@ -51,7 +51,7 @@ if modeles_disponibles and modeles_disponibles[0] == "Aucun modèle trouvé.":
     if reponse.lower() == "o":
         lien_modele = "https://huggingface.co/QuadPipe/MegaChonkXL/resolve/main/MegaChonk-XL-v2.3.1.safetensors?download=true"
         nom_fichier = "MegaChonk-XL-v2.3.1.safetensors"
-        if telechargement_modele(lien_modele, nom_fichier,MODELS_DIR):
+        if telechargement_modele(lien_modele, nom_fichier, MODELS_DIR):
             # Recharge la liste des modèles après le téléchargement
             modeles_disponibles = lister_fichiers(MODELS_DIR)
             if not modeles_disponibles:
@@ -334,7 +334,7 @@ def generate_caption(image):
     if image:
         # Préparer les entrées
         inputs = caption_processor(text="<GENERATE_TAGS>", images=image, return_tensors="pt").to(device)
-    
+        print(txt_color("[INFO] ","info"), f"calcul du prompt en cours")
         # Générer le texte
         generated_ids = caption_model.generate(
             input_ids=inputs["input_ids"], 
@@ -351,6 +351,7 @@ def generate_caption(image):
         # Libérer la mémoire GPU
         torch.cuda.empty_cache()
         prompt = parsed_answer.get('<GENERATE_TAGS>', '').strip('{}').strip('"')
+        print(txt_color("[INFO] ","info"), f"prompt calculé : {prompt}")
         return prompt
 
 def update_prompt(image):
