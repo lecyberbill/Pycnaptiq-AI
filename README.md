@@ -29,66 +29,74 @@
    
 ## ▶️ Utilisation
 1. **Charger un modèle impérativement pour utiliser la génération d'image**
-	- Le logiciel est fourni **sans modèle**
-	- Si aucun modèle n'est trouvé au lancement le programme vous demandera si vous shouaitez en charger un, répondre par o ou n (oui ou non), le model sera alors chargé il s'agit d'un modèle générique qui donne de bons résultas : MegaChonkXL 
-   	- Part ailleurs vous pouvez télécharger vos propres modèles sur différentes sources (modèle checkpoints SDXL 1.0 au format .safetensors à placer dans le repertoire /models/checkpoints)
-		Exemples de sites : https://civitai.com/ | https://lexica.art/ | https://huggingface.co
- 	- Au lancement de l'application, cliquer sur **"Lister les modèles"**
-  	- Les modèles présents dans le dossier models seront affichés 
-	- **[FACULTATIF]** Choisir un VAE (Auto-Encodeur Variationnel, placer vos vae **.safetensors** uniquement dans /models/vae/ ) 
-		*Le VAE prend l'image générée dans l'espace latent et la "décompresse" pour la rendre visible et détaillée. C'est comme si vous demandiez au peintre de transformer la version miniature du tableau en une œuvre d'art complète
-		*SDXL est livré avec un VAE intégré, ce qui signifie que vous n'avez pas besoin de télécharger ou d'installer de VAE supplémentaire. Cependant, il existe également des VAE personnalisés que vous pouvez utiliser pour obtenir des résultats différents
-	- Choisir un sampler. 
-		*En termes simples, le sampler est l'algorithme qui guide le processus de transformation du bruit aléatoire en une image cohérente
-	- Cliqer sur **"Charger le modèle"**
- - **[FACULTATIF]** Cocher la case Lora pour utiliser un lora
-3. **Taper un prompt le compteur de tokens vous indique la longueur à ne pas dépasser**
-	- Cocher la case Traduire en anglais vous permez de taper votre prompt en français et de le faire Traduire
-	- Générer un prompt à partir d'une image permet de générer automatiquement un prompt
-4. **Régler les paramètres**
-	- Guidage :
-		*En termes simples, le guidage détermine à quel point l'image générée est fidèle au prompt.
-		*Valeurs faibles (par exemple, 3-7) : L'image aura plus de liberté créative et pourra s'éloigner du prompt. Cela peut donner des résultats plus surprenants et artistiques, mais aussi moins précis par rapport à la description.
-		*Valeurs élevées (par exemple, 10-20) : L'image sera plus étroitement liée au prompt et essaiera de le suivre de plus près. Cela peut donner des résultats plus précis et détaillés, mais aussi potentiellement plus rigides et moins créatifs.
-	- Etapes : 
-		**Impact du nombre d'étapes :
-		*Qualité de l'image: En général, un nombre d'étapes plus élevé tend à produire des images de meilleure qualité, avec plus de détails, moins de bruit et une meilleure fidélité au prompt (la description textuelle). Cependant, au-delà d'un certain point, l'amélioration de la qualité devient marginale, voire négligeable.
-		*Vitesse de génération: Un nombre d'étapes plus élevé signifie un temps de génération plus long. Il existe donc un compromis entre la qualité de l'image et la vitesse de génération.
-		**Nombre d'étapes recommandé pour SDXL :
-		*Pour SDXL, un nombre d'étapes d'échantillonnage d'environ 30 est souvent considéré comme un bon équilibre entre qualité et vitesse. Au-delà de 30, chaque étape supplémentaire offre un rendement décroissant en termes d'amélioration de la qualité. Il est rare de voir des améliorations significatives au-delà de 50 étapes.
-5. **Choisir un format pour les dimensions de votre image
-6. **Seed la valeur par défaut -1 génére un seed aléatoire 
-		*Reproductibilité : Si vous utilisez le même seed, le même prompt et les mêmes autres paramètres, vous obtiendrez exactement la même image à chaque fois. Cela est extrêmement utile pour affiner un résultat particulier, expérimenter avec d'autres paramètres tout en conservant la même base, ou partager vos créations avec d'autres en leur permettant de les reproduire à l'identique.
-		*Variété : En changeant le seed, vous obtiendrez une image différente, même avec le même prompt. Cela vous permet d'explorer un large éventail de possibilités créatives à partir d'une même idée de base.
-7. **Nombre d'image permet de lancer plusieurs images avec le même prompt
-8. **Générer ou arrêter
-	- Générer, génère l'image, vous retrouverez l'image ainsi qu'un rapport au format html dans le dossier output
-9. **Activer la retouche d'image
-	- cocher cette case ouvre un accès à des outils basiques pour retoucher des images, il est possible de retoucher une image générée, pour cela faire un clic droit sur l'image et "copier l'image", coller l'image dans la zone "Sélectionner une image" en cliquant sur l'icone presse papier 📋
+   - Le logiciel est fourni **sans modèle**.
+     - Si aucun modèle n'est trouvé au lancement, le programme vous demandera si vous souhaitez en charger un. Répondez par o ou n (oui ou non). Le modèle sera alors chargé. Il s'agit d'un modèle générique qui donne de bons résultats : MegaChonkXL.
+     - Par ailleurs, vous pouvez télécharger vos propres modèles sur différentes sources (modèle checkpoints SDXL 1.0 au format .safetensors à placer dans le répertoire `/models/checkpoints`).
+
+     Exemples de sites : [civitai.com](https://civitai.com/) | [lexica.art](https://lexica.art/) | [huggingface.co](https://huggingface.co)
+
+2. Au lancement de l'application, cliquez sur "Lister les modèles".
+3. Les modèles présents dans le dossier models seront affichés.
+4. **[FACULTATIF]** Choisir un VAE (Auto-Encodeur Variationnel). Placez vos VAE (.safetensors uniquement) dans `/models/vae/`. *Le VAE prend l'image générée dans l'espace latent et la "décompresse" pour la rendre visible et détaillée. C'est comme si vous demandiez au peintre de transformer la version miniature du tableau en une œuvre d'art complète.* SDXL est livré avec un VAE intégré, ce qui signifie que vous n'avez pas besoin de télécharger ou d'installer de VAE supplémentaire. Cependant, il existe également des VAE personnalisés que vous pouvez utiliser pour obtenir des résultats différents.
+5. **[FACULTATIF]** Choisir un sampler. *En termes simples, le sampler est l'algorithme qui guide le processus de transformation du bruit aléatoire en une image cohérente.*
+6. Cliquez sur **"Charger le modèle"**.
+
+7. **[FACULTATIF]** Cocher la case Lora pour utiliser un Lora :
+   - En cochant la case, de nouvelles options s'offrent à vous. Vous pourrez choisir un Lora (compatible SDXL 1.0), lui donner un poids, et le décharger quand vous n'en aurez plus besoin. **ATTENTION** Le fait de changer de modèle décharge automatiquement le Lora, il faudra donc le recharger. Il est possible de charger plusieurs Lora, mais pour le moment, il n'est pas encore possible de leur donner un poids individuellement.
+8. **Taper un prompt**. Le compteur de tokens vous indique la longueur à ne pas dépasser.
+   - Cocher la case Traduire en anglais vous permet de taper votre prompt en français et de le faire traduire.
+   - Générer un prompt à partir d'une image permet de générer automatiquement un prompt. Il s'uffit alors de faire glisser une image ou d'en coller une depuis le presse papier, ou encore de faire une photo à partir de votre webcam.
+9. **Régler les paramètres**
+   - Guidage :
+     - *En termes simples, le guidage détermine à quel point l'image générée est fidèle au prompt.*
+     - **Valeurs faibles** (par exemple, 3-7) : L'image aura plus de liberté créative et pourra s'éloigner du prompt. Cela peut donner des résultats plus surprenants et artistiques, mais aussi moins précis par rapport à la description.
+     - **Valeurs élevées** (par exemple, 10-20) : L'image sera plus étroitement liée au prompt et essaiera de le suivre de plus près. Cela peut donner des résultats plus précis et détaillés, mais aussi potentiellement plus rigides et moins créatifs.
+   - Étapes :
+     - **Impact du nombre d'étapes** :
+       - **Qualité de l'image** : En général, un nombre d'étapes plus élevé tend à produire des images de meilleure qualité, avec plus de détails, moins de bruit et une meilleure fidélité au prompt (la description textuelle). Cependant, au-delà d'un certain point, l'amélioration de la qualité devient marginale, voire négligeable.
+       - **Vitesse de génération** : Un nombre d'étapes plus élevé signifie un temps de génération plus long. Il existe donc un compromis entre la qualité de l'image et la vitesse de génération.
+     - **Nombre d'étapes recommandé pour SDXL** :
+       - Pour SDXL, un nombre d'étapes d'échantillonnage d'environ 30 est souvent considéré comme un bon équilibre entre qualité et vitesse. Au-delà de 30, chaque étape supplémentaire offre un rendement décroissant en termes d'amélioration de la qualité. Il est rare de voir des améliorations significatives au-delà de 50 étapes.
+10. Choisir un format pour les dimensions de votre image.
+11. **Seed**. La valeur par défaut -1 génère un seed aléatoire.
+     - **Reproductibilité** : Si vous utilisez le même seed, le même prompt et les mêmes autres paramètres, vous obtiendrez exactement la même image à chaque fois. Cela est extrêmement utile pour affiner un résultat particulier, expérimenter avec d'autres paramètres tout en conservant la même base, ou partager vos créations avec d'autres en leur permettant de les reproduire à l'identique.
+     - **Variété** : En changeant le seed, vous obtiendrez une image différente, même avec le même prompt. Cela vous permet d'explorer un large éventail de possibilités créatives à partir d'une même idée de base.
+12. **Nombre d'images** permet de lancer plusieurs images avec le même prompt.
+13. **Générer ou arrêter**.
+    - Générer produit l'image, vous retrouverez l'image ainsi qu'un rapport au format HTML dans le dossier output.
+14. **Activer la retouche d'image** :
+    - Cocher cette case ouvre un accès à des outils basiques pour retoucher des images. Il est possible de retoucher une image générée. Pour cela, faites un clic droit sur l'image et sélectionnez "copier l'image", puis collez l'image dans la zone "Sélectionner une image" en cliquant sur l'icône presse-papier 📋.
+
+
 
 ## ▶️ Configuration avancée
-Il est possible de modifier le fichier de configuration
-Allez dans le dossier /config ouvrez le fichier config.json dans un éditeur de texte simple
-Pour les petites configuration je recommande fortement d'utiliser des tailles d'images de 512 x 512 maximun. Des images plus grandes feront planter la génération.
-le fichier se présente ainsi : 
+Il est possible de modifier le fichier de configuration.
+
+1. Allez dans le dossier `./config` et ouvrez le fichier `config.json` dans un éditeur de texte simple.
+2. Pour les petites configurations, je recommande fortement d'utiliser des tailles d'images de 512 x 512 maximum. Des images plus grandes feront planter la génération.
+
+Le fichier se présente ainsi :
+ 
 ```json
 {
     "AUTHOR": "Cyberbill_SDXL",
     "MODELS_DIR": "models\\checkpoints",
     "VAE_DIR": "models\\vae",
-    "LORAS_DIR": "models\\loras",
-    "SAVE_DIR": "output",
+	"LORAS_DIR": "models\\loras",
+	"SAVE_DIR": "output",
     "IMAGE_FORMAT": "webp",
-	"DEFAULT_MODEL": "CHEYENNE_.safetensors",
+	"DEFAULT_MODEL": "votre_modele_par_defaut_au_lancement.safetensors",
 	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
         "704*1408", "704*1344", "768*1344", "768*1280", "832*1216",
         "832*1152", "896*1152", "896*1088", "960*1088", "960*1024",
         "1024*1024", "1024*960", "1088*960", "1088*896"
     ],
+	"OPEN_BROWSER": "Yes",
 	"GRADIO_THEME": "Defaut",
 	"SHARE":"False" 
 }
+
 
 
 ```
@@ -105,21 +113,24 @@ C:\\dossier\\de\\modeles
 pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\repertoire\\mes_modeles\\checkpoints
 
 
-**MODELS_DIR** : endroit où sont stoké les modèles de base SDXL 1.0
+**MODELS_DIR** : endroit où sont stockés les modèles de base SDXL 1.0
 
-**VAE_DIR** : endroit où sont stoké les VAE (attention uniquement SDXL 1.0)
+**VAE_DIR** : endroit où sont stockés les VAE (attention uniquement SDXL 1.0)
 
-**LORAS_DIR** : endroit où sont stocké vos Loras (attention uniquement SDXL 1.0)
+**LORAS_DIR** : endroit où sont stockés vos Loras (attention uniquement SDXL 1.0)
 
-**SAVE_DIR** : endroit où sont stoké les photos produites, un repertoire à la date du jour sera créé pour stoker les photos
+**SAVE_DIR** : endroit où sont stockées les photos produites. Un répertoire à la date du jour sera créé pour stocker les photos.
 
-**NEGATIVE_PROMPT** : permet de changer le prompt négatif, il sera utiliser pour toutes les images, c'est un choix que j'ai de mettre un prompt négatif générique.
+**NEGATIVE_PROMPT** : permet de changer le prompt négatif. Il sera utilisé pour toutes les images. C'est un choix que j'ai fait de mettre un prompt négatif générique.
 
-**IMAGE_FORMAT** correspond au type de fichier, webp | jpeg | png
+**IMAGE_FORMAT** correspond au type de fichier : webp | jpeg | png
 
-**FORMATS** correspond à la taille impérativement des multiples de 4,  il est conseillé d'utiliser des résolutions proches de 1024x1024 pixels
+**FORMATS** correspond à la taille (impérativement des multiples de 4). Il est conseillé d'utiliser des résolutions proches de 1024x1024 pixels.
 
-**GRADIO_THEME** : permet de choisir le theme de l'application parmis les thèmes suivant : 
+**OPEN_BROWSER** si oui ou yes l'application ouvrira automatiquement le navigateur par défault.
+
+**GRADIO_THEME** : permet de choisir le thème de l'application parmi les thèmes suivants :
+
 
 	- Base: Thème minimaliste avec une couleur primaire bleue.
  
@@ -136,7 +147,9 @@ pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\repertoire\\mes
 	- Glass: Thème bleu avec effet de verre grâce à des dégradés verticaux.
  
 	- Ocean: Thème bleu-vert avec dégradés horizontaux.
- **SHARE** Si vous vous mettez True, alors un lien sera créé pour utiliser l'application depuis un autre ordinateur, ATTENTION pour le moment il n'y a pas de système de queue, aussi, si vous partagez le lien et que plusieurs personnes utilisent le logiciel, il y a un gros risque de bug. 
+
+**SHARE** : Si vous mettez True, alors un lien sera créé pour utiliser l'application depuis un autre ordinateur. **ATTENTION** : Pour le moment, il n'y a pas de système de queue. Ainsi, si vous partagez le lien et que plusieurs personnes utilisent le logiciel, il y a un gros risque de bug.
+ 
 
 ## Savoir plus sur le choix des Samplers :
     EulerDiscreteScheduler (Rapide et détaillé): Un sampler Euler classique, rapide et qui produit des images détaillées. Bon point de départ et souvent utilisé pour son efficacité. Vous l'avez déjà.
