@@ -13,3 +13,4 @@ torchsde
 xformers
 tqdm
 peft
+compel
