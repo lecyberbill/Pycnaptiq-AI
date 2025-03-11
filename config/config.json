@@ -5,7 +5,7 @@
 	"LORAS_DIR": "models\\loras",
 	"SAVE_DIR": "output",
     "IMAGE_FORMAT": "webp",
-	"DEFAULT_MODEL": "votre_modele_par_defaut_au_lancement.safetensors",
+	"DEFAULT_MODEL": "your_default_modele.safetensors",
 	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
         "704*1408", "704*1344", "768*1344", "768*1280", "832*1216",
@@ -14,5 +14,6 @@
     ],
 	"OPEN_BROWSER": "Yes",
 	"GRADIO_THEME": "Defaut",
-	"SHARE":"False" 
+	"SHARE":"False",
+    "LANGUAGE": "en" 
 }
