@@ -77,7 +77,8 @@ L'avertissement sur Triton n'est pas bloquant. Triton est une bibliothèque qui 
 L'application au lancement :
 
 
-![image](https://github.com/user-attachments/assets/5d9cd3b8-e4ce-4dfb-9a0c-91f42149b6bc)
+![image](https://github.com/user-attachments/assets/22110bd1-7908-488f-a41a-eac133d518ca)
+
 
 Choisir le modèle et cliquer sur charger, attendre que le modèle soit charger pour utiliser la génération d'image :
 
@@ -89,10 +90,11 @@ Indique que le modèle est chargé :
 
 ![image](https://github.com/user-attachments/assets/2ddf3d56-8d27-4be0-98f7-ce960f3d909b)
 
-On tappe un prompt que l'on peut traduire en cochant la case :
+On tappe un prompt que l'on peut traduire en cochant la case et on choisi un style au besoin :
 
 
-![image](https://github.com/user-attachments/assets/2324a269-d88e-416a-b950-0bc3cd9aff91)
+![image](https://github.com/user-attachments/assets/31df94a0-76fc-416f-994c-2231727a1349)
+
 
 On régle les paramètre comme indiqué plus haut :
 
@@ -157,7 +159,7 @@ Le fichier se présente ainsi :
 	"LORAS_DIR": "models\\loras",
 	"SAVE_DIR": "output",
     "IMAGE_FORMAT": "webp",
-	"DEFAULT_MODEL": "votre_modele_par_defaut_au_lancement.safetensors",
+	"DEFAULT_MODEL": "your_default_modele.safetensors",
 	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
         "704*1408", "704*1344", "768*1344", "768*1280", "832*1216",
@@ -166,7 +168,8 @@ Le fichier se présente ainsi :
     ],
 	"OPEN_BROWSER": "Yes",
 	"GRADIO_THEME": "Defaut",
-	"SHARE":"False" 
+	"SHARE":"False",
+    	"LANGUAGE": "en" 
 }
 
 
@@ -221,6 +224,8 @@ pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\repertoire\\mes
 	- Ocean: Thème bleu-vert avec dégradés horizontaux.
 
 **SHARE** : Si vous mettez True, alors un lien sera créé pour utiliser l'application depuis un autre ordinateur. **ATTENTION** : Pour le moment, il n'y a pas de système de queue. Ainsi, si vous partagez le lien et que plusieurs personnes utilisent le logiciel, il y a un gros risque de bug.
+
+**LANGUAGE** : choisir la langue de l'application, français (fr) ou anglais (en)
  
 
 ## Savoir plus sur le choix des Samplers :
