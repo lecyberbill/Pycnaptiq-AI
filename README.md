@@ -43,9 +43,11 @@
 
 7. **[FACULTATIF]** Cocher la case Lora pour utiliser un Lora :
    - En cochant la case, de nouvelles options s'offrent à vous. Vous pourrez choisir un Lora (compatible SDXL 1.0), lui donner un poids, et le décharger quand vous n'en aurez plus besoin. **ATTENTION** Le fait de changer de modèle décharge automatiquement le Lora, il faudra donc le recharger. Il est possible de charger plusieurs Lora, mais pour le moment, il n'est pas encore possible de leur donner un poids individuellement.
-8. **Taper un prompt**. Le compteur de tokens vous indique la longueur à ne pas dépasser.
+8. **Taper un prompt**.
    - Cocher la case Traduire en anglais vous permet de taper votre prompt en français et de le faire traduire.
    - Générer un prompt à partir d'une image permet de générer automatiquement un prompt. Il s'uffit alors de faire glisser une image ou d'en coller une depuis le presse papier, ou encore de faire une photo à partir de votre webcam.
+ **[FACULTATIF]** choisir un style
+
 9. **Régler les paramètres**
    - Guidage :
      - *En termes simples, le guidage détermine à quel point l'image générée est fidèle au prompt.*
