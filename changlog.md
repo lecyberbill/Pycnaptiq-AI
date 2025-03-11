@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [B.1.0] - 2025-03-11
+### Added
+- Support for English and French: the application can now be used in either language. Modify the `config` file and set `language` to `en` for English or `fr` for French.
+- Language selection during installation: it's now possible to change the language during the installation process.
+- Predefined style management: users can now select a predefined style.
+- Addition of the `style.json` file in the `config` directory for style management.
+- Console messages now feature colorization for important information.
+
+### Changed
+- Transitioned to using **compel** for precomputing embeddings, removing the 77-token limit for prompts.
+- Token counter removed as it's no longer necessary.
+- HTML reports are now generated at the end of image generation to improve speed.
+- Image writing and report generation tasks are now handled by dedicated threads.
+
+### Fixed
+Lot of new buggs !
+
 ## [B.0.1] - 2025-02-20
 I'm moving the app to beta because a lot of work has been done to integrate new features, console feedback improvements, and bug fixes.
 ### Added
