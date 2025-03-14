@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [B.1.5] - 2025-03-14
+### Added
+- **Preview of latent images during inference**: Users can now see latent images while the inference process is running.
+- **New photo editing filters**:
+  - *Vibrance*: Enhances color intensity selectively without oversaturating skin tones or natural elements.
+  - *Curves*: Allows precise control over brightness and contrast by modifying the tonal curve.
+  - *Adaptive sharpness*: Dynamically adjusts the sharpness based on image regions to enhance clarity.
+  - *Noise*: Adds artistic noise or grain effects to give the images a textured look.
+  - *Color gradient*: Applies smooth color transitions for more stylized effects.
+  - *Color shift*: Shifts the color palette for creative or dramatic changes in tone and mood.
+
+### Changed
+- **Interface reorganization**: The layout has been adjusted to accommodate the newly added features.
+- **Addition of a `module` folder**: Prepares for the integration of future functionalities by organizing code into modular components.
+- **Ongoing code documentation**: Improved inline comments and explanations within the codebase for easier understanding and maintenance.
+
+### Fixed
+- **Resolved numerous bugs**: Fixed issues affecting both new and existing features for a smoother user experience.
+
 ## [B.1.0] - 2025-03-11
 ### Added
 - Support for English and French: the application can now be used in either language. Modify the `config` file and set `language` to `en` for English or `fr` for French.
