@@ -77,7 +77,8 @@ L'avertissement sur Triton n'est pas bloquant. Triton est une bibliothèque qui 
 L'application au lancement :
 
 
-![image](https://github.com/user-attachments/assets/22110bd1-7908-488f-a41a-eac133d518ca)
+![image](https://github.com/user-attachments/assets/fdb95271-a676-49f0-99bf-3b9566b20fce)
+
 
 
 Choisir le modèle et cliquer sur charger, attendre que le modèle soit charger pour utiliser la génération d'image :
