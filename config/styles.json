@@ -304,5 +304,12 @@
         "key": "styles_nom_Folk art style",
         "prompt": "folk art, traditional, decorative, colorful, handmade, rustic, quaint, {prompt}",
         "negative_prompt": "modern, industrial, minimalist, mass-produced, generic"
+    },
+    {
+        "name": "Sexy Girls",
+        "key": "Styles_filles_sexy",
+        "prompt": "photo shooting style {prompt} . casting pose, perfect rond breast, perfect body, perfect hands, perfect eyes, long eyelashes",
+        "negative_prompt": "disfigured, disproportionate, ugly, out of frame, mangled, asymmetric, cross-eyed, depressed, immature, stuffed animal, out of focus,skin blemishes,asymmetric ears, unnatural, conjoined,poorly drawn face, poorly drawn feet, malformed limbs, malformed hands, poorly rendered face, lacking body,cripple, fat, stiff face,, cropped head"
     }
+
 ]
