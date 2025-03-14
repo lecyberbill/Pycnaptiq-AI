@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [B.1.5] - 2025-03-14
 ### Added
 - **Preview of latent images during inference**: Users can now see latent images while the inference process is running.
@@ -15,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - *Noise*: Adds artistic noise or grain effects to give the images a textured look.
   - *Color gradient*: Applies smooth color transitions for more stylized effects.
   - *Color shift*: Shifts the color palette for creative or dramatic changes in tone and mood.
+- **New image formats**:
+  - *Portrait*: Optimized for vertical-oriented images, ideal for portraits or posters.
+  - *Landscape*: Optimized for horizontal-oriented images, suitable for landscapes or widescreen visuals.
 
 ### Changed
 - **Interface reorganization**: The layout has been adjusted to accommodate the newly added features.
