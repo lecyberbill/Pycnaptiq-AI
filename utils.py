@@ -1,4 +1,5 @@
-import os
+import os, sys
+import shutil
 import gradio as gr
 import torch
 from pathlib import Path
@@ -12,6 +13,10 @@ from colorama import init, Fore, Style
 from collections import defaultdict
 
 init()
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
+
 
 def load_locales(lang="fr"):
     """Charge les traductions depuis un fichier JSON."""
@@ -61,7 +66,7 @@ def enregistrer_etiquettes_image_html(chemin_image, etiquettes, translations, is
         etiquettes (dict): Dictionnaire d'étiquettes et de leurs valeurs.
         is_last_image (bool): Indique si c'est la dernière image à traiter.
     """
-    chemin_dossier_utils = Path(__file__).parent / "html_util"
+    chemin_dossier_utils = Path(__file__).parent/ "html_util"
     chemin_jquery = chemin_dossier_utils / "jquery.min.js"
     chemin_magnific_popupCSS = chemin_dossier_utils / "magnific-popup.css"
     chemin_magnific_popupJS = chemin_dossier_utils / "jquery.magnific-popup.min.js"
@@ -223,7 +228,7 @@ def charger_configuration():
     try:
         # Get the script's directory
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        config_dir = Path(__file__).parent / "config"
+        config_dir = Path(__file__).parent/ "config"
         config_json = config_dir / "config.json"
         chemin_styles = config_dir / "styles.json"
         
@@ -417,7 +422,7 @@ def str_to_bool(s):
     """
     return s.lower() in ("true", "1", "yes", "y", "ok", "oui", "o")
 
-def enregistrer_image(image, chemin_image, donnees_xmp, translations, IMAGE_FORMAT):
+def enregistrer_image(image, chemin_image, translations, IMAGE_FORMAT):
     """Enregistre l'image et écrit les métadonnées."""
     try:
         image.save(chemin_image, format=IMAGE_FORMAT)
@@ -426,5 +431,3 @@ def enregistrer_image(image, chemin_image, donnees_xmp, translations, IMAGE_FORM
     except Exception as e:
         print(txt_color("[ERREUR] ", "erreur"), translate("erreur_sauvegarde_image", translations), f" {e}")
 
-
-    
