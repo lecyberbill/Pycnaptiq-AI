@@ -602,192 +602,177 @@ else:
 # Interface utilisateur (Gradio)
 # =========================
 with gr.Blocks(theme=gradio_change_theme(GRADIO_THEME)) as interface:
-    gr.Markdown(f"# Cyberbill SDXL images generator version {version()}")
+     gr.Markdown(f"# Cyberbill SDXL images generator version {version()}")
+     
+     with gr.Tab(translate("generation_image", translations)):
+        with gr.Row():
+            with gr.Column(scale=1, min_width=300):
+                text_input = gr.Textbox(label=translate("prompt", translations), info=translate("entrez_votre_texte_ici", translations))
+                traduire_checkbox = gr.Checkbox(label=translate("traduire_en_anglais", translations), value=False, info=translate("traduire_en_anglais", translations))
+                style_dropdown = gr.Dropdown(choices=[style["name"] for style in STYLES], value=translate("Aucun_style", translations), label=translate("styles", translations), info=translate("Selectionnez_un_style_predefini", translations))
+                use_image_checkbox = gr.Checkbox(label=translate("generer_prompt_image", translations), value=False)
+                image_input = gr.Image(label=translate("telechargez_image", translations), type="pil", visible=False)
+                use_image_checkbox.change(fn=lambda use_image: gr.update(visible=use_image), inputs=use_image_checkbox, outputs=image_input)
+                
+                guidance_slider = gr.Slider(1, 20, value=7, label=translate("guidage", translations))
+                num_steps_slider = gr.Slider(1, 50, value=30, label=translate("etapes", translations), step=1)
+                format_dropdown = gr.Dropdown(choices=FORMATS, value=FORMATS[3], label=translate("format", translations))
+                seed_input = gr.Number(label=translate("seed", translations), value=-1)
+                num_images_slider = gr.Slider(1, 200, value=1, label=translate("nombre_images_generer", translations), step=1)
+                
+                with gr.Row():
+                    btn_stop = gr.Button(translate("arreter", translations))
+                    btn_stop_after_gen = gr.Button(translate("stop_apres_gen", translations))
+                    btn_generate = gr.Button(translate("generer", translations))
+                
+            with gr.Column(scale=2, min_width=300):
+                image_output = gr.Gallery(label=translate("images_generees", translations))
+                
+                with gr.Row():
+                    with gr.Column():
+                        preview_image_output = gr.Image(height=170, label=translate("apercu_etapes", translations),interactive=False)
+                        value = DEFAULT_MODEL if DEFAULT_MODEL else None
+                        modele_dropdown = gr.Dropdown(label=translate("selectionner_modele", translations), choices=modeles_disponibles, value=value)
+                        vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=["Défaut VAE"], value="Défaut VAE")
+                        sampler_dropdown = gr.Dropdown(label=translate("selectionner_sampler", translations), choices=sampler_options)
+                        bouton_lister = gr.Button(translate("lister_modeles", translations))
+                        bouton_charger = gr.Button(translate("charger_modele", translations))
+                        
+                    with gr.Column():
+                        seed_output = gr.Textbox(label=translate("seed_utilise", translations))
+                        time_output = gr.Textbox(label=translate("temps_rendu", translations), interactive=False)
+                        html_output = gr.Textbox(label=translate("mise_a_jour_html", translations), interactive=False)
+                        message_chargement = gr.Textbox(label=translate("statut", translations), value=translate("aucun_modele_charge", translations))
+                        use_lora_checkbox = gr.Checkbox(label=translate("utiliser_lora", translations), value=False)
 
-    with gr.Row():
-        with gr.Column(scale=1, min_width=300):
-            text_input = gr.Textbox(label=translate("prompt", translations), info=translate("entrez_votre_texte_ici", translations))
-            traduire_checkbox = gr.Checkbox(label=translate("traduire_en_anglais", translations), value=False, info=translate("traduire_en_anglais", translations))
-            style_dropdown = gr.Dropdown(choices=[style["name"] for style in STYLES], value=translate("Aucun_style", translations), label=translate("styles", translations), info=translate("Selectionnez_un_style_predefini", translations))
-            use_image_checkbox = gr.Checkbox(label=translate("generer_prompt_image", translations), value=False)
-            image_input = gr.Image(label=translate("telechargez_image", translations), type="pil", visible=False)
-            use_image_checkbox.change(fn=lambda use_image: gr.update(visible=use_image), inputs=use_image_checkbox, outputs=image_input)
-            
-            guidance_slider = gr.Slider(1, 20, value=7, label=translate("guidage", translations))
-            num_steps_slider = gr.Slider(1, 50, value=30, label=translate("etapes", translations), step=1)
-            format_dropdown = gr.Dropdown(choices=FORMATS, value=FORMATS[3], label=translate("format", translations))
-            seed_input = gr.Number(label=translate("seed", translations), value=-1)
-            num_images_slider = gr.Slider(1, 200, value=1, label=translate("nombre_images_generer", translations), step=1)
-            
-            with gr.Row():
-                btn_stop = gr.Button(translate("arreter", translations))
-                btn_stop_after_gen = gr.Button(translate("stop_apres_gen", translations))
-                btn_generate = gr.Button(translate("generer", translations))
-            
-        with gr.Column(scale=2, min_width=300):
-            image_output = gr.Gallery(label=translate("images_generees", translations))
-            
-            with gr.Row():
-                with gr.Column():
-                    preview_image_output = gr.Image(height=170, label=translate("apercu_etapes", translations),interactive=False)
-                    value = DEFAULT_MODEL if DEFAULT_MODEL else None
-                    modele_dropdown = gr.Dropdown(label=translate("selectionner_modele", translations), choices=modeles_disponibles, value=value)
-                    vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=["Défaut VAE"], value="Défaut VAE")
-                    sampler_dropdown = gr.Dropdown(label=translate("selectionner_sampler", translations), choices=sampler_options)
-                    bouton_lister = gr.Button(translate("lister_modeles", translations))
-                    bouton_charger = gr.Button(translate("charger_modele", translations))
-                    
-                with gr.Column():
-                    seed_output = gr.Textbox(label=translate("seed_utilise", translations))
-                    time_output = gr.Textbox(label=translate("temps_rendu", translations), interactive=False)
-                    html_output = gr.Textbox(label=translate("mise_a_jour_html", translations), interactive=False)
-                    message_chargement = gr.Textbox(label=translate("statut", translations), value=translate("aucun_modele_charge", translations))
-                    use_lora_checkbox = gr.Checkbox(label=translate("utiliser_lora", translations), value=False)
+                        with gr.Column(visible=False) as lora_section:
+                            lora_dropdown = gr.Dropdown(choices=["Aucun LORA disponible"], label=translate("selectionner_lora", translations))
+                            lora_scale_slider = gr.Slider(0, 1, value=0, label=translate("poids_lora", translations))
+                            load_lora_button = gr.Button(translate("charger_lora", translations))
+                            unload_lora_button = gr.Button(translate("decharger_lora", translations))
+                            lora_message = gr.Textbox(label=translate("message_lora", translations), value="")
 
-                    with gr.Column(visible=False) as lora_section:
-                        lora_dropdown = gr.Dropdown(choices=["Aucun LORA disponible"], label=translate("selectionner_lora", translations))
-                        lora_scale_slider = gr.Slider(0, 1, value=0, label=translate("poids_lora", translations))
-                        load_lora_button = gr.Button(translate("charger_lora", translations))
-                        unload_lora_button = gr.Button(translate("decharger_lora", translations))
-                        lora_message = gr.Textbox(label=translate("message_lora", translations), value="")
+                def mettre_a_jour_listes():
+                    modeles = lister_fichiers(MODELS_DIR, translations)
+                    vaes = ["Défaut VAE"] + lister_fichiers(VAE_DIR, translations)
+                    loras = lister_fichiers(LORAS_DIR, translations)
 
-            def mettre_a_jour_listes():
-                modeles = lister_fichiers(MODELS_DIR, translations)
-                vaes = ["Défaut VAE"] + lister_fichiers(VAE_DIR, translations)
-                loras = lister_fichiers(LORAS_DIR, translations)
+                    has_loras = bool(loras) and translate("aucun_modele_trouve",translations) not in loras and translate("repertoire_not_found",translations) not in loras
+                    lora_choices = loras if has_loras else ["Aucun LORA disponible"]
 
-                has_loras = bool(loras) and translate("aucun_modele_trouve",translations) not in loras and translate("repertoire_not_found",translations) not in loras
-                lora_choices = loras if has_loras else ["Aucun LORA disponible"]
+                    return (
+                        gr.update(choices=modeles),
+                        gr.update(choices=vaes),
+                        gr.update(choices=lora_choices, interactive=has_loras),
+                        gr.update(interactive=has_loras, value=False),
+                        gr.update(value=translate("lora_trouve", translations) + ", ".join(loras) if has_loras else translate("aucun_lora_disponible", translations))
+                    )
 
-                return (
-                    gr.update(choices=modeles),
-                    gr.update(choices=vaes),
-                    gr.update(choices=lora_choices, interactive=has_loras),
-                    gr.update(interactive=has_loras, value=False),
-                    gr.update(value=translate("lora_trouve", translations) + ", ".join(loras) if has_loras else translate("aucun_lora_disponible", translations))
+                bouton_lister.click(
+                    fn=mettre_a_jour_listes,
+                    outputs=[modele_dropdown, vae_dropdown, lora_dropdown, use_lora_checkbox, lora_message]
                 )
 
-            bouton_lister.click(
-                fn=mettre_a_jour_listes,
-                outputs=[modele_dropdown, vae_dropdown, lora_dropdown, use_lora_checkbox, lora_message]
-            )
+                use_lora_checkbox.change(
+                    lambda use_lora: gr.update(visible=use_lora),
+                    inputs=use_lora_checkbox,
+                    outputs=lora_section,
+                )
+                
+                load_lora_button.click(
+                    fn=charger_lora,  
+                    inputs=[lora_dropdown],  
+                    outputs=lora_message  
+                )
+                
+                unload_lora_button.click(
+                    fn=decharge_lora,   
+                    outputs=lora_message  
+                )
 
-            use_lora_checkbox.change(
-                lambda use_lora: gr.update(visible=use_lora),
-                inputs=use_lora_checkbox,
-                outputs=lora_section,
-            )
-            
-            load_lora_button.click(
-                fn=charger_lora,  
-                inputs=[lora_dropdown],  
-                outputs=lora_message  
-            )
-            
-            unload_lora_button.click(
-                fn=decharge_lora,   
-                outputs=lora_message  
-            )
+                bouton_charger.click(fn=charger_modele, inputs=[modele_dropdown, vae_dropdown], outputs=message_chargement)
+                sampler_dropdown.change(fn=apply_sampler, inputs=sampler_dropdown, outputs=message_chargement)
 
-            bouton_charger.click(fn=charger_modele, inputs=[modele_dropdown, vae_dropdown], outputs=message_chargement)
-            sampler_dropdown.change(fn=apply_sampler, inputs=sampler_dropdown, outputs=message_chargement)
+        image_input.change(fn=generate_caption, inputs=image_input, outputs=text_input)
 
+        btn_generate.click(
+            generate_image, 
+            inputs=[text_input, style_dropdown, guidance_slider, num_steps_slider, format_dropdown, traduire_checkbox, seed_input, num_images_slider, lora_scale_slider],  
+            outputs=[image_output, seed_output, time_output, html_output, preview_image_output]
+        )
 
-    image_input.change(fn=generate_caption, inputs=image_input, outputs=text_input)
-
-    btn_generate.click(
-        generate_image, 
-        inputs=[text_input, style_dropdown, guidance_slider, num_steps_slider, format_dropdown, traduire_checkbox, seed_input, num_images_slider, lora_scale_slider],  
-        outputs=[image_output, seed_output, time_output, html_output, preview_image_output]
-    )
-
-    btn_stop.click(stop_generation_process, outputs=time_output)
-    btn_stop_after_gen.click(stop_generation, outputs=time_output)
+        btn_stop.click(stop_generation_process, outputs=time_output)
+        btn_stop_after_gen.click(stop_generation, outputs=time_output)
 
 
-
-    edit_section_checkbox = gr.Checkbox(label=translate("activer_la_retouche_dimage", translations), value=False)
-
-    with gr.Row(visible=False) as edit_section:
-        with gr.Column(scale=2, min_width=300):
-            with gr.Row():
-                edit_image_input = gr.Image(label=translate("selectionner_une_image", translations), type="numpy")
-                edit_image_output = gr.Image(label=translate("apercu_des_modifications", translations), type="numpy")
-            with gr.Row():
-                with gr.Column():
-                    contrast = gr.Slider(0.5, 2.0, 1.0, step=0.1, label=translate("contraste", translations))
-                    saturation = gr.Slider(0.5, 2.0, 1.0, step=0.1, label=translate("saturation", translations))
-                    color_boost = gr.Slider(0.5, 2.0, 1.0, step=0.1, label=translate("intensite_des_couleurs", translations))
-                    blur_radius = gr.Slider(0, 10, 0, step=1, label=translate("rayon_de_flou", translations))
-                    sharpness_factor = gr.Slider(0, 5, 1, step=0.1, label=translate("facteur_de_nettete", translations))
-
-                with gr.Column():
-                    grayscale = gr.Checkbox(label=translate("noir_et_blanc", translations))
-                    rotation_angle = gr.Slider(0, 360, 0, step=90, label=translate("angle_de_rotation_90", translations))
-                    mirror_type = gr.Dropdown(choices=["aucun", "horizontal", "vertical"], value="aucun", label=translate("type_de_miroir", translations))
-                    special_filter = gr.Dropdown(choices=["aucun", "sepia", "contour", "negative", "posterize", "solarize", "emboss", "pixelize", "vignette", "mosaic"], value="aucun", label=translate("filtre_special", translations))    
-        
-        with gr.Column(scale=1, min_width=300):
-            with gr.Row(visible=False) as edit_controls:
-
-                with gr.Column():
-                    vibrance = gr.Slider(0, 2, 0, step=0.1, label=translate("vibrance", translations))
-                    hue_angle = gr.Slider(-180, 180, 0, step=1, label=translate("teinte", translations))
-                    with gr.Accordion(translate("courbes", translations), open=False):
-                        with gr.Row():
-                            point1 = gr.Slider(0, 1, 0, step=0.01, label=translate("point_courbe_1", translations))
-                            point2 = gr.Slider(0, 1, 0, step=0.01, label=translate("point_courbe_2", translations))
-                            point3 = gr.Slider(0, 1, 1, step=0.01, label=translate("point_courbe_3", translations))
-                    with gr.Accordion(translate("nettete_adaptative", translations), open=False):
-                        unsharp_radius = gr.Slider(0, 10, 0, step=1, label=translate("rayon_flou", translations))
-                        unsharp_percent = gr.Slider(0, 300, 100, step=10, label=translate("pourcentage_nettete", translations))
-                        unsharp_threshold = gr.Slider(0, 20, 0, step=1, label=translate("seuil_difference", translations))
-                    with gr.Accordion(translate("bruit", translations), open=False):
-                        noise_amount = gr.Slider(0, 1, 0, step=0.01, label=translate("quantite_bruit", translations))
-                    with gr.Accordion(translate("degrade_couleur", translations), open=False):
-                        gradient_active = gr.Checkbox(label=translate("activer_degrade", translations), value=False)
-                        gradient_angle = gr.Slider(0, 360, 0, step=1, label=translate("angle_degrade", translations))
-                        gradient_color1 = gr.ColorPicker(value="#FF0000", label=translate("couleur1", translations))
-                        gradient_color2 = gr.ColorPicker(value="#0000FF", label=translate("couleur2", translations))
-                    with gr.Accordion(translate("decalage_couleur", translations), open=False):
-                        color_shift_r = gr.Slider(-255, 255, 0, step=1, label=translate("decalage_rouge", translations))
-                        color_shift_g = gr.Slider(-255, 255, 0, step=1, label=translate("decalage_vert", translations))
-                        color_shift_b = gr.Slider(-255, 255, 0, step=1, label=translate("decalage_bleu", translations))
-
-
-    edit_section_checkbox.change(
-        lambda visible: [gr.update(visible=visible)] * 2, 
-        inputs=edit_section_checkbox, 
-        outputs=[edit_section, edit_controls]
-    )
-
-    inputs = [
-        edit_image_input,
-        contrast,
-        saturation,
-        color_boost,
-        grayscale,
-        blur_radius,
-        sharpness_factor,
-        rotation_angle,
-        mirror_type,
-        special_filter,
-        vibrance,
-        hue_angle,
-        point1,
-        point2,
-        point3,
-        unsharp_radius, unsharp_percent, unsharp_threshold,
-        noise_amount, 
-        gradient_color1, 
-        gradient_color2,
-        gradient_active,
-        gradient_angle,
-        color_shift_r, color_shift_g, color_shift_b
-    ]
-
-
-    for inp in inputs:
-        inp.change(apply_filters_to_image, inputs=inputs, outputs=edit_image_output)
+     with gr.Tab(translate("retouche_image", translations)):
+        with gr.Row(visible=True) as edit_controls:
+            with gr.Column(scale=2, min_width=300):
+                with gr.Row():
+                    edit_image_input = gr.Image(label=translate("selectionner_une_image", translations), type="numpy")
+                    edit_image_output = gr.Image(label=translate("apercu_des_modifications", translations), type="numpy")
+            with gr.Column(scale=1, min_width=300):
+                with gr.Row(visible=True) as edit_controls:
+                    with gr.Column():
+                        with gr.Accordion(translate("Transformations", translations), open=False):
+                            rotation_angle = gr.Slider(0, 360, 0, step=90, label=translate("angle_de_rotation_90", translations))
+                            mirror_type = gr.Dropdown(choices=["aucun", "horizontal", "vertical"], value="aucun", label=translate("type_de_miroir", translations))
+                            special_filter = gr.Dropdown(choices=["aucun", "sepia", "contour", "negative", "posterize", "solarize", "emboss", "pixelize", "vignette", "mosaic"], value="aucun", label=translate("filtre_special", translations))    
+                        with gr.Accordion(translate("Retouche_simples", translations), open=False):
+                            contrast = gr.Slider(0.5, 2.0, 1.0, step=0.1, label=translate("contraste", translations))
+                            saturation = gr.Slider(0.5, 2.0, 1.0, step=0.1, label=translate("saturation", translations))
+                            color_boost = gr.Slider(0.5, 2.0, 1.0, step=0.1, label=translate("intensite_des_couleurs", translations))
+                            blur_radius = gr.Slider(0, 10, 0, step=1, label=translate("rayon_de_flou", translations))
+                            sharpness_factor = gr.Slider(0, 5, 1, step=0.1, label=translate("facteur_de_nettete", translations))
+                            grayscale = gr.Checkbox(label=translate("noir_et_blanc", translations))
+                        with gr.Accordion(translate("vibrance", translations), open=False):
+                            vibrance = gr.Slider(0, 2, 0, step=0.1, label=translate("vibrance", translations))
+                            hue_angle = gr.Slider(-180, 180, 0, step=1, label=translate("teinte", translations))
+                        with gr.Accordion(translate("courbes", translations), open=False):
+                            with gr.Row():
+                                point1 = gr.Slider(0, 1, 0, step=0.01, label=translate("point_courbe_1", translations))
+                                point2 = gr.Slider(0, 1, 0, step=0.01, label=translate("point_courbe_2", translations))
+                                point3 = gr.Slider(0, 1, 1, step=0.01, label=translate("point_courbe_3", translations))
+                        with gr.Accordion(translate("nettete_adaptative", translations), open=False):
+                            unsharp_radius = gr.Slider(0, 10, 0, step=1, label=translate("rayon_flou", translations))
+                            unsharp_percent = gr.Slider(0, 300, 100, step=10, label=translate("pourcentage_nettete", translations))
+                            unsharp_threshold = gr.Slider(0, 20, 0, step=1, label=translate("seuil_difference", translations))
+                        with gr.Accordion(translate("bruit", translations), open=False):
+                            noise_amount = gr.Slider(0, 1, 0, step=0.01, label=translate("quantite_bruit", translations))
+                        with gr.Accordion(translate("degrade_couleur", translations), open=False):
+                            gradient_active = gr.Checkbox(label=translate("activer_degrade", translations), value=False)
+                            gradient_angle = gr.Slider(0, 360, 0, step=1, label=translate("angle_degrade", translations))
+                            gradient_color1 = gr.ColorPicker(value="#FF0000", label=translate("couleur1", translations))
+                            gradient_color2 = gr.ColorPicker(value="#0000FF", label=translate("couleur2", translations))
+                        with gr.Accordion(translate("decalage_couleur", translations), open=False):
+                            color_shift_r = gr.Slider(-255, 255, 0, step=1, label=translate("decalage_rouge", translations))
+                            color_shift_g = gr.Slider(-255, 255, 0, step=1, label=translate("decalage_vert", translations))
+                            color_shift_b = gr.Slider(-255, 255, 0, step=1, label=translate("decalage_bleu", translations))
+        inputs = [
+            edit_image_input,
+            contrast,
+            saturation,
+            color_boost,
+            grayscale,
+            blur_radius,
+            sharpness_factor,
+            rotation_angle,
+            mirror_type,
+            special_filter,
+            vibrance,
+            hue_angle,
+            point1,
+            point2,
+            point3,
+            unsharp_radius, unsharp_percent, unsharp_threshold,
+            noise_amount, 
+            gradient_color1, 
+            gradient_color2,
+            gradient_active,
+            gradient_angle,
+            color_shift_r, color_shift_g, color_shift_b
+        ]
+        for inp in inputs:
+            inp.change(apply_filters_to_image, inputs=inputs, outputs=edit_image_output)
 
 interface.launch(inbrowser=str_to_bool(OPEN_BROWSER), pwa=True, share=str_to_bool(SHARE))
