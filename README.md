@@ -76,8 +76,10 @@ L'avertissement sur Triton n'est pas bloquant. Triton est une bibliothèque qui 
 
 L'application au lancement :
 
-
-![image](https://github.com/user-attachments/assets/fdb95271-a676-49f0-99bf-3b9566b20fce)
+L'interface de génération d'images
+![image](https://github.com/user-attachments/assets/041dd1d1-5628-491d-82cd-12b20de43549)
+L'interface de retouche d'images
+![image](https://github.com/user-attachments/assets/898a6277-bf0a-403d-96a8-9dd801b4f7f5)
 
 
 
