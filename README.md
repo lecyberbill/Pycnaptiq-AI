@@ -78,7 +78,7 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
     "AUTHOR": "Cyberbill_SDXL",
     "MODELS_DIR": "models\\checkpoints",
     "VAE_DIR": "models\\vae",
-    "INPAINT_MODELS_DIR": "models\\inpaint",
+    "INPAINT_MODELS_DIR": "models\\inpainting",
     "LORAS_DIR": "models\\loras",
     "SAVE_DIR": "output",
     "IMAGE_FORMAT": "webp",
