@@ -2,18 +2,20 @@
 
 ## 📌 Prérequis
 - **CUDA 12.6** installé ✅
-- **Carte Nvidia RTX** pas testé sur d'autres cartes.
-- **Testé sur GTX 1650 Ti** avec 4 go de vram mais ne fonctionne pas, si quelqu'un à des idées...
-- **8 go de vram recommandés** pour le moment je n'ai pas encore optimisé pour les petites cartes graphique GTX etc.
-
+- **Carte Nvidia RTX** : Non testé sur d'autres cartes.
+- **8 Go de VRAM recommandés** : Optimisation non disponible pour les petites cartes graphiques.
 
 ## 📥 Installation
-1. **Télécharger (code et choisir zip ou cyberbill_SDXL.zip) décompresser à l'endroit voulu
-2. **Téléchargez et installez** [CUDA 12.6] https://developer.nvidia.com/cuda-12-6-0-download-archive
-3. **Lancez** `install.bat`
-4. **Lancez start.bat**
-4. **Profitez !** 🎨
+1. **Téléchargez le projet**  
+   - Choisissez le fichier `zip` ou `cyberbill_SDXL.zip` et décompressez-le dans le répertoire de votre choix.
 
+2. **Installez CUDA 12.6** via [ce lien](https://developer.nvidia.com/cuda-12-6-0-download-archive).
+
+3. **Lancez le script `install.bat`**  
+   - Cela configure l'environnement nécessaire pour le logiciel.
+
+4. **Démarrez l'application avec `start.bat`**  
+   - Double-cliquez sur ce fichier pour lancer l'interface utilisateur.
 
 
 ## ▶️ Lancement de l’application
@@ -21,214 +23,154 @@
    - Cela active l’environnement et lance l’application.
 2. **Ou utilisez la ligne de commande :**
    ```sh
-   cd venv\Scripts\
-   activate.bat
+   venv\Scripts\activate
    python cyberbill_SDXL.py
-   ```
+
    
    
 ## ▶️ Utilisation
-1. **Charger un modèle impérativement pour utiliser la génération d'image**
-   - Le logiciel est fourni **sans modèle**.
-     - Si aucun modèle n'est trouvé au lancement, le programme vous demandera si vous souhaitez en charger un. Répondez par o ou n (oui ou non). Le modèle sera alors chargé. Il s'agit d'un modèle générique qui donne de bons résultats : MegaChonkXL.
-     - Par ailleurs, vous pouvez télécharger vos propres modèles sur différentes sources (modèle checkpoints SDXL 1.0 au format .safetensors à placer dans le répertoire `/models/checkpoints`).
+### 🌟 Étapes essentielles
+1. **Charger un modèle SDXL**  
+   - Placez les fichiers `.safetensors` dans `models/checkpoints`.
+   - Cliquez sur **"Lister les modèles"**, puis sélectionnez le modèle souhaité.
 
-     Exemples de sites : [civitai.com](https://civitai.com/) | [lexica.art](https://lexica.art/) | [huggingface.co](https://huggingface.co)
+   NOTE : Le logiciel est fourni **sans modèle**.
+	- Si aucun modèle n'est trouvé au lancement, le programme vous demandera si vous souhaitez en charger un. Répondez par o ou n (oui ou non). Le modèle sera alors chargé. Il s'agit d'un modèle générique qui donne de bons résultats : MegaChonkXL.
+	- Par ailleurs, vous pouvez télécharger vos propres modèles sur différentes sources (modèle checkpoints SDXL 1.0 au format .safetensors à placer dans le répertoire `/models/checkpoints`).
 
-2. Au lancement de l'application, cliquez sur "Lister les modèles".
-3. Les modèles présents dans le dossier models seront affichés.
-4. **[FACULTATIF]** Choisir un VAE (Auto-Encodeur Variationnel). Placez vos VAE (.safetensors uniquement) dans `/models/vae/`. *Le VAE prend l'image générée dans l'espace latent et la "décompresse" pour la rendre visible et détaillée. C'est comme si vous demandiez au peintre de transformer la version miniature du tableau en une œuvre d'art complète.* SDXL est livré avec un VAE intégré, ce qui signifie que vous n'avez pas besoin de télécharger ou d'installer de VAE supplémentaire. Cependant, il existe également des VAE personnalisés que vous pouvez utiliser pour obtenir des résultats différents.
-5. **[FACULTATIF]** Choisir un sampler. *En termes simples, le sampler est l'algorithme qui guide le processus de transformation du bruit aléatoire en une image cohérente.*
-6. Cliquez sur **"Charger le modèle"**.
+		Exemples de sites : [civitai.com](https://civitai.com/) | [lexica.art](https://lexica.art/) | [huggingface.co](https://huggingface.co)
 
-7. **[FACULTATIF]** Cocher la case Lora pour utiliser un Lora :
-   - En cochant la case, de nouvelles options s'offrent à vous. Vous pourrez choisir un Lora (compatible SDXL 1.0), lui donner un poids, et le décharger quand vous n'en aurez plus besoin. **ATTENTION** Le fait de changer de modèle décharge automatiquement le Lora, il faudra donc le recharger. Il est possible de charger plusieurs Lora, mais pour le moment, il n'est pas encore possible de leur donner un poids individuellement.
-8. **Taper un prompt**.
-   - Cocher la case Traduire en anglais vous permet de taper votre prompt en français et de le faire traduire.
-   - Générer un prompt à partir d'une image permet de générer automatiquement un prompt. Il s'uffit alors de faire glisser une image ou d'en coller une depuis le presse papier, ou encore de faire une photo à partir de votre webcam.
- **[FACULTATIF]** choisir un style
+2. **Configurer vos paramètres**  
+   - **VAE** :
+     - Placez vos fichiers `.safetensors` dans `/models/vae/`. Les fichiers dans leur grande majorité sont fournis avec un VAE intégré, il est généralement pas necessaire d'en télécharger un... mais au cas où !
+     - Le VAE transforme l'image latente en une version complète et détaillée.
+   - **Sampler** :
+     - Sélectionnez un algorithme pour guider la génération de l'image (Euler, DDIM, etc.).
+   - **Guidage** :
+     - Détermine la fidélité de l'image au prompt :
+       - *3-7* : Résultats créatifs.
+       - *10-20* : Résultats précis.
+   - **Étapes** :
+     - Recommandé : environ 30 pour un équilibre qualité/vitesse.
+   - **Seed** :
+     - Utilisez -1 pour un seed aléatoire ou définissez un seed fixe pour reproduire des résultats.
+   - **Dimensions** :
+     - Sélectionnez un format prédéfini compatible avec le modèle.
+   - **Nombre d'images** :
+     - Sélectionnez le nombre d'image à générer.
 
-9. **Régler les paramètres**
-   - Guidage :
-     - *En termes simples, le guidage détermine à quel point l'image générée est fidèle au prompt.*
-     - **Valeurs faibles** (par exemple, 3-7) : L'image aura plus de liberté créative et pourra s'éloigner du prompt. Cela peut donner des résultats plus surprenants et artistiques, mais aussi moins précis par rapport à la description.
-     - **Valeurs élevées** (par exemple, 10-20) : L'image sera plus étroitement liée au prompt et essaiera de le suivre de plus près. Cela peut donner des résultats plus précis et détaillés, mais aussi potentiellement plus rigides et moins créatifs.
-   - Étapes :
-     - **Impact du nombre d'étapes** :
-       - **Qualité de l'image** : En général, un nombre d'étapes plus élevé tend à produire des images de meilleure qualité, avec plus de détails, moins de bruit et une meilleure fidélité au prompt (la description textuelle). Cependant, au-delà d'un certain point, l'amélioration de la qualité devient marginale, voire négligeable.
-       - **Vitesse de génération** : Un nombre d'étapes plus élevé signifie un temps de génération plus long. Il existe donc un compromis entre la qualité de l'image et la vitesse de génération.
-     - **Nombre d'étapes recommandé pour SDXL** :
-       - Pour SDXL, un nombre d'étapes d'échantillonnage d'environ 30 est souvent considéré comme un bon équilibre entre qualité et vitesse. Au-delà de 30, chaque étape supplémentaire offre un rendement décroissant en termes d'amélioration de la qualité. Il est rare de voir des améliorations significatives au-delà de 50 étapes.
-10. Choisir un format pour les dimensions de votre image.
-11. **Seed**. La valeur par défaut -1 génère un seed aléatoire.
-     - **Reproductibilité** : Si vous utilisez le même seed, le même prompt et les mêmes autres paramètres, vous obtiendrez exactement la même image à chaque fois. Cela est extrêmement utile pour affiner un résultat particulier, expérimenter avec d'autres paramètres tout en conservant la même base, ou partager vos créations avec d'autres en leur permettant de les reproduire à l'identique.
-     - **Variété** : En changeant le seed, vous obtiendrez une image différente, même avec le même prompt. Cela vous permet d'explorer un large éventail de possibilités créatives à partir d'une même idée de base.
-12. **Nombre d'images** permet de lancer plusieurs images avec le même prompt.
-13. **Générer ou arrêter**.
-    - Générer produit l'image, vous retrouverez l'image ainsi qu'un rapport au format HTML dans le dossier output.
-14. **Activer la retouche d'image** :
-    - Cocher cette case ouvre un accès à des outils basiques pour retoucher des images. Il est possible de retoucher une image générée. Pour cela, faites un clic droit sur l'image et sélectionnez "copier l'image", puis collez l'image dans la zone "Sélectionner une image" en cliquant sur l'icône presse-papier 📋.
+3. **Ajouter un prompt**
+   - Entrez un texte décrivant l'image souhaitée.
+   - Activez "Traduire en anglais" pour automatiser la traduction.
+   - En cochant la case générer un prompt à partir d'une image, vous pouvez coller ou uploader une image à partir de votre disque, et un prompt sera alors proposé.
 
-**Au premier lancement si il n'y a pas de modèle l'application vous invite à en télécharger un :**
-L'avertissement sur Triton n'est pas bloquant. Triton est une bibliothèque qui permet d'optimiser les calculs d'inférence. Triton ne fonctionne pas sur Windows
-![image](https://github.com/user-attachments/assets/c12ebfa5-779a-47d8-8f53-5b2df4cfd484)
-![image](https://github.com/user-attachments/assets/9f9a192e-f04e-4c0f-9c77-9fd81507aa08)
-
-L'application au lancement :
-
-L'interface de génération d'images
-![image](https://github.com/user-attachments/assets/041dd1d1-5628-491d-82cd-12b20de43549)
-L'interface de retouche d'images
-![image](https://github.com/user-attachments/assets/898a6277-bf0a-403d-96a8-9dd801b4f7f5)
-
-
-
-Choisir le modèle et cliquer sur charger, attendre que le modèle soit charger pour utiliser la génération d'image :
-
-
-![image](https://github.com/user-attachments/assets/ad69af2a-a2c8-4195-93e9-a5020a7df058)
-
-Indique que le modèle est chargé : 
-
-
-![image](https://github.com/user-attachments/assets/2ddf3d56-8d27-4be0-98f7-ce960f3d909b)
-
-On tappe un prompt que l'on peut traduire en cochant la case et on choisi un style au besoin :
-
-
-![image](https://github.com/user-attachments/assets/31df94a0-76fc-416f-994c-2231727a1349)
-
-
-On régle les paramètre comme indiqué plus haut :
-
-
-![image](https://github.com/user-attachments/assets/a1948d2d-f1c3-4ed8-a4db-c0cec87e0f1d)
-
-On clique sur générer : 
-
-
-![image](https://github.com/user-attachments/assets/471e1820-4f4c-4a10-a67e-29a257d8cfd9)
-
-![image](https://github.com/user-attachments/assets/a8f33682-5c67-45d1-bc69-f3e3cb9527e8)
-
-Les images d'affichent au fur et à mesure de la production :
-
-
-![image](https://github.com/user-attachments/assets/b0986577-329f-4ff6-833a-2d1145a765a4)
-![image](https://github.com/user-attachments/assets/b1dfcc4a-af49-4a03-aeb8-c829f45fd07a)
-
-Un fichier `rapport.html` est créé dans le même répertoire que les images. Il permettra de consulter les images produites et de mémoriser les paramètres.
-
-![image](https://github.com/user-attachments/assets/e37d134b-84c1-44a1-a816-fabf4a44460c)
-
-![image](https://github.com/user-attachments/assets/3d790458-f301-4d02-9c79-d8f7a66c2f77)
-Cliquer sur l'image pour l'agrandir
-
-
-**Prompt à partir d'une image :**
-Glisser une image dans la zone dédiée, ou coller-la :
-
-
-![image](https://github.com/user-attachments/assets/e0e9428b-7c67-47b6-a1dd-54f77ae667d9)
-
-
-le prompt se génère automatiquement  :
-
-
-![image](https://github.com/user-attachments/assets/2873fcef-e131-4367-882c-55f0054302e7)
-
-
-Activer la retouche d'images :
-Cocher la case correspondante pour voir apparaître quelques outils pour retoucher une image, il est possible de copier (ctrl + c) à partir de la galerie d'image générée vers le module de retouche en collant l'image (ctrl + v) 
-
-
-![image](https://github.com/user-attachments/assets/7d57ba30-b863-49ee-8fa4-f61ef1fb2ad2)
-
-
+4. **Générer des images**
+   - Cliquez sur **"Générer"**. Les images sont enregistrées dans le dossier `output` avec un rapport HTML.
 
 ## ▶️ Configuration avancée
-Il est possible de modifier le fichier de configuration.
 
-1. Allez dans le dossier `./config` et ouvrez le fichier `config.json` dans un éditeur de texte simple.
-2. Pour les petites configurations, je recommande fortement d'utiliser des tailles d'images de 512 x 512 maximum. Des images plus grandes feront planter la génération.
+### 🌟 Fichier de configuration : `config.json`
 
-Le fichier se présente ainsi :
- 
+Le fichier `config.json`, situé dans le dossier `/config`, permet de personnaliser les paramètres principaux de l'application. Voici une version détaillée :
+
 ```json
 {
     "AUTHOR": "Cyberbill_SDXL",
-    "MODELS_DIR": "models\\checkpoints",
-    "VAE_DIR": "models\\vae",
-	"LORAS_DIR": "models\\loras",
-	"SAVE_DIR": "output",
+    "MODELS_DIR": "G:\\models\\checkpoints",
+    "VAE_DIR": "G:\\models\\vae",
+    "INPAINT_MODELS_DIR": "G:\\models\\inpaint",
+    "LORAS_DIR": "G:\\models\\loras",
+    "SAVE_DIR": "P:\\Mes photos\\AI",
     "IMAGE_FORMAT": "webp",
-	"DEFAULT_MODEL": "your_default_modele.safetensors",
-	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
+    "DEFAULT_MODEL": "your_default_modele.safetensors",
+    "NEGATIVE_PROMPT": "deformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
-        "704*1408", "704*1344", "768*1344", "768*1280", "832*1216",
-        "832*1152", "896*1152", "896*1088", "960*1088", "960*1024",
-        "1024*1024", "1024*960", "1088*960", "1088*896"
+        {"dimensions": "704*1408", "orientation": "Portrait"},
+        {"dimensions": "704*1344", "orientation": "Portrait"},
+        {"dimensions": "768*1344", "orientation": "Portrait"},
+        {"dimensions": "768*1280", "orientation": "Portrait"},
+        {"dimensions": "832*1216", "orientation": "Portrait"},
+        {"dimensions": "832*1152", "orientation": "Portrait"},
+        {"dimensions": "896*1152", "orientation": "Portrait"},
+        {"dimensions": "896*1088", "orientation": "Portrait"},
+        {"dimensions": "960*1088", "orientation": "Portrait"},
+        {"dimensions": "960*1024", "orientation": "Portrait"},
+        {"dimensions": "1024*1024", "orientation": "Carré"},
+        {"dimensions": "1024*960", "orientation": "Paysage"},
+        {"dimensions": "1088*960", "orientation": "Paysage"},
+        {"dimensions": "1088*896", "orientation": "Paysage"},
+        {"dimensions": "1408*704", "orientation": "Paysage"},
+        {"dimensions": "1344*704", "orientation": "Paysage"},
+        {"dimensions": "1344*768", "orientation": "Paysage"},
+        {"dimensions": "1280*768", "orientation": "Paysage"},
+        {"dimensions": "1216*832", "orientation": "Paysage"},
+        {"dimensions": "1152*832", "orientation": "Paysage"},
+        {"dimensions": "1152*896", "orientation": "Paysage"}
     ],
-	"OPEN_BROWSER": "Yes",
-	"GRADIO_THEME": "Defaut",
-	"SHARE":"False",
-    	"LANGUAGE": "en" 
+    "OPEN_BROWSER": "Yes",
+    "GRADIO_THEME": "Defaut",
+    "SHARE": "False",
+    "LANGUAGE": "en"
 }
-
-
-
 ```
-#changer les repertoirs par défauts des modèles et de la sortie des images
-**MODELS_DIR, VAE_DIR, SAVE_DIR, REPORT_PATH
-Personnalisation du stockage des modèles
+### 🛠️ Champs principaux :
 
-Vous pouvez personnaliser l'emplacement où sont stockés vos modèles, vos vae, vos loaras et vos images. Veuillez noter qu'il est nécessaire d'échapper le caractère \.
-Exemple
-Au lieu d'utiliser un chemin de fichier comme ceci :
+- **`AUTHOR`** : Nom ou auteur du fichier de configuration.
+- **`MODELS_DIR`** : Répertoire où sont stockés les modèles de base SDXL.
+- **`VAE_DIR`** : Emplacement pour les VAE personnalisés.
+- **`INPAINT_MODELS_DIR`** : Chemin vers les modèles dédiés à l'inpainting.
+- **`LORAS_DIR`** : Emplacement pour charger les fichiers LoRA au format `.safetensors`.
+- **`SAVE_DIR`** : Dossier où sont sauvegardées les images générées.
+- **`IMAGE_FORMAT`** : Format des fichiers image : `webp`, `jpeg`, ou `png`.
+- **`DEFAULT_MODEL`** : Modèle chargé par défaut au démarrage.
+- **`NEGATIVE_PROMPT`** : Prompt négatif générique appliqué par défaut, utile pour exclure des éléments indésirables dans les résultats générés.
+- **`FORMATS`** : Dimensions des images, spécifiées en multiples de 4, avec des orientations comme `Portrait`, `Carré`, et `Paysage`.
+- **`OPEN_BROWSER`** :  
+  - `Yes` ouvre l'application directement dans le navigateur par défaut.  
+  - `No` désactive l'ouverture automatique du navigateur.
+- **`GRADIO_THEME`** : Personnalisez l'apparence de l'interface utilisateur grâce aux thèmes disponibles.
+- **`SHARE`** :  
+  - `True` permet de partager l'application en ligne via Gradio.  
+  - `False` limite l'utilisation au local.
+- **`LANGUAGE`** : Langue de l'interface utilisateur (`en` pour anglais, `fr` pour français).
+
+### 🌟 Options supplémentaires en détail
+
+- **`FORMATS`** : Détermine les dimensions des images. Chaque option doit respecter des multiples de 4 pour assurer une compatibilité optimale.  
+  - **Exemple** :  
+    - Portrait : `704*1408`, `768*1280`  
+    - Carré : `1024*1024`  
+    - Paysage : `1408*704`, `1280*768`
+
+- **`OPEN_BROWSER`** :  
+  - `Yes` : Ouvre l'application directement dans le navigateur par défaut.  
+  - `No` : Désactive l'ouverture automatique du navigateur.
+
+- **`GRADIO_THEME`** : Définit l'apparence de l'interface utilisateur.  
+  - **Thèmes disponibles** :  
+    - `Base` : Minimaliste avec une couleur primaire bleue.  
+    - `Default` : Thème par défaut (orange et gris).  
+    - `Origin` : Inspiré des versions classiques de Gradio.  
+    - `Citrus` : Jaune vibrant avec des effets 3D sur les boutons.  
+    - `Monochrome` : Noir et blanc avec un style classique.  
+    - `Soft` : Tons violets avec des bords arrondis.  
+    - `Glass` : Effet visuel "verre" avec des dégradés bleus.  
+    - `Ocean` : Tons bleu-vert avec des transitions horizontales.
+
+- **`SHARE`** :  
+  - `True` : Permet de partager l'application en ligne via Gradio.  
+  - `False` : Restreint l'application à un usage local uniquement.
+
+- **`LANGUAGE`** : Définit la langue utilisée dans l'interface utilisateur.  
+  - `en` : Anglais  
+  - `fr` : Français
+
+NOTE : 
 C:\dossier\de\modeles
 Vous devrez l'écrire comme ceci :
-C:\\dossier\\de\\modeles
-pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\repertoire\\mes_modeles\\checkpoints
+C:\\\dossier\\\de\\\modeles
+pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\\repertoire\\\mes_modeles\\\checkpoints
 
-
-**MODELS_DIR** : endroit où sont stockés les modèles de base SDXL 1.0
-
-**VAE_DIR** : endroit où sont stockés les VAE (attention uniquement SDXL 1.0)
-
-**LORAS_DIR** : endroit où sont stockés vos Loras (attention uniquement SDXL 1.0)
-
-**SAVE_DIR** : endroit où sont stockées les photos produites. Un répertoire à la date du jour sera créé pour stocker les photos.
-
-**NEGATIVE_PROMPT** : permet de changer le prompt négatif. Il sera utilisé pour toutes les images. C'est un choix que j'ai fait de mettre un prompt négatif générique.
-
-**IMAGE_FORMAT** correspond au type de fichier : webp | jpeg | png
-
-**FORMATS** correspond à la taille (impérativement des multiples de 4). Il est conseillé d'utiliser des résolutions proches de 1024x1024 pixels.
-
-**OPEN_BROWSER** si oui ou yes l'application ouvrira automatiquement le navigateur par défault.
-
-**GRADIO_THEME** : permet de choisir le thème de l'application parmi les thèmes suivants :
-
-
-	- Base: Thème minimaliste avec une couleur primaire bleue.
- 
-	- Default: Thème par défaut de Gradio 5, orange et gris.
- 
-	- Origin: Similaire au style de Gradio 4, couleurs plus sobres.
- 
-	- Citrus: Thème jaune avec effets 3D sur les boutons.
- 
-	- Monochrome: Thème noir et blanc avec des polices de caractères de style journal.
- 
-	- Soft: Thème violet avec bords arrondis et étiquettes mises en évidence.
- 
-	- Glass: Thème bleu avec effet de verre grâce à des dégradés verticaux.
- 
-	- Ocean: Thème bleu-vert avec dégradés horizontaux.
-
-**SHARE** : Si vous mettez True, alors un lien sera créé pour utiliser l'application depuis un autre ordinateur. **ATTENTION** : Pour le moment, il n'y a pas de système de queue. Ainsi, si vous partagez le lien et que plusieurs personnes utilisent le logiciel, il y a un gros risque de bug.
-
-**LANGUAGE** : choisir la langue de l'application, français (fr) ou anglais (en)
  
 
 ## Savoir plus sur le choix des Samplers :
@@ -319,3 +261,63 @@ Ces samplers sont souvent des versions abrégées ou des variantes d'autres samp
 *   L'expérimentation est la clé !  N'hésitez pas à tester différents samplers pour voir ceux qui correspondent le mieux à votre style et à vos besoins spécifiques.
 
 
+## ▶️ Modules Supplémentaires
+
+### 🌟 Aperçu des Modules
+L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui s'activent automatiquement lorsqu'ils sont placés dans le répertoire `/modules`. Ces modules enrichissent les fonctionnalités de base et permettent aux utilisateurs de personnaliser leur expérience.
+
+### 📚 Liste des Modules Disponibles
+1. **Retouche d'image**  
+   - Fournit des outils basiques pour modifier ou améliorer vos créations.
+   - Compatible avec les images générées par l'application ou externes.
+
+2. **Upscaling**  
+   - Améliore la résolution des images grâce à SDXL.
+   - Idéal pour des rendus nets et détaillés.
+
+3. **Amélioration d'image**  
+   - Utilise AuraSR pour optimiser la clarté et les détails de vos images.
+
+4. **Suppression d'arrière-plan**  
+   - Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.
+
+5. **Navigation sur Civitai**  
+   - Permet de parcourir la bibliothèque Civitai pour découvrir de nouveaux modèles et prompts.
+   - Option de copier des prompts intéressants directement depuis l'interface.
+
+6. **Module de test**  
+   - Fournit un squelette de base pour aider les utilisateurs à créer leurs propres modules.
+   - Idéal pour les développeurs souhaitant expérimenter ou personnaliser leurs fonctionnalités.
+
+---
+
+### 🛠️ Activation des Modules
+- **Placement automatique** : Placez le module désiré dans le dossier `/modules`. L'application détecte automatiquement sa présence et l'active.
+- **Interface utilisateur** : Les modules activés seront accessibles depuis le menu principal ou des onglets spécifiques. Relancer l'application pour une prise en compte
+
+---
+
+### 🌈 Configuration des Modules
+Certains modules proposent des options de configuration avancées :
+- **Module d'upscaling** :  
+  - Ajustez la résolution cible directement dans les paramètres de l'application.
+  
+- **Suppression d'arrière-plan** :  
+  
+- **Retouche d'image** :  
+  - Permet d'importer des images externes et d'appliquer des filtres rapidement.
+
+---
+
+### 🔧 Développement de Modules Personnalisés
+Le module de test inclus fournit un cadre pratique pour développer vos propres modules. Voici comment procéder :
+1. **Structure du module** :  
+   - Chaque module doit inclure un fichier principal nommé `monModule_mod.py` et des dépendances spécifiques.
+
+2. **Configuration** :  
+   - Utilisez le fichier `monMocule_mod.json` du module pour définir ses comportements et paramètres et les traductions.
+
+3. **Documentation** :  
+   - Ajoutez des instructions claires dans le dossier du module pour guider les utilisateurs.
+
+---
