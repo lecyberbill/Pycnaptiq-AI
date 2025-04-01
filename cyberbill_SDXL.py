@@ -628,7 +628,13 @@ def update_globals_decharge_lora():
 # =========================
 # Interface utilisateur (Gradio)
 # =========================
-with gr.Blocks(theme=gradio_change_theme(GRADIO_THEME), js=js_code) as interface:
+
+block_kwargs = {"theme": gradio_change_theme(GRADIO_THEME)}
+if js_code:
+    block_kwargs["js"] = js_code
+
+
+with gr.Blocks(**block_kwargs) as interface:
      gr.Markdown(f"# Cyberbill SDXL images generator version {version()}")
 
 
