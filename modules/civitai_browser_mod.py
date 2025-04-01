@@ -32,7 +32,7 @@ class CivitaiBrowser:
         self.current_page = 1  # Variable pour suivre la page actuelle
         self.global_translations = global_translations
         self.global_pipe = None
-        self.global_compel = None 
+        self.global_compel = None
         self.global_config = None
 
     def create_tab(self, module_translations):
@@ -46,8 +46,8 @@ class CivitaiBrowser:
                         interactive=False, 
                         value="Page 1"
                     )
-                    prev_button = gr.Button("⬅️ Précédent")
-                    next_button = gr.Button("Suivant ➡️")
+                    prev_button = gr.Button(translate("previous", module_translations) + " ⬅️")
+                    next_button = gr.Button("Suivant ➡️" + translate("next", module_translations))
                 with gr.Column(scale=4):
                     with gr.Accordion(translate("advanced_search", module_translations), open=True):
                         limit = gr.Slider(
@@ -73,48 +73,42 @@ class CivitaiBrowser:
                             label=translate("period", module_translations)
                         )
                     # Bouton pour lancer la recherche avec les paramètres avancés
-                    refresh_button = gr.Button("Charger")
+                    refresh_button = gr.Button(translate("load", module_translations))
                     # Affichage de la galerie sous forme de HTML (grille)
             image_gallery = gr.HTML()
-
-
+            state_module_translations = gr.State(module_translations)
             refresh_button.click(
                 self.search_civitai,
-                inputs=[limit, nsfw, sort, period],
-                outputs=[image_gallery, page_display],
-                
+                inputs=[limit, nsfw, sort, period, state_module_translations],
+                outputs=[image_gallery, page_display],             
             )
-
             prev_button.click(
                 self.previous_page,
-                inputs=[limit, nsfw, sort, period],
+                inputs=[limit, nsfw, sort, period, state_module_translations],
                 outputs=[image_gallery, page_display]
             )
-
             next_button.click(
                 self.next_page,
-                inputs=[limit, nsfw, sort, period],
+                inputs=[limit, nsfw, sort, period, state_module_translations],
                 outputs=[image_gallery, page_display]
-            )
-            
-
+            )         
         return tab
 
-    def search_civitai(self, limit, nsfw, sort, period):
+    def search_civitai(self, limit, nsfw, sort, period, module_translations):
         """Effectue une recherche et affiche les résultats sur la première page."""
         self.current_page = 1  # Réinitialisation à la première page
-        return self.fetch_images(limit, nsfw, sort, period, self.current_page)
+        return self.fetch_images(limit, nsfw, sort, period, self.current_page, module_translations)
 
-    def previous_page(self, limit, nsfw, sort, period):
+    def previous_page(self, limit, nsfw, sort, period, module_translations):
         """Passe à la page précédente si possible."""
         if self.current_page > 1:
             self.current_page -= 1
-        return self.fetch_images(limit, nsfw, sort, period, self.current_page)
+        return self.fetch_images(limit, nsfw, sort, period, self.current_page, module_translations)
 
-    def next_page(self, limit, nsfw, sort, period):
+    def next_page(self, limit, nsfw, sort, period, module_translations):
         """Passe à la page suivante."""
         self.current_page += 1
-        return self.fetch_images(limit, nsfw, sort, period, self.current_page)
+        return self.fetch_images(limit, nsfw, sort, period, self.current_page, module_translations)
 
     def get_js_functions(self):
         """Returns the JavaScript functions as a string."""
@@ -194,7 +188,7 @@ class CivitaiBrowser:
         """Return the javascript code for the module"""
         return self.get_js_functions()
 
-    def fetch_images(self, limit, nsfw, sort, period, page):
+    def fetch_images(self, limit, nsfw, sort, period, page, module_translations):
         base_url = "https://civitai.com/api/v1/images"
         params = {
             "limit": int(limit),
@@ -379,22 +373,22 @@ class CivitaiBrowser:
                     <img src="{image_url}" class="image_card">
                 </a>
                 <button class="meta-button" data-overlay-id="overlay-{i}">
-                    Voir métadonnées
+                    {translate("see_metadata", module_translations)}
                 </button>
                 <div class="overlay" id="overlay-{i}">
-                    <button class="close-btn" data-overlay-id="overlay-{i}">✖</button>
+                    <button class="close-btn" data-overlay-id="overlay-{i}">✖ {translate("close", module_translations)}</button>
                     <div class="meta-content">
-                    <h3>Prompt</h3>
+                    <h3>{translate("prompt", module_translations)}</h3>
                     <p id="prompt-{i}">{prompt}</p>
-                    <button class="copy-btn" data-text-id="prompt-{i}">📋 Copier</button>
-                    <h3>Negative Prompt</h3>
+                    <button class="copy-btn" data-text-id="prompt-{i}">📋 {translate("copy", module_translations)}</button>
+                    <h3>{translate("no_negative_prompt", module_translations)}</h3>
                     <p>{negative_prompt}</p>
-                    <h3>Autres métadonnées</h3>
+                    <h3>{translate("other_metadata", module_translations)}</h3>
                     <ul>
-                        <li><strong>Steps:</strong> {steps}</li>
-                        <li><strong>Sampler:</strong> {sampler}</li>
-                        <li><strong>Seed:</strong> {seed}</li>
-                        <li><strong>Clip Skip:</strong> {clip_skip}</li>
+                        <li><strong>{translate("steps", module_translations)}:</strong> {steps}</li>
+                        <li><strong>{translate("sampler", module_translations)}:</strong> {sampler}</li>
+                        <li><strong>{translate("seed", module_translations)}:</strong> {seed}</li>
+                        <li><strong>{translate("clip_skip", module_translations)}:</strong> {clip_skip}</li>
                     </ul>
                     </div>
                 </div>
@@ -405,7 +399,7 @@ class CivitaiBrowser:
             return html_gallery, f"Page {page}"
 
         except requests.exceptions.RequestException as e:
-            print(text_color("[ERREUR] ", "erreur"), translate("erreur_recherche_civitai", module_translations), f": {e}")
+            print(txt_color("[ERREUR] ", "erreur"), translate("erreur_recherche_civitai", module_translations), f": {e}")
             raise gr.Error(translate("erreur_recherche_civitai", module_translations) + f": {e}", 4.0)
             return "<p>Erreur lors de la recherche.</p>", f"Page {page}"
 

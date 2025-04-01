@@ -24,7 +24,22 @@
             "sort": "Trier par",
             "period": "Période",
             "page": "Page",
-            "erreur_recherche_civitai": "Erreur lors de la recherche sur Civitai.com"
+            "erreur_recherche_civitai": "Erreur lors de la recherche sur Civitai.com",
+            "current_page": "Page actuelle",
+            "previous": "Précédent",
+            "next": "Suivant",
+            "load": "Charger",
+            "see_metadata": "Voir métadonnées",
+            "no_prompt": "Aucun prompt",
+            "no_negative_prompt": "Aucun negative prompt",
+            "not_available": "N/A",
+            "steps": "Steps",
+            "sampler": "Sampler",
+            "seed": "Seed",
+            "clip_skip": "Clip Skip",
+            "copy": "Copier",
+            "close": "Fermer",
+            "other_metadata": "Autres métadonnées"
         },
         "en": {
             "civitai_browser": "Civitai Browser",
@@ -44,7 +59,22 @@
             "sort": "Sort by",
             "period": "Period",
             "page": "Page",
-            "erreur_recherche_civitai": "Error while searching on Civitai.com"
+            "erreur_recherche_civitai": "Error while searching on Civitai.com",
+            "current_page": "Current Page",
+            "previous": "Previous",
+            "next": "Next",
+            "load": "Load",
+            "see_metadata": "See metadata",
+            "no_prompt": "No prompt",
+            "no_negative_prompt": "No negative prompt",
+            "not_available": "N/A",
+            "steps": "Steps",
+            "sampler": "Sampler",
+            "seed": "Seed",
+            "clip_skip": "Clip Skip",
+            "copy": "Copy",
+            "close": "Close",
+            "other_metadata": "Other metadata"
         }
     }
 }
