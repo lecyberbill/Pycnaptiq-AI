@@ -76,11 +76,11 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
 ```json
 {
     "AUTHOR": "Cyberbill_SDXL",
-    "MODELS_DIR": "G:\\models\\checkpoints",
-    "VAE_DIR": "G:\\models\\vae",
-    "INPAINT_MODELS_DIR": "G:\\models\\inpaint",
-    "LORAS_DIR": "G:\\models\\loras",
-    "SAVE_DIR": "P:\\Mes photos\\AI",
+    "MODELS_DIR": "models\\checkpoints",
+    "VAE_DIR": "models\\vae",
+    "INPAINT_MODELS_DIR": "models\\inpaint",
+    "LORAS_DIR": "models\\loras",
+    "SAVE_DIR": "output",
     "IMAGE_FORMAT": "webp",
     "DEFAULT_MODEL": "your_default_modele.safetensors",
     "NEGATIVE_PROMPT": "deformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
