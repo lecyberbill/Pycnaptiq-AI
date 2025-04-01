@@ -1,0 +1,26 @@
+{
+    "name": "Mon Nouveau Module",
+    "version": "1.0.0",
+    "description": "Description de mon nouveau module.",
+    "tab_name": "mon_nouveau_module",
+    "init_function": "initialize",
+    "dependencies": [],
+    "language": {
+        "fr": {
+            "mon_nouveau_module": "Mon Nouveau Module",
+            "mon_nouveau_module_titre": "Bienvenue dans Mon Nouveau Module !",
+            "my_text_input": "Mon champ de texte",
+            "my_button": "Mon bouton",
+            "my_text_output": "Mon champ de sortie",
+            "remove_bg_with_rembg": "Suppresion de l'arrière plan avec Rembg..."
+        },
+        "en": {
+            "mon_nouveau_module": "My New Module",
+            "mon_nouveau_module_titre": "Welcome to My New Module!",
+            "my_text_input": "My text input",
+            "my_button": "My button",
+            "my_text_output": "My text output",
+            "remove_bg_with_rembg": "Remove background with Rembg..."
+        }
+    }
+}

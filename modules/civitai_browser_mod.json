@@ -1,0 +1,50 @@
+{
+    "name": "Civitai Browser Module",
+    "version": "1.0.0",
+    "description": "Browse images and prompts from Civitai.com",
+    "tab_name": "civitai_browser",
+    "init_function": "initialize",
+    "dependencies": ["pandas"],
+    "language": {
+        "fr": {
+            "civitai_browser": "Navigateur Civitai",
+            "civitai_browser_title": "Parcourir les images de Civitai",
+            "search_query": "Recherche",
+            "search": "Rechercher",
+            "image_gallery": "Galerie d'images",
+            "prompt": "Prompt",
+            "copy_prompt": "Copier le prompt",
+            "advanced_search": "Recherche avancée",
+            "limit": "Limite",
+            "post_id": "ID du post",
+            "model_id": "ID du modèle",
+            "model_version_id": "ID de la version du modèle",
+            "username": "Nom d'utilisateur",
+            "nsfw": "NSFW",
+            "sort": "Trier par",
+            "period": "Période",
+            "page": "Page",
+            "erreur_recherche_civitai": "Erreur lors de la recherche sur Civitai.com"
+        },
+        "en": {
+            "civitai_browser": "Civitai Browser",
+            "civitai_browser_title": "Browse Civitai Images",
+            "search_query": "Search",
+            "search": "Search",
+            "image_gallery": "Image Gallery",
+            "prompt": "Prompt",
+            "copy_prompt": "Copy prompt",
+            "advanced_search": "Advanced Search",
+            "limit": "Limit",
+            "post_id": "Post ID",
+            "model_id": "Model ID",
+            "model_version_id": "Model Version ID",
+            "username": "Username",
+            "nsfw": "NSFW",
+            "sort": "Sort by",
+            "period": "Period",
+            "page": "Page",
+            "erreur_recherche_civitai": "Error while searching on Civitai.com"
+        }
+    }
+}

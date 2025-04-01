@@ -1,4 +1,5 @@
 import random
+import importlib
 import os
 import shutil
 import time
@@ -7,20 +8,25 @@ from datetime import datetime
 import json
 import gradio as gr
 from diffusers import AutoPipelineForText2Image,StableDiffusionXLPipeline, AutoencoderKL, EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler, \
-    LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, \
-    KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler
+    LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, StableDiffusionXLInpaintPipeline, \
+    KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler, DPMSolverSinglestepScheduler
 import torch
 import numpy as np
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, AutoProcessor
-from modules.previewer import latents_to_rgb, create_callback_on_step_end
-from utils import enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, \
-    telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image
-from modules.retouche import ImageEditor
+from Utils.previewer import latents_to_rgb, create_callback_on_step_end
+from core.Inpaint import apply_mask_effects, extract_image
+from Utils.model_loader import charger_modele, charger_modele_inpainting, charger_lora, decharge_lora
+from Utils.utils import enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, GestionModule,\
+    telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, check_gpu_availability
+#from modules.retouche import ImageEditor
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Process
-from version import version
+from core.version import version
+torch.backends.cudnn.deterministic = True
+
 from compel import Compel, ReturnedEmbeddingsType
+from io import BytesIO 
 
 
 print (f"cyberbill_SDXL version {txt_color(version(),'info')}")
@@ -36,6 +42,7 @@ translations = load_locales(DEFAULT_LANGUAGE)
 MODELS_DIR = config["MODELS_DIR"]
 VAE_DIR = config["VAE_DIR"]
 LORAS_DIR = config["LORAS_DIR"]
+INPAINT_MODELS_DIR = config["INPAINT_MODELS_DIR"]
 SAVE_DIR = config["SAVE_DIR"]
 IMAGE_FORMAT = config["IMAGE_FORMAT"].upper() 
 FORMATS = config["FORMATS"]
@@ -53,9 +60,17 @@ PREVIEW_QUEUE = []
 
 
 
+# Check if photo_editing_mod is loaded
+#photo_editing_loaded = "photo_editing" in gestionnaire.get_loaded_modules()
 #initialisation des modèles
 
 modeles_disponibles = lister_fichiers(MODELS_DIR, translations)
+vaes = ["Défaut VAE"] + lister_fichiers(VAE_DIR, translations)
+modeles_impaint = lister_fichiers(INPAINT_MODELS_DIR, translations)
+
+if not modeles_impaint:
+    modeles_impaint = [translate("aucun_modele_trouve", translations)]
+    
 
 
 if modeles_disponibles and modeles_disponibles[0] == translate("aucun_modele_trouve", translations):
@@ -81,34 +96,26 @@ if IMAGE_FORMAT not in ["PNG", "JPG", "WEBP"]:
 html_executor = ThreadPoolExecutor(max_workers=5)
 image_executor = ThreadPoolExecutor(max_workers=10)
 
-# Vérifier si CUDA est disponible
-if torch.cuda.is_available():
-    gpu_id = 0  # ID du GPU (ajuste si nécessaire)
-    vram_total = torch.cuda.get_device_properties(gpu_id).total_memory  # en octets
-    vram_total_gb = vram_total / (1024 ** 3)  # conversion en Go
-
-    print(translate("vram_detecte", translations), f"{txt_color(f'{vram_total_gb:.2f} Go', 'info')}")
-
-    # Activer expandable_segments si VRAM < 10 Go
-    if vram_total_gb < 10:
-        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True max_split_size_mb:512"
-        medvram = True
-        print(translate("pytroch_active", translations))
-    # Détermination du device et du type de données
-    device = "cuda"
-    torch_dtype = torch.float16
-else:
-    print(txt_color(translate("cuda_dispo", translations),"erreur"))
-    device = "cpu"
-    torch_dtype = torch.float32
-
-print(txt_color(f'{translate("utilistation_device", translations)} : {device} + dtype {torch_dtype}','info'))
+# Call the function to check GPU availability
+device, torch_dtype, vram_total_gb = check_gpu_availability(translations)
 
 # Initialisation des variables globales
+pipe = None
 pipe = None
 model_selectionne = None
 vae_selctionne = None
 compel = None
+
+
+
+# Créer une instance du gestionnaire de modules
+gestionnaire = GestionModule(translations=translations, language=DEFAULT_LANGUAGE, global_pipe=pipe, global_compel=compel, config=config)
+# Charger tous les modules
+gestionnaire.charger_tous_les_modules()
+
+# Get the javascript code
+js_code = gestionnaire.get_js_code()
+
 
 # Flag pour arrêter la génération
 stop_event = threading.Event()
@@ -145,6 +152,7 @@ sampler_options = [
     translate("sampler_dpm_adaptive", translations),
     translate("sampler_heun", translations),
     translate("sampler_dpmpp_sde", translations),
+    translate("sampler_dpmpp_3m_sde", translations),
     translate("sampler_dpmpp_2m", translations),
     translate("sampler_euler_a", translations),
     translate("sampler_lms", translations),
@@ -165,61 +173,81 @@ def apply_sampler(sampler_selection):
         if sampler_selection == translate("sampler_euler", translations):
             pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3)
             return info
         elif sampler_selection == translate("sampler_dpmpp_2m", translations):
             pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpmpp_2s_a", translations):
             pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_lms", translations):
             pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_ddim", translations):
             pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_pndm", translations):
             pipe.scheduler = PNDMScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpm2", translations):
             pipe.scheduler = KDPM2DiscreteScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpm2_a", translations):
             pipe.scheduler = KDPM2AncestralDiscreteScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpm_fast", translations):
             pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpm_adaptive", translations):
             pipe.scheduler = DEISMultistepScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_heun", translations):
             pipe.scheduler = HeunDiscreteScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpmpp_sde", translations):
             pipe.scheduler = DPMSolverSDEScheduler.from_config(pipe.scheduler.config)  # Note: Utilisation de DPMSolverSDEScheduler
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
+            return info
+        elif sampler_selection == translate("sampler_dpmpp_3m_sde", translations):
+            pipe.scheduler = DPMSolverSinglestepScheduler.from_config(pipe.scheduler.config)
+            print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_euler_a", translations):
             pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_unipc", translations):
             pipe.scheduler = PNDMScheduler.from_config(pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info,3.0)
             return info
         else:
             print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_sampler_inconnu', translations)} {sampler_selection}")  # Utilisation de la clé de traduction
+            gr.Warning(translate('erreur_sampler_inconnu', translations) + " " + sampler_selection, 4.0)
             return f"{translate('erreur_sampler_inconnu', translations)} {sampler_selection}"
 
     else:
@@ -237,113 +265,9 @@ def style_choice(selected_style_user, STYLES):
     selected_style = next((item for item in STYLES if item["name"] == selected_style_user), None)
     return selected_style
 
-def charger_modele(nom_fichier, nom_vae):
-    """Charge un modèle spécifique."""
-    
-    # Importation global non recommandée, mais ici utilisée pour simplifier l'exemple
-    global pipe, model_selectionne, vae_selctionne, compel
-    
-    # Si aucun modèle n'est sélectionné, affiche un message et retourne
-    if nom_fichier is None or nom_fichier == translate("aucun_modele_trouve", translations) or not nom_fichier:
-        print(txt_color("[ERREUR] ","erreur"),translate("aucun_modele_selectionne", translations))
-        return translate("aucun_modele_selectionne", translations)+ translate("verifier_config", translations)
+pipe, compel, *message = charger_modele(DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, pipe, compel)
 
-    if nom_vae is None or nom_vae == "Défaut VAE" or not nom_vae:
-        nom_vae = "Défaut VAE"
-    
-    # Construit le chemin vers le fichier de modèle en se basant sur la constante MODELS_DIR et le nom du fichier
-    chemin_modele = os.path.join(MODELS_DIR, nom_fichier)
-    chemin_vae = os.path.join(VAE_DIR, nom_vae)
-    
-    # Si une pipe est déjà chargée, on la supprime pour libérer de la mémoire GPU et éviter les conflits
-    if pipe is not None:
-        del pipe
-        torch.cuda.empty_cache()
-        print(txt_color("[OK] ","ok"),translate("modele_precedent_decharger", translations))
-    
-    # Essaye de charger le modèle à partir du fichier spécifié
-    try:
-        print(txt_color("[INFO] ","info"),f"{translate('chargement_modele',translations)} : {nom_fichier} {translate('chargement_vae',translations)} : {nom_vae}")
-        
-        # Charge le modèle et met à jour la variable globale 'pipe'
-        pipe = StableDiffusionXLPipeline.from_single_file(
-            chemin_modele,
-            use_safetensors=True,            
-            safety_checker=None,  
-            torch_dtype=torch_dtype, 
-            low_cpu_mem_usage=True if (device == "cuda" and vram_total_gb < 10) else False,
-            load_device=device
-         )
-         
-        pipe = AutoPipelineForText2Image.from_pipe(pipe)
-                         
-        if not nom_vae == "Défaut VAE":
-            pipe.vae = vae=AutoencoderKL.from_single_file(chemin_vae, torch_dtype=torch_dtype)
-            print (txt_color("[OK] ","ok"),translate("vae_charge", translations), f"{nom_vae}")
-        else:
-            print (txt_color("[INFO] ","info"), translate("aucun_vae_selectionne", translations))
-            
-        # 
-        # Si le dispositif est GPU, met le modèle dans l'espace de stockage GPU
-        
-        pipe = pipe.to(device) if device == "cuda" else pipe
-        pipe.enable_vae_slicing()
-        pipe.enable_vae_tiling()
-
-        if device == "cuda" and vram_total_gb < 10:
-        # Attention slicing : permet de découper le calcul de l'attention
-            pipe.enable_attention_slicing()
-            
-            pipe.enable_xformers_memory_efficient_attention()
-            print(txt_color("[INFO] ","info"), translate("optimisation_attention", translations))
-        
-        # Met à jour le nom du modèle sélectionné et retourne un message de succès
-        model_selectionne = nom_fichier
-        vae_selctionne = nom_vae
-        
-        # initialisation de compel
-        compel = Compel(
-        tokenizer=[pipe.tokenizer, pipe.tokenizer_2] ,
-        text_encoder=[pipe.text_encoder, pipe.text_encoder_2],
-        returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
-        requires_pooled=[False, True]
-        )
-        print(txt_color("[OK] ","ok"),translate("modele_charge", translations), f": {nom_fichier}")
-        return translate("modele_charge", translations), f": {nom_fichier} ", f"{translate('vae_charge', translations)} {nom_vae}"
-
-    # Si une erreur se produit lors du chargement, retourne un message d'erreur
-    except Exception as e:
-        print(txt_color("[ERREUR] ","erreur"),translate("erreur_chargement_modele", translations), f": {e}")
-        return translate("erreur_chargement_modele", translations), f": {e}"
-
-
-def charger_lora(nom_lora):
-    # décharge le LORA avant de charger un nouveau LORA
-    pipe.disable_lora()
-    pipe.enable_lora()
-    lora_path = os.path.join(LORAS_DIR, nom_lora)
-
-    if not os.path.exists(lora_path):
-        print(txt_color("[ERREUR] ", "erreur"), translate("erreur_fichier_lora", translations))
-        return translate("erreur_fichier_lora", translations)
-
-    if pipe is None:
-        print(txt_color("[ERREUR] ", "erreur"), translate("erreur_pas_modele", translations))
-        return translate("erreur_pas_modele", translations)
-
-    adapter_nom = os.path.splitext(nom_lora)[0]
-    adapter_nom = adapter_nom.replace(".", "_")
-    try:
-        print(txt_color("[INFO] ", "info"), translate("lora_charge_depuis", translations), f"{lora_path}")
-        # pipe.load_lora_weights(lora_path, weight_name=nom_lora)  # Charger le LORA
-        pipe.load_lora_weights(lora_path, weight_name=nom_lora, adapter_name=adapter_nom)  # Charger le LORA
-        print(txt_color("[OK] ", "ok"), translate("lora_charge", translations), f"{adapter_nom}")
-        return translate("lora_charge", translations), f" {adapter_nom}"
-    except Exception as e:
-        print(txt_color("[ERREUR] ", "erreur"), translate("erreur_lora_chargement", translations), f": {e}")
-        return translate("lora_non_compatible", translations)
-
-
+compel = compel
 
 #générer prompt à partir d'une image
 
@@ -387,21 +311,24 @@ def translate_prompt(prompt_fr):
     try:
         traduction = translator(prompt_fr)[0]["translation_text"]
         print(txt_color("[INFO] ", "info"), f"{translate('traduction_effectuee', translations)} {prompt_fr} -> {traduction}")
+        gr.Info(translate('traduction_effectuee', translations) + " " + prompt_fr + " -> " + traduction, 3.0)
         return traduction
     except Exception as e:
         print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_traduction', translations)}: {e}")
+        raise gr.Error(f"{translate('erreur_traduction', translations)}: {e}", 4.0)
         return f"{translate('erreur_traduction', translations)}: {e}"
 
 
-def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, lora_scale):
+def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, lora_scale):#, enhance_checkbox):
     """Génère des images avec Stable Diffusion."""
-    global compel
+    global pipe, compel
     
     selected_style = style_choice(style_selection, STYLES)
     try:
         
         if pipe is None:
             print(txt_color("[ERREUR] ","erreur"), translate("erreur_pas_modele", translations))
+            gr.Warning(translate("erreur_pas_modele", translations), 4.0)
             return None, None, translate("erreur_pas_modele", translations)
         
         #initialisation du chrono
@@ -437,9 +364,11 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             if stop_event.is_set():  # Vérifie si un arrêt est demandé
                 html_message = html_executor.submit(enregistrer_etiquettes_image_html, chemin_image, donnees_xmp, translations, is_last_image=True)
                 print(txt_color("[INFO] ","info"), translate("arrete_demande_apres", translations), f"{idx} {translate('images', translations)}.")
+                gr.Info(translate("arrete_demande_apres", translations) + f"{idx} {translate('images', translations)}.", 3.0)
                 break
                 
             print(txt_color("[INFO] ","info"), f"{translate('generation_image', translations)} {idx+1} {translate('seed_utilise', translations)} {seed}")
+            gr.Info(translate('generation_image', translations) + f"{idx+1} {translate('seed_utilise', translations)} {seed}", 3.0)
             is_generating = True
             
             def run_pipeline():
@@ -481,7 +410,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             # Récupération de l'image finale (qui sera ajoutée à la galerie)
             final_image = final_image_container.get("final", None)
             PREVIEW_QUEUE.clear()
-            #delete_file_in_folder(TEMP_PREVIEW_DIR)
+
             
             temps_generation_image = f"{(time.time() - depart_time):.2f} sec"            
             
@@ -511,9 +440,9 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
             filename = f"{date_str}_{heure_str}_{seed}_{width}x{height}_{idx+1}.{IMAGE_FORMAT.lower()}"
             chemin_image = os.path.join(save_dir, filename)
-            
+            gr.Info(translate("image_sauvegarder", translations) + " " + chemin_image, 3.0)    
             is_generating = False
-
+            
             # sauvegarde de l'image
             # enregistrer_image(final_image, chemin_image, donnees_xmp, translations, IMAGE_FORMAT)
             # Déléguer la tâche d'enregistrement de l'image au ThreadPoolExecutor
@@ -531,11 +460,11 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             seed_strings.append(f"[{seed}]")
             # join the string with a space
             formatted_seeds = " ".join(seed_strings)
-            if html_message.done() :
-                # Récupérer le résultat
-                html_message_result = html_message.result()
-            else:
-                html_message_result = translate("erreur_lors_generation_html", translations)
+            if html_message.done():
+                html_message_result = html_message.result()  # Get the result
+            elif not html_message.done():
+                # If the task is not done, display the error message
+                 html_message_result = translate("erreur_lors_generation_html", translations)
                        
             yield images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}", html_message_result, final_image# return the all list image
                    
@@ -543,46 +472,112 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         elapsed_time = f"{(time.time() - start_time):.2f} sec"
              
         print(txt_color("[INFO] ","info"),f"{translate('temps_total_generation', translations)} : {elapsed_time}")
+        gr.Info(translate('temps_total_generation', translations) + " : " + elapsed_time, 3.0)
         #we return all the seed list
         return images, formatted_seeds, elapsed_time
 
     except Exception as e:
         print(txt_color("[ERREUR] ","erreur"), f"{translate('erreur_lors_generation', translations)} : {e}")
+        raise gr.Error (f"{translate('erreur_lors_generation', translations)} : {e}", 4.0)
         return None, None, f"{translate('erreur_lors_generation', translations)} : {e}"
+
+
+
+def generate_inpainted_image(text, image, mask, num_steps, guidance_scale, traduire):
+    """Génère une image inpainted avec Stable Diffusion XL."""
+    global pipe, compel
+    try:
+        start_time = time.time()
+        if pipe is None:
+            print(txt_color("[ERREUR] ", "erreur"), translate("erreur_pas_modele_inpainting", translations))
+            gr.Warning(translate("erreur_pas_modele_inpainting", translations), 4.0)
+            return None, translate("erreur_pas_modele_inpainting", translations)
+
+        if image is None or mask is None:
+            print(txt_color("[ERREUR] ", "erreur"), translate("erreur_image_mask_manquant", translations))
+            gr.Warning(translate("erreur_image_mask_manquant", translations), 4.0)
+            return None, translate("erreur_image_mask_manquant", translations)
+
+        # Translate the prompt if requested
+        prompt_text = translate_prompt(text) if traduire else text
+        conditioning, pooled = compel(prompt_text)
+        active_adapters = pipe.get_active_adapters()
+        for adapter_name in active_adapters:
+            pipe.set_adapters(adapter_name, 0)
+        
+        image = Image.fromarray(image).convert("RGB") # Convert to PIL Image
+        mask = mask.convert("RGB")
+        mask = ImageOps.invert(mask)
+        final_image_container = {}
+
+        # Run the inpainting pipeline
+        def run_pipeline():
+            print(txt_color("[INFO] ", "info"), translate("debut_inpainting", translations))
+            gr.Info(translate("debut_inpainting", translations), 3.0)
+            
+            inpainted_image = pipe(
+                pooled_prompt_embeds=pooled,
+                prompt_embeds=conditioning,
+                image=image.convert("RGB"),         # PIL Image
+                mask_image=mask.convert("RGB"),     # PIL Image
+                width=image.width,                  # Largeur de l'image
+                height=image.height,                # Hauteur de l'image
+                num_inference_steps=num_steps,
+                guidance_scale=guidance_scale,
+                strength=0.89,
+            ).images[0]
+            final_image_container["final"] = inpainted_image
+
+        thread = threading.Thread(target=run_pipeline)
+        thread.start()
+        thread.join()
+        inpainted_image = final_image_container.get("final", None)
+        
+        temps_generation_image = f"{(time.time() - start_time):.2f} sec"
+        date_str = datetime.now().strftime("%Y_%m_%d")
+        heure_str = datetime.now().strftime("%H_%M_%S")
+        save_dir = os.path.join(SAVE_DIR, date_str)
+        os.makedirs(save_dir, exist_ok=True)
+        filename = f"{date_str}_{heure_str}_inpainting_{image.width}x{image.height}.{IMAGE_FORMAT.lower()}"
+        chemin_image = os.path.join(save_dir, filename)
+        donnees_xmp = {
+            "IMAGE": translate("inpainting", translations),
+            "Creator": AUTHOR,
+            "Inference": num_steps,
+            "Guidance": guidance_scale,
+            "Prompt": prompt_text,
+            "Modèle": os.path.splitext(model_selectionne)[0],
+            "Dimension": f"{image.width}x{image.height}",
+            "Temps de génération": temps_generation_image
+        }
+
+        image_future = image_executor.submit(enregistrer_image, inpainted_image, chemin_image, translations, IMAGE_FORMAT)
+        html_message = html_executor.submit(enregistrer_etiquettes_image_html, chemin_image, donnees_xmp, translations, is_last_image=True)
+
+        print(txt_color("[OK] ", "ok"), translate("fin_inpainting", translations))
+        gr.Info(translate("fin_inpainting", translations), 3.0)
+
+        return inpainted_image, html_message.result(), translate("inpainting_reussi", translations)        
+
+    except Exception as e:
+        print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_lors_inpainting', translations)}: {e}")
+        raise gr.Error(f"{translate('erreur_lors_inpainting', translations)}: {e}", 4.0)
+        return None, f"{translate('erreur_lors_inpainting', translations)}: {e}"
+
+
 
 
 def stop_generation():
     """Déclenche l'arrêt de la génération"""
     stop_event.set()
+    gr.Info(translate("arreter", translations), 3.0)
     return translate("arreter", translations)
 
 def stop_generation_process():
     stop_gen.set()
+    gr.Info(translate("arreter", translations), 3.0)
     return translate("arreter", translations)
 
-
-def decharge_lora():
-    # Récupère la liste des adaptateurs actifs
-    active_adapters = pipe.get_active_adapters()
-    
-    # Itère sur chaque adaptateur et le désactive
-    for adapter_name in active_adapters:
-        pipe.delete_adapters(adapter_name)
-        print(txt_color("[INFO] ","info"), f"{translate('lora_decharge_nom', translations)} '{adapter_name}'")
-    
-    return translate("lora_decharge", translations)
-
-def apply_filters_to_image(image, contrast, saturation, color_boost, grayscale, blur_radius, sharpness_factor, rotation_angle, mirror_type, special_filter, vibrance, hue_angle, point1, point2, point3, unsharp_radius, unsharp_percent, unsharp_threshold, noise_amount, gradient_color1, gradient_color2, gradient_active, color_shift_r, color_shift_g, color_shift_b, gradient_angle):
-    """Applique les filtres à l'image en utilisant la classe ImageEditor."""
-    if image is None:
-        return None
-    try:
-        editor = ImageEditor(image)
-        editor.apply_all_filters(contrast, saturation, color_boost, grayscale, blur_radius, sharpness_factor, rotation_angle, mirror_type, special_filter, vibrance, hue_angle, point1, point2, point3, unsharp_radius, unsharp_percent, unsharp_threshold, noise_amount, gradient_color1, gradient_color2, gradient_active, color_shift_r, color_shift_g, color_shift_b, gradient_angle)
-    except (TypeError, ValueError) as e:
-        print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_image_invalide', translations)} : {e}")
-        return None
-    return editor.get_image()
 
 # =========================
 # Chargement d'un modèle avant chargement interface
@@ -591,19 +586,55 @@ def apply_filters_to_image(image, contrast, saturation, color_boost, grayscale, 
 
 if DEFAULT_MODEL in modeles_disponibles:
     print(f"{txt_color('[INFO]','info')}", f"{DEFAULT_MODEL} {translate('va_se_charger', translations)} {MODELS_DIR}")
-    charger_modele(DEFAULT_MODEL, "Défaut VAE")
+    # Use DEFAULT_MODEL and "Défaut VAE" directly
+    pipe, compel, *message = charger_modele(DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, pipe, compel)
+    model_selectionne = DEFAULT_MODEL
+    vae_selctionne = "Défaut VAE"
 
 else:
     print(f"{txt_color('[INFO]','info')}", f"{DEFAULT_MODEL} {translate('pas_de_modele_dans', translations)} : {MODELS_DIR}")
-    DEFAULT_MODEL=""
+    DEFAULT_MODEL = ""
+    model_selectionne = ""
+    vae_selctionne = ""
+
+# =========================
+# Model Loading Functions (update_globals_model, update_globals_model_inpainting) for gradio
+# =========================
+
+def update_globals_model(nom_fichier, nom_vae):
+    global pipe, compel, model_selectionne, vae_selctionne
+    pipe, compel, *message = charger_modele(nom_fichier, nom_vae, translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, pipe, compel, gradio_mode=True)
+    model_selectionne = nom_fichier
+    vae_selctionne = nom_vae
+    return message
+
+def update_globals_model_inpainting(nom_fichier):
+    global pipe, compel, model_selectionne 
+    pipe, compel, message = charger_modele_inpainting(nom_fichier, translations, INPAINT_MODELS_DIR, device, torch_dtype, vram_total_gb, pipe, compel) 
+    model_selectionne = nom_fichier
+    return message
+
+def update_globals_lora(nom_lora):
+    global pipe
+    message = charger_lora(nom_lora, pipe, LORAS_DIR, translations)
+    return message
+
+def update_globals_decharge_lora():
+    global pipe
+    message = decharge_lora(pipe, translations)
+    return message
 
 
 # =========================
 # Interface utilisateur (Gradio)
 # =========================
-with gr.Blocks(theme=gradio_change_theme(GRADIO_THEME)) as interface:
+with gr.Blocks(theme=gradio_change_theme(GRADIO_THEME), js=js_code) as interface:
      gr.Markdown(f"# Cyberbill SDXL images generator version {version()}")
-     
+
+
+############################################################
+########TAB GENRATION IAMGE
+############################################################   
      with gr.Tab(translate("generation_image", translations)):
         with gr.Row():
             with gr.Column(scale=1, min_width=300):
@@ -621,6 +652,7 @@ with gr.Blocks(theme=gradio_change_theme(GRADIO_THEME)) as interface:
                 num_images_slider = gr.Slider(1, 200, value=1, label=translate("nombre_images_generer", translations), step=1)
                 
                 with gr.Row():
+                   #enhance_checkbox = gr.Checkbox(label=translate("enhance_image", translations), value=False, visible=photo_editing_loaded)
                     btn_stop = gr.Button(translate("arreter", translations))
                     btn_stop_after_gen = gr.Button(translate("stop_apres_gen", translations))
                     btn_generate = gr.Button(translate("generer", translations))
@@ -633,7 +665,7 @@ with gr.Blocks(theme=gradio_change_theme(GRADIO_THEME)) as interface:
                         preview_image_output = gr.Image(height=170, label=translate("apercu_etapes", translations),interactive=False)
                         value = DEFAULT_MODEL if DEFAULT_MODEL else None
                         modele_dropdown = gr.Dropdown(label=translate("selectionner_modele", translations), choices=modeles_disponibles, value=value)
-                        vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=["Défaut VAE"], value="Défaut VAE")
+                        vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=vaes, value=value)
                         sampler_dropdown = gr.Dropdown(label=translate("selectionner_sampler", translations), choices=sampler_options)
                         bouton_lister = gr.Button(translate("lister_modeles", translations))
                         bouton_charger = gr.Button(translate("charger_modele", translations))
@@ -653,9 +685,9 @@ with gr.Blocks(theme=gradio_change_theme(GRADIO_THEME)) as interface:
                             lora_message = gr.Textbox(label=translate("message_lora", translations), value="")
 
                 def mettre_a_jour_listes():
-                    modeles = lister_fichiers(MODELS_DIR, translations)
-                    vaes = ["Défaut VAE"] + lister_fichiers(VAE_DIR, translations)
-                    loras = lister_fichiers(LORAS_DIR, translations)
+                    modeles = lister_fichiers(MODELS_DIR, translations, gradio_mode=True)
+                    vaes = ["Défaut VAE"] + lister_fichiers(VAE_DIR, translations, gradio_mode=True)
+                    loras = lister_fichiers(LORAS_DIR, translations, gradio_mode=True)
 
                     has_loras = bool(loras) and translate("aucun_modele_trouve",translations) not in loras and translate("repertoire_not_found",translations) not in loras
                     lora_choices = loras if has_loras else ["Aucun LORA disponible"]
@@ -680,99 +712,110 @@ with gr.Blocks(theme=gradio_change_theme(GRADIO_THEME)) as interface:
                 )
                 
                 load_lora_button.click(
-                    fn=charger_lora,  
-                    inputs=[lora_dropdown],  
-                    outputs=lora_message  
-                )
-                
-                unload_lora_button.click(
-                    fn=decharge_lora,   
-                    outputs=lora_message  
+                    fn=update_globals_lora,
+                    inputs=[lora_dropdown],
+                    outputs=lora_message
                 )
 
-                bouton_charger.click(fn=charger_modele, inputs=[modele_dropdown, vae_dropdown], outputs=message_chargement)
+                unload_lora_button.click(
+                    fn=update_globals_decharge_lora,
+                    outputs=lora_message
+                )
+
+                bouton_charger.click(
+                    fn=update_globals_model,
+                    inputs=[modele_dropdown, vae_dropdown],
+                    outputs=message_chargement
+                )
                 sampler_dropdown.change(fn=apply_sampler, inputs=sampler_dropdown, outputs=message_chargement)
 
         image_input.change(fn=generate_caption, inputs=image_input, outputs=text_input)
 
         btn_generate.click(
             generate_image, 
-            inputs=[text_input, style_dropdown, guidance_slider, num_steps_slider, format_dropdown, traduire_checkbox, seed_input, num_images_slider, lora_scale_slider],  
+            inputs=[text_input, style_dropdown, guidance_slider, num_steps_slider, format_dropdown, traduire_checkbox, seed_input, num_images_slider, lora_scale_slider], #enhance_checkbox],  
             outputs=[image_output, seed_output, time_output, html_output, preview_image_output]
         )
 
         btn_stop.click(stop_generation_process, outputs=time_output)
         btn_stop_after_gen.click(stop_generation, outputs=time_output)
 
+############################################################
+########TAB INPAINTING
+############################################################
+        def mettre_a_jour_listes_inpainting():
+            modeles = lister_fichiers(INPAINT_MODELS_DIR, translations)
+            return gr.update(choices=modeles)
 
-     with gr.Tab(translate("retouche_image", translations)):
-        with gr.Row(visible=True) as edit_controls:
-            with gr.Column(scale=2, min_width=300):
-                with gr.Row():
-                    edit_image_input = gr.Image(label=translate("selectionner_une_image", translations), type="numpy")
-                    edit_image_output = gr.Image(label=translate("apercu_des_modifications", translations), type="numpy")
-            with gr.Column(scale=1, min_width=300):
-                with gr.Row(visible=True) as edit_controls:
-                    with gr.Column():
-                        with gr.Accordion(translate("Transformations", translations), open=False):
-                            rotation_angle = gr.Slider(0, 360, 0, step=90, label=translate("angle_de_rotation_90", translations))
-                            mirror_type = gr.Dropdown(choices=["aucun", "horizontal", "vertical"], value="aucun", label=translate("type_de_miroir", translations))
-                            special_filter = gr.Dropdown(choices=["aucun", "sepia", "contour", "negative", "posterize", "solarize", "emboss", "pixelize", "vignette", "mosaic"], value="aucun", label=translate("filtre_special", translations))    
-                        with gr.Accordion(translate("Retouche_simples", translations), open=False):
-                            contrast = gr.Slider(0.5, 2.0, 1.0, step=0.1, label=translate("contraste", translations))
-                            saturation = gr.Slider(0.5, 2.0, 1.0, step=0.1, label=translate("saturation", translations))
-                            color_boost = gr.Slider(0.5, 2.0, 1.0, step=0.1, label=translate("intensite_des_couleurs", translations))
-                            blur_radius = gr.Slider(0, 10, 0, step=1, label=translate("rayon_de_flou", translations))
-                            sharpness_factor = gr.Slider(0, 5, 1, step=0.1, label=translate("facteur_de_nettete", translations))
-                            grayscale = gr.Checkbox(label=translate("noir_et_blanc", translations))
-                        with gr.Accordion(translate("vibrance", translations), open=False):
-                            vibrance = gr.Slider(0, 2, 0, step=0.1, label=translate("vibrance", translations))
-                            hue_angle = gr.Slider(-180, 180, 0, step=1, label=translate("teinte", translations))
-                        with gr.Accordion(translate("courbes", translations), open=False):
-                            with gr.Row():
-                                point1 = gr.Slider(0, 1, 0, step=0.01, label=translate("point_courbe_1", translations))
-                                point2 = gr.Slider(0, 1, 0, step=0.01, label=translate("point_courbe_2", translations))
-                                point3 = gr.Slider(0, 1, 1, step=0.01, label=translate("point_courbe_3", translations))
-                        with gr.Accordion(translate("nettete_adaptative", translations), open=False):
-                            unsharp_radius = gr.Slider(0, 10, 0, step=1, label=translate("rayon_flou", translations))
-                            unsharp_percent = gr.Slider(0, 300, 100, step=10, label=translate("pourcentage_nettete", translations))
-                            unsharp_threshold = gr.Slider(0, 20, 0, step=1, label=translate("seuil_difference", translations))
-                        with gr.Accordion(translate("bruit", translations), open=False):
-                            noise_amount = gr.Slider(0, 1, 0, step=0.01, label=translate("quantite_bruit", translations))
-                        with gr.Accordion(translate("degrade_couleur", translations), open=False):
-                            gradient_active = gr.Checkbox(label=translate("activer_degrade", translations), value=False)
-                            gradient_angle = gr.Slider(0, 360, 0, step=1, label=translate("angle_degrade", translations))
-                            gradient_color1 = gr.ColorPicker(value="#FF0000", label=translate("couleur1", translations))
-                            gradient_color2 = gr.ColorPicker(value="#0000FF", label=translate("couleur2", translations))
-                        with gr.Accordion(translate("decalage_couleur", translations), open=False):
-                            color_shift_r = gr.Slider(-255, 255, 0, step=1, label=translate("decalage_rouge", translations))
-                            color_shift_g = gr.Slider(-255, 255, 0, step=1, label=translate("decalage_vert", translations))
-                            color_shift_b = gr.Slider(-255, 255, 0, step=1, label=translate("decalage_bleu", translations))
-        inputs = [
-            edit_image_input,
-            contrast,
-            saturation,
-            color_boost,
-            grayscale,
-            blur_radius,
-            sharpness_factor,
-            rotation_angle,
-            mirror_type,
-            special_filter,
-            vibrance,
-            hue_angle,
-            point1,
-            point2,
-            point3,
-            unsharp_radius, unsharp_percent, unsharp_threshold,
-            noise_amount, 
-            gradient_color1, 
-            gradient_color2,
-            gradient_active,
-            gradient_angle,
-            color_shift_r, color_shift_g, color_shift_b
-        ]
-        for inp in inputs:
-            inp.change(apply_filters_to_image, inputs=inputs, outputs=edit_image_output)
+     with gr.Tab(translate("Inpainting", translations)):
+        with gr.Row():
+            with gr.Column():
+                image_mask_input = gr.ImageMask(label=translate("image_avec_mask", translations))
+                opacity_slider = gr.Slider(
+                    minimum=0.0,
+                    maximum=1.0,
+                    value=1.0,
+                    step=0.05,
+                    label=translate("Mask_opacity", translations),
+                )
+                blur_slider = gr.Slider(
+                    minimum=0,
+                    maximum=20,
+                    value=0,
+                    step=1,
+                    label=translate("Mask_blur", translations),
+                )
+                inpainting_prompt = gr.Textbox(label=translate("prompt_inpainting", translations))
+                traduire_inpainting_checkbox = gr.Checkbox(label=translate("traduire_en_anglais", translations), value=False, info=translate("traduire_en_anglais", translations))
+                guidance_inpainting_slider = gr.Slider(1, 20, value=7, label=translate("guidage", translations))
+                num_steps_inpainting_slider = gr.Slider(1, 50, value=30, label=translate("etapes", translations), step=1)
+                bouton_generate_inpainting = gr.Button(translate("generer_inpainting", translations))
+            with gr.Column():
+                mask_image_output = gr.Image(type="pil", label=translate("sortie_mask_inpainting", translations), interactive=False)
+                inpainting_ressultion_output = gr.Image(type="pil", label=translate("sortie_inpainting", translations),interactive=False)
+                modele_inpainting_dropdown = gr.Dropdown(label=translate("selectionner_modele_inpainting", translations), choices=modeles_impaint, value=value)
+                bouton_lister_inpainting = gr.Button(translate("lister_modeles_inpainting", translations))
+                bouton_charger_inpainting = gr.Button(translate("charger_modele_inpainting", translations))
+                message_chargement_inpainting = gr.Textbox(label=translate("statut_inpainting", translations), value=translate("aucun_modele_charge_inpainting", translations))
+                message_inpainting = gr.Textbox(label=translate("message_inpainting", translations), interactive=False)
+            
+            opacity_slider.change(
+                fn=lambda image_and_mask, opacity, blur_radius: apply_mask_effects(image_and_mask, translations, opacity, blur_radius) if image_and_mask else None,
+                inputs=[image_mask_input, opacity_slider, blur_slider],
+                outputs=[mask_image_output],
+            )
+
+            blur_slider.change(
+                fn=lambda image_and_mask, opacity, blur_radius: apply_mask_effects(image_and_mask, translations, opacity, blur_radius) if image_and_mask else None,
+                inputs=[image_mask_input, opacity_slider, blur_slider],
+                outputs=[mask_image_output],
+            )
+            image_mask_input.change(
+                fn=lambda image_and_mask, opacity, blur_radius: apply_mask_effects(image_and_mask, translations, opacity, blur_radius) if image_and_mask else None,
+                inputs=[image_mask_input, opacity_slider, blur_slider],
+                outputs=[mask_image_output],
+            )
+
+            bouton_lister_inpainting.click(
+                fn=mettre_a_jour_listes_inpainting,
+                outputs=modele_inpainting_dropdown
+            )
+
+            bouton_charger_inpainting.click(
+                fn=update_globals_model_inpainting,
+                inputs=[modele_inpainting_dropdown],
+                outputs=message_chargement_inpainting
+            )
+            bouton_generate_inpainting.click(
+                fn=lambda text, image_and_mask, mask, num_steps, guidance_scale, traduire: generate_inpainted_image(text, image_and_mask["background"], mask, num_steps, guidance_scale, traduire),
+                inputs=[inpainting_prompt, image_mask_input, mask_image_output, num_steps_inpainting_slider, guidance_inpainting_slider, traduire_inpainting_checkbox],
+                outputs=[inpainting_ressultion_output, message_chargement_inpainting, message_inpainting]
+            )
+                    
+############################################################
+########TAB MODULES
+############################################################
+     gestionnaire.creer_tous_les_onglets(translations)
+
 
 interface.launch(inbrowser=str_to_bool(OPEN_BROWSER), pwa=True, share=str_to_bool(SHARE))

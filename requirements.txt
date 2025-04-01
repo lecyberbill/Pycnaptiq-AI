@@ -1,6 +1,6 @@
 diffusers @ git+https://github.com/huggingface/diffusers@aeac0a00f88dccce233c062f27d59028ed195d9f
 transformers==4.49.0
-gradio==5.22.0
+gradio==5.21.0
 numpy
 Pillow
 futures
@@ -14,3 +14,6 @@ xformers
 tqdm
 peft
 compel
+huggingface_hub
+onnxruntime-gpu
+rembg[gpu]
