@@ -276,7 +276,7 @@ def generate_caption(image):
 
     if image:
         # Préparer les entrées
-        inputs = caption_processor(text="<GENERATE_TAGS>", images=image, return_tensors="pt").to(device)
+        inputs = caption_processor(text="<DETAILED_CAPTION>", images=image, return_tensors="pt").to(device)
         print(txt_color("[INFO] ", "info"), translate("prompt_calcul", translations))
         # Générer le texte
         generated_ids = caption_model.generate(
@@ -288,12 +288,12 @@ def generate_caption(image):
         )
         generated_text = caption_processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
         parsed_answer = caption_processor.post_process_generation(
-            generated_text, task="<GENERATE_TAGS>", image_size=(image.width, image.height)
+            generated_text, task="<DETAILED_CAPTION>", image_size=(image.width, image.height)
         )
 
         # Libérer la mémoire GPU
         torch.cuda.empty_cache()
-        prompt = parsed_answer.get('<GENERATE_TAGS>', '').strip('{}').strip('"')
+        prompt = parsed_answer.get('<DETAILED_CAPTION>', '').strip('{}').strip('"')
         print(txt_color("[INFO] ", "info"), translate("prompt_calculé", translations), f"{prompt}")
         return prompt
     return ""
