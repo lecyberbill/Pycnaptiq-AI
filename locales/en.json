@@ -265,5 +265,7 @@
     "module_no_create_tab": "Module '{}' has no 'create_tab' function.",
     "tab_creation_error": "Error creating tab for module '{}': {}",
     "creating_all_tabs": "Creating all tabs.",
+    "erreur_pas_image_genere": "No image generated if the problem persists restart the application",
+    "erreur_chemin_image_none": "It is possible that the path to your image backup folder is incorrect",
     "dependency_install_manual": "Please activate your virtual environment and then install {} manually by typing: {} install {}"
     }
