@@ -360,12 +360,25 @@ class CivitaiBrowser:
 
                 image_url = image.get("url", "")
                 meta = image.get("meta") or {}
+                image_size = image.get("Size", "N/A")
+                model_used = meta.get("Model", "N/A")
+                model_used = meta.get("Model", "N/A")
+                model_used_tab = model_used.split(":")
+                cfgScale = meta.get("cfgScale", "N/A")
                 prompt = meta.get("prompt", "Aucun prompt")
                 negative_prompt = meta.get("negativePrompt", "Aucun negative prompt")
                 steps = meta.get("steps", "N/A")
                 sampler = meta.get("sampler", "N/A")
                 seed = meta.get("seed", "N/A")
                 clip_skip = meta.get("Clip skip", "N/A")
+                html_liste_model = "<ul>"
+                if model_used_tab:
+                    html_liste_model_items = []
+                    for element in model_used_tab:
+                        html_liste_model_items.append(f"<li>{element}</li>")
+                    html_liste_model = "<ul>" + "".join(html_liste_model_items) + "</ul>"
+                else:
+                    html_liste_model = "N/A"
 
                 html_gallery += f"""
                 <div class="image-container">
@@ -385,6 +398,9 @@ class CivitaiBrowser:
                     <p>{negative_prompt}</p>
                     <h3>{translate("other_metadata", module_translations)}</h3>
                     <ul>
+                        <li><strong>{translate("image_size", module_translations)}:</strong> {image_size}</li>
+                        <li><strong>{translate("model_used", module_translations)}:</strong> {html_liste_model}</li>
+                        <li><strong>{translate("cfgScale", module_translations)}:</strong> {cfgScale}</li>
                         <li><strong>{translate("steps", module_translations)}:</strong> {steps}</li>
                         <li><strong>{translate("sampler", module_translations)}:</strong> {sampler}</li>
                         <li><strong>{translate("seed", module_translations)}:</strong> {seed}</li>
