@@ -39,6 +39,9 @@
             "clip_skip": "Clip Skip",
             "copy": "Copier",
             "close": "Fermer",
+            "image_size": "Dimensions",
+            "model_used": "Modèle",
+            "cfgScale":"Echelle cfg",
             "other_metadata": "Autres métadonnées"
         },
         "en": {
@@ -74,6 +77,9 @@
             "clip_skip": "Clip Skip",
             "copy": "Copy",
             "close": "Close",
+            "image_size": "Size",
+            "model_used": "Model",
+            "cfgScale":"cfg Scale",
             "other_metadata": "Other metadata"
         }
     }
