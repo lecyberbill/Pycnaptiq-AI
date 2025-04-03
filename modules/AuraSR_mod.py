@@ -54,7 +54,7 @@ class AuraSRModule:
 
             def upscale_image(image):
                 start_time = time.time()
-                upscaled_image = self.upscaleImage_BY_AuraSR(image)
+                upscaled_image = self.upscaleImage_BY_AuraSR(image, module_translations)
                 date_str = datetime.now().strftime("%Y_%m_%d")
                 heure_str = datetime.now().strftime("%H_%M_%S")
                 save_dir = os.path.join(self.global_config["SAVE_DIR"], date_str)
@@ -70,7 +70,7 @@ class AuraSRModule:
 
         return tab
     
-    def upscaleImage_BY_AuraSR(self, image):
+    def upscaleImage_BY_AuraSR(self, image, module_translations):
         """
         Upscale an image using AuraSR.
 
