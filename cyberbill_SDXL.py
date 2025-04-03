@@ -410,7 +410,11 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             # Récupération de l'image finale (qui sera ajoutée à la galerie)
             final_image = final_image_container.get("final", None)
             PREVIEW_QUEUE.clear()
-
+            if final_image is None:
+                print(txt_color("[ERREUR] ", "erreur"), translate("erreur_pas_image_genere", translations))
+                gr.Warning(translate("erreur_pas_image_genere", translations), 4.0)
+                yield images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}", translate("erreur_pas_image_genere", translations), None
+                continue
             
             temps_generation_image = f"{(time.time() - depart_time):.2f} sec"            
             
@@ -440,6 +444,14 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
             filename = f"{date_str}_{heure_str}_{seed}_{width}x{height}_{idx+1}.{IMAGE_FORMAT.lower()}"
             chemin_image = os.path.join(save_dir, filename)
+
+            if chemin_image is None:
+                print(txt_color("[ERREUR] ", "erreur"), translate("erreur_chemin_image_none", translations))
+                gr.Warning(translate("erreur_chemin_image_none", translations), 4.0)
+                yield images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}", translate("erreur_chemin_image_none", translations), None
+                continue
+
+            
             gr.Info(translate("image_sauvegarder", translations) + " " + chemin_image, 3.0)    
             is_generating = False
             
