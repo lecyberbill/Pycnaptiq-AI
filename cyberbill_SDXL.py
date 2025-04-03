@@ -435,7 +435,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                     "Style": selected_style["name"] ,
                     "Dimension": selected_format,
                     "Modèle": os.path.splitext(model_selectionne)[0],
-                    "VAE": os.path.splitext(vae_selctionne)[0],
+                    "VAE": os.path.splitext(vae_selctionne)[0] if vae_selctionne else "Défaut VAE",
                     "Sampler": pipe.scheduler.__class__.__name__,
                     "Loras": active_adapters,
                     "Poids Lora":lora_scale,
