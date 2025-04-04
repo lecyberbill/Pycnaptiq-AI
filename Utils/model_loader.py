@@ -81,6 +81,7 @@ def charger_modele(nom_fichier, nom_vae, translations, MODELS_DIR, VAE_DIR, devi
             pipe.enable_attention_slicing()
             pipe.enable_xformers_memory_efficient_attention()
             pipe.enable_sequential_cpu_offload()
+            pipe.unet.enable_gradient_checkpointing()
             print(txt_color("[INFO] ", "info"), translate("optimisation_attention", translations))
             if gradio_mode:
                 gr.Info(translate("optimisation_attention", translations), 3.0) 
@@ -145,6 +146,7 @@ def charger_modele_inpainting(nom_fichier, translations, INPAINT_MODELS_DIR, dev
         if device == "cuda" and vram_total_gb < 10:
             pipe.enable_attention_slicing()
             pipe.enable_xformers_memory_efficient_attention()
+            pipe.unet.enable_gradient_checkpointing()
             print(txt_color("[INFO] ", "info"), translate("optimisation_attention", translations))
             gr.Info(translate("optimisation_attention", translations), 3.0)
         

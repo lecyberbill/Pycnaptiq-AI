@@ -324,8 +324,8 @@ def lister_fichiers(dir, translations, ext=".safetensors", gradio_mode=False):
     if not os.path.isabs(dir):
         dir = os.path.abspath(os.path.join(root_dir, dir))
 
+    fichiers = []
         
-
     try:
         fichiers = [f for f in os.listdir(dir) if f.endswith(ext)]
         
@@ -333,21 +333,21 @@ def lister_fichiers(dir, translations, ext=".safetensors", gradio_mode=False):
         if not fichiers:
             print(txt_color("[INFO] ","info"), translate("aucun_modele",translations))
             if gradio_mode:
-                raise gr.Error(translate("aucun_modele",translations), 4.0)
+                gr.Warning(translate("aucun_modele",translations), 4.0)
             return [translate("aucun_modele",translations)]
             
     except FileNotFoundError:
         # If the directory doesn't exist, print a specific error message and return an empty list. 
         print(txt_color("[ERREUR] ","erreur"),translate("directory_not_found",translations),f" {dir}")
         if gradio_mode:
-            raise gr.Error(translate("repertoire_not_found",translations), 4.0)
+            gr.Warning(translate("repertoire_not_found",translations) + f": {dir}", 3.0)
         return [translate("repertoire_not_found", translations)]
         
     else:
         # If files are found, print them out and return the file_list. 
         print(txt_color("[INFO] ","info"),translate("files_found_in",translations),f" {dir}: {fichiers}")
         if gradio_mode:
-            gr.Info(translate("files_found_in",translations) + f": {dir}: {fichiers}", 3.0)
+            gr.Info(translate("files_found_in",translations) + f": {dir}: \n {translate('nombre_de_fichier',translations)} : {len(fichiers)} \n", 5.0)
         return fichiers
         
         
@@ -816,6 +816,7 @@ def decharger_modele(pipe, compel, translations):
     return pipe, compel
 
 
+# In the check_gpu_availability function
 def check_gpu_availability(translations):
     """
     Checks if a CUDA-enabled GPU is available and configures PyTorch accordingly.
@@ -839,6 +840,10 @@ def check_gpu_availability(translations):
         # Enable expandable_segments if VRAM < 10 GB
         if vram_total_gb < 10:
             os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True max_split_size_mb:512"
+            print(translate("pytroch_active", translations))
+        # Enable expandable_segments if VRAM < 6 GB
+        if vram_total_gb < 6:
+            os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True max_split_size_mb:256"
             print(translate("pytroch_active", translations))
 
         device = "cuda"
