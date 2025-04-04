@@ -130,26 +130,37 @@ class CivitaiBrowser:
                     console.error("Élément overlay non trouvé pour l'ID:", id);
                 }
             }
-
             function copyToClipboard(textId) {
                 // Vérifie si l'ID est fourni
                 if (!textId) {
                     console.error("copyToClipboard appelé sans ID");
                     return;
                 }
+
                 const textElement = document.getElementById(textId);
                 if (textElement) {
                     const text = textElement.innerText;
-                    // Utilise l'API Clipboard (nécessite contexte sécurisé: https/localhost)
+
+                    // Copie dans le presse-papier
                     navigator.clipboard.writeText(text).then(() => {
-                        alert("Prompt copié !"); // Confirmation pour l'utilisateur
+                        alert("OK !! ");
+
+                        // 🟡 Envoie aussi le texte dans le champ Gradio avec elem_id="promt_input"
+                        const gradioInput = document.querySelector('#promt_input textarea');
+                        if (gradioInput) {
+                            gradioInput.value = text;
+
+                            // 🔁 Important : déclencher l'événement 'input' pour que Gradio réagisse
+                            gradioInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        } else {
+                            console.warn("Champ Gradio avec elem_id='promt_input' non trouvé.");
+                        }
+
                     }).catch(err => {
-                        // Gestion d'erreur si la copie échoue
                         console.error("Erreur lors de la copie dans le presse-papiers:", err);
                         alert("Erreur lors de la copie.");
                     });
                 } else {
-                    // Avertit si l'élément contenant le texte n'est pas trouvé
                     console.error("Élément texte non trouvé pour l'ID:", textId);
                 }
             }
