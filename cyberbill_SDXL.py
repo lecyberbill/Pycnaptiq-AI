@@ -656,7 +656,7 @@ with gr.Blocks(**block_kwargs) as interface:
      with gr.Tab(translate("generation_image", translations)):
         with gr.Row():
             with gr.Column(scale=1, min_width=300):
-                text_input = gr.Textbox(label=translate("prompt", translations), info=translate("entrez_votre_texte_ici", translations))
+                text_input = gr.Textbox(label=translate("prompt", translations), info=translate("entrez_votre_texte_ici", translations), elem_id="promt_input")
                 traduire_checkbox = gr.Checkbox(label=translate("traduire_en_anglais", translations), value=False, info=translate("traduire_en_anglais", translations))
                 style_dropdown = gr.Dropdown(choices=[style["name"] for style in STYLES], value=translate("Aucun_style", translations), label=translate("styles", translations), info=translate("Selectionnez_un_style_predefini", translations))
                 use_image_checkbox = gr.Checkbox(label=translate("generer_prompt_image", translations), value=False)
