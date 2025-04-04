@@ -262,5 +262,6 @@
     "creating_all_tabs": "Création de tous les onglets.",
     "erreur_pas_image_genere": "Aucune image générée si le problème persiste relancer l'application",
     "erreur_chemin_image_none": "Il est possible que le chemin vers votre dossier de sauvegarde des images soit érroné",
-    "dependency_install_manual": "Merci d'activer votre environnement virtuel puis d'installer {} à la main en tappant : {} install {}"
+    "dependency_install_manual": "Merci d'activer votre environnement virtuel puis d'installer {} à la main en tappant : {} install {}",
+    "nombre_de_fichier": "Nombre de fichier"
     }
