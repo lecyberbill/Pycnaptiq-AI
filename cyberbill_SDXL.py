@@ -629,7 +629,7 @@ def update_globals_model_inpainting(nom_fichier):
 def update_globals_lora(nom_lora):
     global pipe
     message = charger_lora(nom_lora, pipe, LORAS_DIR, translations)
-    return message, gr.update(interactive=True)
+    return message
 
 def update_globals_decharge_lora():
     global pipe
@@ -698,7 +698,7 @@ with gr.Blocks(**block_kwargs) as interface:
                         with gr.Column(visible=False) as lora_section:
                             lora_dropdown = gr.Dropdown(choices=["Aucun LORA disponible"], label=translate("selectionner_lora", translations))
                             lora_scale_slider = gr.Slider(0, 1, value=0, label=translate("poids_lora", translations))
-                            load_lora_button = gr.Button(translate("charger_lora", translations), interactive=False)
+                            load_lora_button = gr.Button(translate("charger_lora", translations))
                             unload_lora_button = gr.Button(translate("decharger_lora", translations))
                             lora_message = gr.Textbox(label=translate("message_lora", translations), value="")
 
@@ -732,7 +732,7 @@ with gr.Blocks(**block_kwargs) as interface:
                 load_lora_button.click(
                     fn=update_globals_lora,
                     inputs=[lora_dropdown],
-                    outputs=[lora_message, load_lora_button]
+                    outputs=lora_message
                 )
 
                 unload_lora_button.click(
