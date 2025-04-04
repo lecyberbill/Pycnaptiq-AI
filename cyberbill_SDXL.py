@@ -618,18 +618,18 @@ def update_globals_model(nom_fichier, nom_vae):
     pipe, compel, *message = charger_modele(nom_fichier, nom_vae, translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, pipe, compel, gradio_mode=True)
     model_selectionne = nom_fichier
     vae_selctionne = nom_vae
-    return message
+    return message, gr.update(interactive=True)
 
 def update_globals_model_inpainting(nom_fichier):
     global pipe, compel, model_selectionne 
     pipe, compel, message = charger_modele_inpainting(nom_fichier, translations, INPAINT_MODELS_DIR, device, torch_dtype, vram_total_gb, pipe, compel) 
     model_selectionne = nom_fichier
-    return message
+    return message, gr.update(interactive=True)
 
 def update_globals_lora(nom_lora):
     global pipe
     message = charger_lora(nom_lora, pipe, LORAS_DIR, translations)
-    return message
+    return message, gr.update(interactive=True)
 
 def update_globals_decharge_lora():
     global pipe
@@ -673,7 +673,7 @@ with gr.Blocks(**block_kwargs) as interface:
                    #enhance_checkbox = gr.Checkbox(label=translate("enhance_image", translations), value=False, visible=photo_editing_loaded)
                     btn_stop = gr.Button(translate("arreter", translations))
                     btn_stop_after_gen = gr.Button(translate("stop_apres_gen", translations))
-                    btn_generate = gr.Button(translate("generer", translations))
+                    btn_generate = gr.Button(translate("generer", translations), interactive=False)
                 
             with gr.Column(scale=2, min_width=300):
                 image_output = gr.Gallery(label=translate("images_generees", translations))
@@ -698,7 +698,7 @@ with gr.Blocks(**block_kwargs) as interface:
                         with gr.Column(visible=False) as lora_section:
                             lora_dropdown = gr.Dropdown(choices=["Aucun LORA disponible"], label=translate("selectionner_lora", translations))
                             lora_scale_slider = gr.Slider(0, 1, value=0, label=translate("poids_lora", translations))
-                            load_lora_button = gr.Button(translate("charger_lora", translations))
+                            load_lora_button = gr.Button(translate("charger_lora", translations), interactive=False)
                             unload_lora_button = gr.Button(translate("decharger_lora", translations))
                             lora_message = gr.Textbox(label=translate("message_lora", translations), value="")
 
@@ -732,7 +732,7 @@ with gr.Blocks(**block_kwargs) as interface:
                 load_lora_button.click(
                     fn=update_globals_lora,
                     inputs=[lora_dropdown],
-                    outputs=lora_message
+                    outputs=[lora_message, load_lora_button]
                 )
 
                 unload_lora_button.click(
@@ -743,7 +743,7 @@ with gr.Blocks(**block_kwargs) as interface:
                 bouton_charger.click(
                     fn=update_globals_model,
                     inputs=[modele_dropdown, vae_dropdown],
-                    outputs=message_chargement
+                    outputs=[message_chargement, btn_generate]
                 )
                 sampler_dropdown.change(fn=apply_sampler, inputs=sampler_dropdown, outputs=message_chargement)
 
@@ -787,7 +787,7 @@ with gr.Blocks(**block_kwargs) as interface:
                 traduire_inpainting_checkbox = gr.Checkbox(label=translate("traduire_en_anglais", translations), value=False, info=translate("traduire_en_anglais", translations))
                 guidance_inpainting_slider = gr.Slider(1, 20, value=7, label=translate("guidage", translations))
                 num_steps_inpainting_slider = gr.Slider(1, 50, value=30, label=translate("etapes", translations), step=1)
-                bouton_generate_inpainting = gr.Button(translate("generer_inpainting", translations))
+                bouton_generate_inpainting = gr.Button(translate("generer_inpainting", translations), interactive=False)
             with gr.Column():
                 mask_image_output = gr.Image(type="pil", label=translate("sortie_mask_inpainting", translations), interactive=False)
                 inpainting_ressultion_output = gr.Image(type="pil", label=translate("sortie_inpainting", translations),interactive=False)
@@ -822,7 +822,7 @@ with gr.Blocks(**block_kwargs) as interface:
             bouton_charger_inpainting.click(
                 fn=update_globals_model_inpainting,
                 inputs=[modele_inpainting_dropdown],
-                outputs=message_chargement_inpainting
+                outputs=[message_chargement_inpainting, bouton_generate_inpainting]
             )
             bouton_generate_inpainting.click(
                 fn=lambda text, image_and_mask, mask, num_steps, guidance_scale, traduire: generate_inpainted_image(text, image_and_mask["background"], mask, num_steps, guidance_scale, traduire),
