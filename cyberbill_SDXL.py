@@ -352,8 +352,13 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         images = [] # Initialize a list to store all generated images
         seed_strings = []
         active_adapters = pipe.get_active_adapters()        
-        for adapter_name in active_adapters:
-            pipe.set_adapters(adapter_name, lora_scale)
+
+        active_adapters = pipe.get_active_adapters()
+        if use_lora and active_adapters: 
+            for adapter_name in active_adapters:
+                pipe.set_adapters(adapter_name, lora_scale)
+        elif active_adapters:
+            decharge_lora(pipe, translations)   
         
 
         # principal loop for genrated images
@@ -751,7 +756,7 @@ with gr.Blocks(**block_kwargs) as interface:
 
         btn_generate.click(
             generate_image, 
-            inputs=[text_input, style_dropdown, guidance_slider, num_steps_slider, format_dropdown, traduire_checkbox, seed_input, num_images_slider, lora_scale_slider], #enhance_checkbox],  
+            inputs=[text_input, style_dropdown, guidance_slider, num_steps_slider, format_dropdown, traduire_checkbox, seed_input, num_images_slider, lora_scale_slider, use_lora_checkbox], #enhance_checkbox],  
             outputs=[image_output, seed_output, time_output, html_output, preview_image_output]
         )
 
