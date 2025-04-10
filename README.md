@@ -67,6 +67,30 @@
 4. **Générer des images**
    - Cliquez sur **"Générer"**. Les images sont enregistrées dans le dossier `output` avec un rapport HTML.
 
+## Capture de l'interface
+
+Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
+![image](https://github.com/user-attachments/assets/7e03b05f-028b-46e6-93de-ab2b7ce12280)
+
+L'Inpainting, définir une zone de l'image à modifier, ici un visage d'une peronne de 80 ans à la place d'une jeune femme
+![image](https://github.com/user-attachments/assets/d60b8d1b-8e77-4988-abe7-3f81ca0f4a34)
+
+[MODULE] Amélioration d'image avec AuraSR (https://github.com/fal-ai/aura-sr)
+![image](https://github.com/user-attachments/assets/4f188555-de5b-47ca-ae07-e24083894eef)
+
+[MODULE] Cicitai browser 
+![image](https://github.com/user-attachments/assets/506ab5fa-eacd-4f9b-be93-2c35b157cbc6)
+
+[MODULE] Retouche d'image
+![image](https://github.com/user-attachments/assets/2e31935f-8f0d-445d-a123-9784033f7042)
+
+[MODULE] Image to Image (ici prompt et style sélectionné)
+![image](https://github.com/user-attachments/assets/a3493385-5b48-40eb-82e8-75932d540253)
+
+[MODULE] Remove Background basé sur RemBG https://github.com/danielgatis/rembg 
+![iamge](https://github.com/user-attachments/assets/15717a23-9828-4e14-8a78-465110b22f76)
+
+
 ## ▶️ Configuration avancée
 
 ### 🌟 Fichier de configuration : `config.json`
