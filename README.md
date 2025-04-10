@@ -1,5 +1,10 @@
 # cyberbill générateur d'image 🚀
 
+Ce développement a été très inspiré de l'excellent logiciel Fooocus https://github.com/lllyasviel/Fooocus dont la dernière version date d'août 2024.
+Bien que de nombreux fork sont apparus, j'ai voulu faire un logiciel complet en partant de zéro ou presque, puisque je puise dans les bibliothèques Gradio, Diffusers, huggingface, compel, onnxruntime, rembg etc. c'est donc un assemblage cohérent de diverses sources, et le travail de nombreuses équipes que je remercie chaleureusement.
+
+Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini pour m'aider... étant débutant j'ai beaucoup appri en consevant ce logiciel. Comme un prof à mes côtés, avec quand même de bonnes notions et de la volonté, on peut s'éclater et apporter sa pierre à la communauté, aussi petite soit-elle. 
+
 ## 📌 Prérequis
 - **CUDA 12.6** installé ✅
 - **Carte Nvidia RTX** : Non testé sur d'autres cartes.
