@@ -1,0 +1,842 @@
+[
+    {
+        "name": "Aucun style",
+        "key": "styles_nom_Aucun style",
+        "prompt": "{prompt}",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Photorealistic style",
+        "key": "styles_nom_Photorealistic style",
+        "prompt": "photorealistic, 8k, detailed, cinematic lighting, high resolution, hyperrealistic, ultra detailed, {prompt}",
+        "negative_prompt": "noisy, blurry, amateurish, sloppy, unattractive, real skin, real material, real object"
+    },
+    {
+        "name": "Oil painting style",
+        "key": "styles_nom_Oil painting style",
+        "prompt": "oil painting, heavy impasto, rich texture, detailed, brush strokes, masterpiece, {prompt}",
+        "negative_prompt": "blurry, low quality, digital, flat, cartoonish"
+    },
+    {
+        "name": "Watercolor style",
+        "key": "styles_nom_Watercolor style",
+        "prompt": "watercolor, light wash, translucent, delicate, vibrant colors, flowing paint, {prompt}",
+        "negative_prompt": "sharp lines, digital, overly detailed, artificial"
+    },
+    {
+        "name": "Comic book style",
+        "key": "styles_nom_Comic book style",
+        "prompt": "comic book, bold outlines, halftone dots, vibrant colors, action lines, panel layout, {prompt}",
+        "negative_prompt": "photorealistic, dull colors, blurry, realistic"
+    },
+    {
+        "name": "Film photography style",
+        "key": "styles_nom_Film photography style",
+        "prompt": "film photography, grainy, analog, vintage, 35mm, natural lighting, shallow depth of field, {prompt}",
+        "negative_prompt": "digital, perfect, sharp, high resolution"
+    },
+    {
+        "name": "Pixel art style",
+        "key": "styles_nom_Pixel art style",
+        "prompt": "pixel art, 8-bit, retro, grid, vibrant, low resolution, blocky, {prompt}",
+        "negative_prompt": "high resolution, detailed, smooth, realistic, 4k, 8k"
+    },
+    {
+        "name": "Geometric abstract art style",
+        "key": "styles_nom_Geometric abstract art style",
+        "prompt": "geometric, abstract, non-representational, sharp lines, bold colors, shapes, symmetry, {prompt}",
+        "negative_prompt": "organic, realistic, detailed, photographic"
+    },
+    {
+        "name": "Surreal art style",
+        "key": "styles_nom_Surreal art style",
+        "prompt": "surrealism, bizarre, dreamlike, unexpected juxtaposition, irrational, strange, {prompt}",
+        "negative_prompt": "realistic, logical, ordinary, normal, coherent"
+    },
+    {
+        "name": "Miyazaki style",
+        "key": "styles_nom_Miyazaki style",
+        "prompt": "Miyazaki, Studio Ghibli, whimsical, detailed backgrounds, nature, soft colors, anime, {prompt}",
+        "negative_prompt": "photorealistic, dull, dark, gritty, realistic, comic book"
+    },
+    {
+        "name": "Vaporwave style",
+        "key": "styles_nom_Vaporwave style",
+        "prompt": "vaporwave, neon, pastel, 80s, retro, glitch, marble busts, palm trees, nostalgic, {prompt}",
+        "negative_prompt": "natural, realistic, mundane, modern, sharp"
+    },
+    {
+        "name": "Cyberpunk style",
+        "key": "styles_nom_Cyberpunk style",
+        "prompt": "cyberpunk, neon lights, dystopian, futuristic, high tech, dark, glowing, rain, {prompt}",
+        "negative_prompt": "natural, rustic, idyllic, calm, peaceful"
+    },
+    {
+        "name": "Art deco style",
+        "key": "styles_nom_Art deco style",
+        "prompt": "art deco, geometric, luxurious, elegant, symmetrical, stylized, 1920s, {prompt}",
+        "negative_prompt": "asymmetrical, natural, simple, crude, minimalist"
+    },
+    {
+        "name": "Impressionist style",
+        "key": "styles_nom_Impressionist style",
+        "prompt": "impressionism, pastel colors, loose brushstrokes, soft focus, light, movement, {prompt}",
+        "negative_prompt": "sharp lines, photographic, precise, detailed, realistic"
+    },
+    {
+        "name": "Cubist style",
+        "key": "styles_nom_Cubist style",
+        "prompt": "cubism, fragmented, multiple viewpoints, geometric, angular, abstract, {prompt}",
+        "negative_prompt": "realistic, smooth, naturalistic, continuous, uniform"
+    },
+    {
+        "name": "Futuristic style",
+        "key": "styles_nom_Futuristic style",
+        "prompt": "futuristic, high tech, sleek, advanced, metallic, glowing, modern, {prompt}",
+        "negative_prompt": "retro, vintage, old, rustic, natural"
+    },
+    {
+        "name": "Pop art style",
+        "key": "styles_nom_Pop art style",
+        "prompt": "pop art, bold colors, vibrant, commercial, graphic style, iconic, Warhol, Lichtenstein, {prompt}",
+        "negative_prompt": "subdued, dull, realistic, natural, soft"
+    },
+    {
+        "name": "Steampunk style",
+        "key": "styles_nom_Steampunk style",
+        "prompt": "steampunk, gears, brass, Victorian era, industrial, clockwork, intricate, {prompt}",
+        "negative_prompt": "futuristic, minimalist, modern, natural, clean"
+    },
+    {
+        "name": "Manga style",
+        "key": "styles_nom_Manga style",
+        "prompt": "manga, dynamic, detailed, expressive, speed lines, bold outlines, emotive, {prompt}",
+        "negative_prompt": "realistic, subtle, subdued, photorealistic, static"
+    },
+    {
+        "name": "Anime style",
+        "key": "styles_nom_Anime style",
+        "prompt": "anime, manga, vibrant colors, detailed lineart, large eyes, stylized, smooth, {prompt}",
+        "negative_prompt": "photorealistic, dull colors, blurry, realistic, grainy"
+    },
+    {
+        "name": "Art nouveau style",
+        "key": "styles_nom_Art nouveau style",
+        "prompt": "art nouveau, organic, flowing, floral, curvilinear, decorative, elegant, {prompt}",
+        "negative_prompt": "geometric, rigid, industrial, minimalist, modern"
+    },
+    {
+        "name": "Low poly style",
+        "key": "styles_nom_Low poly style",
+        "prompt": "low poly, faceted, triangular, minimalist, geometric, polygonal, wireframe, {prompt}",
+        "negative_prompt": "smooth, rounded, detailed, organic, high polygon count"
+    },
+    {
+        "name": "Fantasy style",
+        "key": "styles_nom_Fantasy style",
+        "prompt": "fantasy, magical, mythical creatures, intricate details, ethereal, enchanted, mystical, {prompt}",
+        "negative_prompt": "realistic, mundane, ordinary, modern, industrial"
+    },
+    {
+        "name": "Science fiction style",
+        "key": "styles_nom_Science fiction style",
+        "prompt": "science fiction, sci-fi, futuristic, space, advanced technology, alien, planets, {prompt}",
+        "negative_prompt": "fantasy, ancient, natural, magical, primitive"
+    },
+    {
+        "name": "Gothic style",
+        "key": "styles_nom_Gothic style",
+        "prompt": "gothic, dark, dramatic, ornate, architecture, medieval, eerie, {prompt}",
+        "negative_prompt": "bright, cheerful, minimalist, modern, simple"
+    },
+    {
+        "name": "Baroque style",
+        "key": "styles_nom_Baroque style",
+        "prompt": "baroque, ornate, dramatic, extravagant, luxurious, detailed, complex, {prompt}",
+        "negative_prompt": "minimalist, simple, clean, modern, uncluttered"
+    },
+    {
+        "name": "Rococo style",
+        "key": "styles_nom_Rococo style",
+        "prompt": "rococo, delicate, ornate, pastel colors, playful, light, elegant, {prompt}",
+        "negative_prompt": "bold, dark, stark, simple, dramatic"
+    },
+    {
+        "name": "Minimalist style",
+        "key": "styles_nom_Minimalist style",
+        "prompt": "minimalist, simple, clean, uncluttered, whitespace, functional, modern, {prompt}",
+        "negative_prompt": "ornate, detailed, complex, messy, busy"
+    },
+    {
+        "name": "Expressionist style",
+        "key": "styles_nom_Expressionist style",
+        "prompt": "expressionism, emotional, distorted, bold colors, rough, intense, raw, {prompt}",
+        "negative_prompt": "realistic, refined, smooth, controlled, calm"
+    },
+    {
+        "name": "Pointillist style",
+        "key": "styles_nom_Pointillist style",
+        "prompt": "pointillism, dots, tiny points, optical mixing, vibrant, Seurat, Signac, {prompt}",
+        "negative_prompt": "smooth, continuous, blended, blurry, brushstrokes"
+    },
+    {
+        "name": "Graffiti style",
+        "key": "styles_nom_Graffiti style",
+        "prompt": "graffiti, urban, tags, wildstyle, vibrant, spray paint, street art, {prompt}",
+        "negative_prompt": "clean, formal, refined, minimalist, traditional"
+    },
+    {
+        "name": "Stained glass style",
+        "key": "styles_nom_Stained glass style",
+        "prompt": "stained glass, vibrant colors, lead lines, religious, cathedral, light, mosaic, {prompt}",
+        "negative_prompt": "natural, dark, monochrome, realistic, dull"
+    },
+    {
+        "name": "Embroidery style",
+        "key": "styles_nom_Embroidery style",
+        "prompt": "embroidery, threads, needlework, textile, stitch, fabric, detailed, colorful, {prompt}",
+        "negative_prompt": "smooth, digital, photographic, printed, flat"
+    },
+    {
+        "name": "Sculpture style",
+        "key": "styles_nom_Sculpture style",
+        "prompt": "sculpture, chiseled, carved, stone, marble, bronze, volumetric, textured, {prompt}",
+        "negative_prompt": "flat, painted, digital, two-dimensional, smooth"
+    },
+    {
+        "name": "Pencil drawing style",
+        "key": "styles_nom_Pencil drawing style",
+        "prompt": "pencil drawing, graphite, hatched, sketched, detailed, shading, tonal, {prompt}",
+        "negative_prompt": "color, vibrant, smooth, painted, digital"
+    },
+    {
+        "name": "Ink drawing style",
+        "key": "styles_nom_Ink drawing style",
+        "prompt": "ink drawing, pen and ink, cross-hatching, linework, black and white, contrast, {prompt}",
+        "negative_prompt": "color, soft, blended, shaded, pencil, painting"
+    },
+    {
+        "name": "Pastel style",
+        "key": "styles_nom_Pastel style",
+        "prompt": "pastel, soft colors, chalky, blended, delicate, textured, gentle, {prompt}",
+        "negative_prompt": "sharp, bold, vibrant, digital, hard edges"
+    },
+    {
+        "name": "Charcoal style",
+        "key": "styles_nom_Charcoal style",
+        "prompt": "charcoal, smudged, textured, black and white, tonal, expressive, dynamic, {prompt}",
+        "negative_prompt": "sharp, clean, smooth, colorful, detailed"
+    },
+    {
+        "name": "Concept art style",
+        "key": "styles_nom_Concept art style",
+        "prompt": "concept art, illustrative, mood, design, imaginative, cinematic, evocative, {prompt}",
+        "negative_prompt": "photorealistic, finished, polished, mundane, simple"
+    },
+    {
+        "name": "Digital art style",
+        "key": "styles_nom_Digital art style",
+        "prompt": "digital art, clean lines, sharp details, vibrant colors, smooth, modern, {prompt}",
+        "negative_prompt": "traditional, messy, textured, organic, handmade"
+    },
+    {
+        "name": "3D art style",
+        "key": "styles_nom_3D art style",
+        "prompt": "3D, rendered, volumetric, detailed, textured, depth, photorealistic, ray tracing, {prompt}",
+        "negative_prompt": "flat, 2D, drawn, painted, simple, minimalist"
+    },
+    {
+        "name": "Kinetic art style",
+        "key": "styles_nom_Kinetic art style",
+        "prompt": "kinetic art, movement, dynamic, mobile, interactive, mechanical, {prompt}",
+        "negative_prompt": "static, fixed, immobile, still, traditional"
+    },
+    {
+        "name": "Fractal art style",
+        "key": "styles_nom_Fractal art style",
+        "prompt": "fractal, complex patterns, infinite, geometric, psychedelic, mathematical, {prompt}",
+        "negative_prompt": "organic, natural, simple, mundane, random"
+    },
+    {
+        "name": "Glitch art style",
+        "key": "styles_nom_Glitch art style",
+        "prompt": "glitch art, distorted, corrupted, digital artifacts, noisy, abstract, {prompt}",
+        "negative_prompt": "clear, perfect, sharp, smooth, clean"
+    },
+    {
+        "name": "ASCII art style",
+        "key": "styles_nom_ASCII art style",
+        "prompt": "ASCII art, text-based, characters, monospace, typography, minimalist, {prompt}",
+        "negative_prompt": "detailed, graphical, colorful, smooth, drawn"
+    },
+    {
+        "name": "Generative art style",
+        "key": "styles_nom_Generative art style",
+        "prompt": "generative art, algorithmic, procedural, patterns, code, complex, {prompt}",
+        "negative_prompt": "handmade, organic, natural, intuitive, traditional"
+    },
+    {
+        "name": "Art brut style",
+        "key": "styles_nom_Art brut style",
+        "prompt": "art brut, raw, outsider art, untutored, spontaneous, unconventional, {prompt}",
+        "negative_prompt": "refined, polished, traditional, academic, trained"
+    },
+    {
+        "name": "Naive art style",
+        "key": "styles_nom_Naive art style",
+        "prompt": "naive art, childlike, simplistic, folk art, untrained, colorful, direct, {prompt}",
+        "negative_prompt": "complex, realistic, detailed, sophisticated, academic"
+    },
+    {
+        "name": "Primitive art style",
+        "key": "styles_nom_Primitive art style",
+        "prompt": "primitive art, ancient, tribal, basic, bold patterns, ritualistic, symbolic, {prompt}",
+        "negative_prompt": "modern, refined, technological, complex, academic"
+    },
+    {
+        "name": "Tribal art style",
+        "key": "styles_nom_Tribal art style",
+        "prompt": "tribal art, ethnic, patterns, symbolic, cultural, intricate, decorative, {prompt}",
+        "negative_prompt": "modern, minimalist, plain, industrial, uniform"
+    },
+    {
+        "name": "Folk art style",
+        "key": "styles_nom_Folk art style",
+        "prompt": "folk art, traditional, decorative, colorful, handmade, rustic, quaint, {prompt}",
+        "negative_prompt": "modern, industrial, minimalist, mass-produced, generic"
+    },
+    {
+        "name": "Sexy Girls",
+        "key": "Styles_filles_sexy",
+        "prompt": "photo shooting style {prompt} . casting pose, perfect rond breast, perfect body, perfect hands, perfect eyes, long eyelashes",
+        "negative_prompt": "disfigured, disproportionate, ugly, out of frame, mangled, asymmetric, cross-eyed, depressed, immature, stuffed animal, out of focus,skin blemishes,asymmetric ears, unnatural, conjoined,poorly drawn face, poorly drawn feet, malformed limbs, malformed hands, poorly rendered face, lacking body,cripple, fat, stiff face,, cropped head"
+    },
+    {
+        "name": "Cyberbill Fait de laine",
+        "key": "styles_nom_Cyberbill Fait de laine",
+        "prompt": " a wool {prompt} .  made of wool, lots of threads, very complex, very detailed, realistically rendered, very contrasted, well-defined shadow",
+        "negative_prompt": "noisy, blurry, amateurish, sloppy, unattractive, real skin, real material, real object"
+    },
+    {
+        "name": "Cyberbill Fait de fils en or",
+        "key": "styles_nom_Cyberbill Fait de fils en or",
+        "prompt": "gold thread {prompt} .  made of gold thread; lots of threads; very complex , artistic and baroque arrangement of gold threads, very detailed;   realistically rendered, very contrasted,well-defined shadow",
+        "negative_prompt": "noisy, blurry, amateurish, sloppy, unattractive, real skin, real object,iron, copper, silver,skin"
+    },
+    {
+        "name": "Cyberbill Denim patchwork",
+        "key": "styles_nom_Cyberbill Denim patchwork",
+        "prompt": "gold thread {prompt} .  ((entirely made of pieces of sewn used denim patchwork fabrics)), very detailed;   realistically rendered, very contrasted,well-defined shadow",
+        "negative_prompt": "noisy, blurry, amateurish, sloppy, unattractive"
+    },
+    {
+        "name": "Cyberbill superhero",
+        "key": "styles_nom_Cyberbill superhero",
+        "prompt": "{prompt} .  ([marvel|DC Comics] superhero, super powered, gorgeous, proud, strong,incredible, determined,hero attitude), very detailed, realistically rendered, very contrasted, well-defined shadow, photo realistic",
+        "negative_prompt": "noisy, blurry, amateurish, sloppy, unattractive"
+    },
+    {
+        "name": "Cyberbill lens flare sunset",
+        "key": "styles_nom_Cyberbill lens flare sunset",
+        "prompt": "(Cinematic Shot:1.3)(Shot on Aaton LTR 54) {prompt} . ((35mm, F/2.8) Photo Focus, DOF, Aperture, (DOF, blurry background, sunrise in the back of subject)(Lens Flare, Heresy flare:1.3),(sharpness, details, contrast, warm tones:1.5)(Dark Sky:1.3), sunset",
+        "negative_prompt": "cropped, regular face, deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime, text, cropped, out of frame, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck"
+    },
+    {
+        "name": "Cyberbill seventies",
+        "key": "styles_nom_Cyberbill seventies",
+        "prompt": "(old 1970 vintage photo, EF 35) {prompt} . (environnement 1970, 1970 colors, 1970 artstyle)",
+        "negative_prompt": "cropped, regular face, deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime, text, cropped, out of frame, jpeg artifacts, ugly, duplicate, morbid, mutilated, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, current, modern, saturated, bright color, futuristic, unreal, professional, poorly framed, cut out, subject out of frame"
+    },
+    {
+        "name": "Cyberbill love doll",
+        "key": "styles_nom_Cyberbill love doll",
+        "prompt": "(Latex love doll:1.3) ((open mouth, pouty lips :1.7)) fake hairs {prompt} . caucasian, perfect rond breast, perfect body, highly detailed, perfect hands, perfect eyes and long eyelashes,  symmetrical perfect eyes , ultra detailed, RAW photo",
+        "negative_prompt": "cropped, regular face, deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime, text, cropped, out of frame, jpeg artifacts, ugly, duplicate, morbid, mutilated, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, current, modern, saturated, bright color, futuristic, unreal, professional, poorly framed, cut out, subject out of frame"
+    },
+    {
+        "name": "Cyberbill Fibonacci Spiral",
+        "key": "styles_nom_Cyberbill Fibonacci Spiral",
+        "prompt": "shape drawing of {prompt} . made of bright and shiny colored pixels arranged in a Fibonacci spiral, multi-colored, on a very  psychedelic background, very marked shadow and light, vibrant colors ",
+        "negative_prompt": "dull, gray, ugly, realistic, cut, poor, dark, real"
+    },
+    {
+        "name": "Cyberbill Fractal color",
+        "key": "styles_nom_Cyberbill Fractal color",
+        "prompt": "{prompt} . fractal style drawing, fractal spiral, fractal motif, fractal shape,  Fractal colors, fractal environnement, bright colors, HDR, strong contrast",
+        "negative_prompt": "dull, gray, ugly, realistic, cut, poor, dark, real"
+    },
+    {
+        "name": "Cyberbill Fractal mono",
+        "key": "styles_nom_Cyberbill Fractal mono",
+        "prompt": "{prompt} . fractal style drawing, fractal spiral, fractal motif, fractal shape,  Fractal colors, fractal environnement, bright colors, HDR, strong contrast",
+        "negative_prompt": " ugly, realistic, cut, poor, real"
+    },
+    {
+        "name": "Cyberbill low angle image",
+        "key": "styles_nom_Cyberbill low angle image",
+        "prompt": "seen from below {prompt} . (((low angle image , vanishing point of the image at the top center))),perfect render, HDR, 8k, best quality",
+        "negative_prompt": "bad anatomy,bad proportions,blurry,cloned face,cropped,deformed,dehydrated,disfigured,duplicate,error,extra arms,extra fingers,extra legs,extra limbs,fused fingers,gross proportions,jpeg artifacts,long neck,low quality,lowres,malformed limbs,missing arms,missing legs,morbid,mutated hands,mutation,mutilated,out of frame,poorly drawn face,poorly drawn hands,signature,text,too many fingers,ugly,username,watermark,worst quality"
+    },
+    {
+        "name": "Cyberbill macro photo",
+        "key": "styles_nom_Cyberbill macro photo",
+        "prompt": "photographed very closely {prompt} . Very tight shot, macro, very marked contrasts, ultra detailed, very perseptable texture, f/11 ISO100,(((ultra bright color))),HDR,8k,made professional, hyper realistic, saturated color",
+        "negative_prompt": "bad anatomy,bad proportions,blurry,cloned face,cropped,deformed,dehydrated,disfigured,duplicate,error,extra arms,extra fingers,extra legs,extra limbs,fused fingers,gross proportions,jpeg artifacts,long neck,low quality,lowres,malformed limbs,missing arms,missing legs,morbid,mutated hands,mutation,mutilated,out of frame,poorly drawn face,poorly drawn hands,signature,text,too many fingers,ugly,username,watermark,worst quality"
+    },
+    {
+        "name": "Cyberbill x-ray",
+        "key": "styles_nom_Cyberbill x-ray",
+        "prompt": "{prompt} .  X-ray style, (((complete X-ray))), showing the bones and soft tissues, bones clearly visible, soft tissues sufficiently contrasted   for detailed analysis BREAK The X-ray should be in black and white and have sufficient resolution for detailed analysis",
+        "negative_prompt": "color, perspective, 3d,opaque,shadow, contrast, cut,incomplete"
+    },
+    {
+        "name": "Cyberbill floral art",
+        "key": "styles_nom_Cyberbill floral art",
+        "prompt": "{prompt} .  floral art, very artistic composition, bright colors, natural flowers, homogeneous distribution, very varied species of  flowers, multicolor flowers, very high definition, very detailed ,the flowers are fresh, bright colors",
+        "negative_prompt": "Dark, dead,sad, amateur"
+    },
+    {
+        "name": "Cyberbill splash paint",
+        "key": "styles_nom_Cyberbill splash paint",
+        "prompt": "{prompt} .  front of a black background, multiple splashes of fluorescent multicolor paint crash onto the black background, splashes fallow the shap of the subject, ((the movements of the paint leave a liminous trail)), the painting gradually blends with the subject, HDR, ultra glossy paint,   multicolor smoke backgroud, studio lighting",
+        "negative_prompt": "Dark, dead,sad, amateur"
+    },
+    {
+        "name": "Cyberbill Bling Bling",
+        "key": "styles_nom_Cyberbill Bling Bling",
+        "prompt": "{prompt} .  bling rapper style  extravagant ostentatious, display of outward signs of wealth, gold and diamonds rhinestones and sequins, HDR, ultra detailed",
+        "negative_prompt": "poor, unsightly, amateur, black and white, poorly done, dark, sad,ugly"
+    },
+    {
+        "name": "Cyberbill chaotic",
+        "key": "styles_nom_Cyberbill chaotic",
+        "prompt": "{prompt} .  chaotic style, turbulence, colorful, hyper random place, unexpected, unreal,unhoped for,high contrast, randomly ultra colored lighting and particles,  misaligned,bright  color, disorganized",
+        "negative_prompt": "black and white, serious, sad, organized"
+    },
+    {
+        "name": "Cyberbill IMVU Game",
+        "key": "styles_nom_Cyberbill IMVU Game",
+        "prompt": "{prompt} .  IMVU game style (open GL render), low resolution ",
+        "negative_prompt": "Dark, dead,sad, realistic, HDR"
+    },
+    {
+        "name": "Cyberbill Thriller",
+        "key": "styles_nom_Cyberbill Thriller",
+        "prompt": "{prompt} .  pale light, stagnant smoke which invades the entire photo, rays of moonlight on the side, very marked shadow, cold atmosphere, poorly colored, cold color, sad, serious, silent, boring, thriller atmosphere, thrill,fear, realistic, HD, inspired horror movie, professional framing, professional staging ",
+        "negative_prompt": "joyful, colorful, cheerful, warm, warmth, bright colors, multi-colored"
+    },
+    {
+        "name": "Cyberbill Ascii Color Art",
+        "key": "styles_nom_Cyberbill Ascii Color Art",
+        "prompt": "{prompt} .  ascii art style, the ascii characters are in multicolor,  colors nuances  brings out subtle shadows, there are only characters from lettersletters of the alphabet,  the image pixels are ascii characters, the image is simple and poor in detail ",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, duplicate, bad proportions, disfigured"
+    },
+    {
+        "name": "Cyberbill printed circuit",
+        "key": "styles_nom_Cyberbill printed circuit",
+        "prompt": "{prompt} .  (((masterpiece sculpture made of complexe printed circuit))), ((made of shiny printed circuit on a black PCB)), technological aspect,Bright micro LEDs distributed randomly throughout the sculpture they emit a soft warm light, the blending of circuits created subtle shadows,multiple connections of light fiber optic network arround the shape, 4k, ultra-detailed",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, duplicate, bad proportions, disfigured"
+    },
+    {
+        "name": "Cyberbill Murano Glass",
+        "key": "styles_nom_Cyberbill Murano Glass",
+        "prompt": "{prompt} .  Murano style glass sculpture outline style abstract, made of colorful swirling ((transparent)) disperssive inconsistent smoke with no notable features",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, duplicate, bad proportions, disfigured"
+    },
+    {
+        "name": "Cyberbill Abstract Geometric Pattern",
+        "key": "styles_nom_Cyberbill Abstract Geometric Pattern",
+        "prompt": "{prompt} .  seamless geometric abstract pattern geometric drawing  shapes, art work, Trendy colorful background design,  artistic style texture, bright and cheerful colors",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly"
+    },
+    {
+        "name": "Cyberbill David Street Art",
+        "key": "styles_nom_Cyberbill David Street Art",
+        "prompt": "{prompt} .  drawing of Statue David street grafitti style, colored canvas wall art, graffiti Pop art distributed randomly, illustration isolated on black background ,very beautiful shadows",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly"
+    },
+    {
+        "name": "Cyberbill Collection isometric",
+        "key": "styles_nom_Cyberbill Collection isometric",
+        "prompt": "{prompt} . a collection of different types and random poses, random color, isolated on a background, isometric flat art cartoon style, vivid colors, 8K",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, deformed"
+    },
+    {
+        "name": "Cyberbill Flat Vector Circle",
+        "key": "styles_nom_Cyberbill Flat Vector Circle",
+        "prompt": "{prompt} . flat shape, flat design, vector, (circle concentric geometric), geometric composition, square shapes are angular, ultra detailed form, solid color, abstract, artistic work, vivid colors",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, deformed, real, photographed"
+    },
+    {
+        "name": "Cyberbill 3D Wireframe",
+        "key": "styles_nom_Cyberbill 3D Wireframe",
+        "prompt": "{prompt} . 3d ((line drawing)), (solid colors),  (quads topology),(3D wireframe model  rendering style:1.8),high polygon",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, deformed, real, photographed"
+    },
+    {
+        "name": "Cyberbill 90s 3D Game",
+        "key": "styles_nom_Cyberbill 90s 3D Game",
+        "prompt": "{prompt} . (((1990 3D PC video game style, heavily pixelated textures,heavily aliasing))),poor in polygons, 8 bits color palette",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, deformed, real, photographed,shadow,light reflection, shading, high quality, realistic, modern"
+    },
+    {
+        "name": "Cyberbill Fairy Tale Princess",
+        "key": "styles_nom_Cyberbill Fairy Tale Princess",
+        "prompt": "{prompt} . ((fashion photography)) of random fairy tale princess, ([Belle|Cinderella|Snow White|Aurora|Rapunzel|Jasmine|Merida|Elsa|Anna|Tiana|Moana|The Twelve Dancing Princesses|Rose Red|The Princess and the Pea|Thumbelina|The Wild Swans] princess),  perfect body,highly detailed, perfect hands, extremely realistic face,perfect eyes and long eyelashes,  symmetrical perfect eyes, skin pores, ultra detailed, RAW photo,8k, cinematic photography,photorealistic,extremely detailed, sharp-focus, Canon EOS 5D Mark IV DSLR",
+        "negative_prompt": "disfigured, disproportionate, bad anatomy, bad proportions, ugly, out of frame, mangled, asymmetric, cross-eyed, depressed, immature, stuffed animal, out of focus, high depth of field, cloned face, cloned head, age spot, skin blemishes, collapsed eyeshadow, asymmetric ears, imperfect eyes, unnatural, conjoined, missing limb, missing arm, missing leg, poorly drawn face, poorly drawn feet, poorly drawn hands, floating limb, disconnected limb, extra limb, malformed limbs, malformed hands, poorly rendered face, poor facial details, poorly rendered hands, double face, unbalanced body, unnatural body, lacking body, long body, cripple, old, fat, cartoon, 3D, weird colors, unnatural skin tone, unnatural skin, stiff face, fused hand, skewed eyes, surreal, cropped head, group of people,3d, digital art,cropped, out of frame, jpeg artifacts, ugly, deformed"
+    },
+    {
+        "name": "Cyberbill Crepe Paper",
+        "key": "styles_nom_Cyberbill Crepe Paper",
+        "prompt": "crepe paper representation of {prompt} . handmade, textured paper, 3D artistic work, vivid colors",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, deformed"
+    },
+    {
+        "name": "Cyberbill Monochrome Screen",
+        "key": "styles_nom_Cyberbill Monochrome Screen",
+        "prompt": "monochrome 2D dot matrix  green pixels representation of {prompt} . on a black background , solid bright green color, solid black color, unreal ,  ultra pixelated, low resolution, ultra low detail, infinite contrast, [black:green: 0.5]",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, deformed"
+    },
+    {
+        "name": "Cyberbill Evanescent Sun",
+        "key": "styles_nom_Cyberbill Evanescent Sun",
+        "prompt": "ink illustration, ink stains, ink splatters, ink runs, ink spots, faded ink, evanescent ink,natural lighting, monochromatic, warm and gentle ray of sunshine, enveloped in ribbons of smok , random fractal disposition, joy happiness, impulse of joy, represenation of  {prompt} . extremely detailed",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, deformed"
+    },
+    {
+        "name": "Cyberbill Pixar studio",
+        "key": "styles_nom_Cyberbill Pixar studio",
+        "prompt": "pixar style, masterpiece, soft studio light, {prompt} .  pixar character, image inspired by the Pixar universe, 4k, 8k, HDR, high details, cinematographic rendering, professional, incredible, fun, funny, RenderMan rendering",
+        "negative_prompt": "colorless rendition, extremely poor quality, subpar quality, average quality, awkward cropping, out of focus, incorrect anatomy, rough sketch, low resolution, deformed, additional hand, extra digit,  excessive JPEG artifacts, visible signature, prominent watermark, username distraction, artist name overshadowing"
+    },
+    {
+        "name": "Cyberbill Tim Burton",
+        "key": "styles_nom_Cyberbill Tim Burton",
+        "prompt": " tim burton animation style, unreal, {prompt} .    stop motion animated film, dreamlike scene, dramatic and theatrical lighting, high details",
+        "negative_prompt": "extremely poor quality, subpar quality, average quality, awkward cropping, out of focus, incorrect anatomy, rough sketch, low resolution, deformed, additional hand, extra digit,  excessive JPEG artifacts, visible signature, prominent watermark, username distraction, artist name overshadowing"
+    },
+    {
+        "name": "Cyberbill Valentine's day",
+        "key": "styles_nom_Cyberbill Valentine's day",
+        "prompt": "Valentine's day style, hearts, flowers, rose petals, red, romantic atmosphere, sunset, love, butterflies, doves, {prompt} . very detailed, professional rendering, k4, 8k, HDR, very detailed, beautiful, magnificent, fantastic, incredible",
+        "negative_prompt": "disfigured, disproportionate, bad anatomy, bad proportions, ugly, out of frame, mangled, asymmetric, cross-eyed, depressed, immature, stuffed animal, out of focus, high depth of field, cloned face, cloned head, age spot, skin blemishes, collapsed eyeshadow, asymmetric ears, imperfect eyes, unnatural, conjoined, missing limb, missing arm, missing leg, poorly drawn face, poorly drawn feet, poorly drawn hands, floating limb, disconnected limb, extra limb, malformed limbs, malformed hands, poorly rendered face, poor facial details, poorly rendered hands, double face, unbalanced body, unnatural body, lacking body, long body, cripple, old, fat, cartoon, 3D, weird colors, unnatural skin tone, unnatural skin, stiff face, fused hand, skewed eyes, surreal, cropped head"
+    },
+    {
+        "name": "cyberbill texture",
+        "key": "styles_nom_cyberbill texture",
+        "prompt": "texture {prompt} ,testp ,tile, front view",
+        "negative_prompt": "ugly, deformed, noisy, blurry"
+    },
+    {
+        "name": "Cyberbill Borg",
+        "key": "styles_nom_Cyberbill Borg",
+        "prompt": " {prompt} . ((futurist, biocybernetic borg implants , gray skin, black veins, necrotic skin, black eyes, blacks pipes on body, blacks pipes in the head, black leather helmets with red or green electronic light)), the subject should include advanced mechanical and future systems BREAK green atmosphere",
+        "negative_prompt": "cropped, out of frame, jpeg artifacts, ugly, duplicate, bad proportions, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, futuristic, poorly framed, cut out, subject out of frame"
+    },
+    {
+        "name": "Cyberbill 3D Character",
+        "key": "styles_nom_Cyberbill 3D Character",
+        "prompt": "3D toy, standing character, tiny, cute, soft lighting, pastel colors, skottie young, blender, pop surrealism, pbr",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Adorable",
+        "key": "styles_nom_Cyberbill Adorable",
+        "prompt": "Cute and adorable cartoon, fantasy, dreamlike, surrealism, super cute, trending on artstation",
+        "negative_prompt": "ugly"
+    },
+    {
+        "name": "Cyberbill Anime Portrait",
+        "key": "styles_nom_Cyberbill Anime Portrait",
+        "prompt": "portrait of an anime person, aesthetic, wlop, trending on artstation, deviantart, anime key visual, 8k uhd",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill ArchViz",
+        "key": "styles_nom_Cyberbill ArchViz",
+        "prompt": "by James McDonald and Joarc Architects, home, interior, octane render, deviantart, cinematic, key art, hyperrealism, sun light, sunrays, canon eos c 300, ƒ 1.8, 35 mm, 8k",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Beautiful Portrait",
+        "key": "styles_nom_Cyberbill Beautiful Portrait",
+        "prompt": "alluring portrait, intricate, highly detailed, digital painting, artstation, concept art, naughty, sharp focus, cinematic lighting, illustration, art by artgerm and greg rutkowski, alphonse mucha, cgsociety",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Building",
+        "key": "styles_nom_Cyberbill Building",
+        "prompt": "shot 35 mm, realism, octane render, 8k, trending on artstation, 35 mm camera, unreal engine, hyper detailed, photo-realistic maximum detail, volumetric light, realistic matte painting, hyper photorealistic, trending on artstation, ultra-detailed, realis",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Caricature",
+        "key": "styles_nom_Cyberbill Caricature",
+        "prompt": "Cartoon caricature realistic, cute as a pixar disney character caricature cute full body from up 2009 unreal engine octane render 3d render photorealistic",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill CGI Character",
+        "key": "styles_nom_Cyberbill CGI Character",
+        "prompt": "portrait of a CGI animation character, magical background, bright natural lighing, backlighting, professional studio quality, looking at camera, large round cute detailed eyes, detailed, cute, adorable, intricately detailed, fantasy art, digital painting",
+        "negative_prompt": "Blurry, Blur, Grainy, Oversaturated, Tiling, Draft, Out of frame, Out of Focus, Cut off, Cropped image, Text, Signature, Watermark, Low quality, Bad quality, Low res, Plastic, Ugly, Bad anatomy, Deformed, Disfigured, Two heads, Two faces, Long neck"
+    },
+    {
+        "name": "Cyberbill Comic Art",
+        "key": "styles_nom_Cyberbill Comic Art",
+        "prompt": "Retro style artwork, comic book art, high details, comic book cover, symmetrical, vibrant colors",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Control Room",
+        "key": "styles_nom_Cyberbill Control Room",
+        "prompt": "steampunk happy Funny cartoonish at a complex nuclear control room, by Gediminas Pranckevicius H 704, machinarium style, intricate",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Cute Creature",
+        "key": "styles_nom_Cyberbill Cute Creature",
+        "prompt": "cute cute cute creature, an illustration by esao andrews, cyril rolando and goro fujita, deviantart, fantasy art, storybook illustration, oil on canvas",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Cute Kawaii",
+        "key": "styles_nom_Cyberbill Cute Kawaii",
+        "prompt": "cute, tiny, little chibi, kawai, furry, great face expression, dynamic pose, trending on artstation, cinematic, hyper realism, high detail, 8k, 8mm, octane render, bokeh, artstation, detailed, character design by mark ryden and pixar",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill CyberPunk",
+        "key": "styles_nom_Cyberbill CyberPunk",
+        "prompt": "cyberpunk, in heavy raining futuristic tokyo rooftop cyberpunk night, sci-fi, fantasy, intricate, very very beautiful, elegant, neon light, highly detailed, digital painting, artstation, concept art, soft light, hdri, smooth, sharp focus, illustration,",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Dark",
+        "key": "styles_nom_Cyberbill Dark",
+        "prompt": "Style of stephen gammell, watercolors, black and white, swamp, shadowy creatures, dripping, infected",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Dataviz",
+        "key": "styles_nom_Cyberbill Dataviz",
+        "prompt": "polygonal, hologram,orthographic projection lines,axis, blueprint, dataviz, infographic,tron, minority report interface,vaporwave, synthwave",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Digital Art",
+        "key": "styles_nom_Cyberbill Digital Art",
+        "prompt": "intricate, elegant, highly detailed, digital painting, artstation, concept art, smooth, sharp focus, illustration, art by wlop, charlie bowater and alexandra fomina",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Digital Portrait",
+        "key": "styles_nom_Cyberbill Digital Portrait",
+        "prompt": "digital painting portrait, natural lighting, in the style of pixar, trending on artstation, sharp, focus art by Arthur Streeton and Božidar Jakac",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Dramatic",
+        "key": "styles_nom_Cyberbill Dramatic",
+        "prompt": "Wide angle, chaotic cabin in background. vibrant, photorealistic, realistic, dramatic, dark, sharp focus, 8k.",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Drawing",
+        "key": "styles_nom_Cyberbill Drawing",
+        "prompt": "drawing made by Yoji Shinkawa, highly detailed, trending on Artstation, concept art",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Drawing2",
+        "key": "styles_nom_Cyberbill Drawing2",
+        "prompt": "cute, funny, centered, award winning watercolor pen illustration, detailed, disney, isometric illustration, drawing, by Stephen Hillenburg, Matt Groening, Albert Uderzo",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Fashion",
+        "key": "styles_nom_Cyberbill Fashion",
+        "prompt": "photograph of a Fashion model, full body, highly detailed and intricate, golden ratio, vibrant colors, hyper maximalist, futuristic, city background, luxury, elite, cinematic, fashion, depth of field, colorful, glow, trending on artstation, ultra high d",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Figurine",
+        "key": "styles_nom_Cyberbill Figurine",
+        "prompt": "plastic funky pop figurine, product, studio shot, plain background, diffused lighting, centered",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Horror",
+        "key": "styles_nom_Cyberbill Horror",
+        "prompt": "dark  themed background. very dark and scary horror vibes. hyper intricate details. purple, red, white colors. hyperrealistic artwork style. scary horror metal music vibe. godrays, gorgeous, amazing, intricate, highly detailed, digital painting, artstatio",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Illustration",
+        "key": "styles_nom_Cyberbill Illustration",
+        "prompt": "illustration, fisheye lens, high contrast, highly detailed, sharp focus, digital painting, 3 d art, illustration, trending on artstation",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Isometric",
+        "key": "styles_nom_Cyberbill Isometric",
+        "prompt": "Detailed isometric render, unreal engine voxel render, video game, very cozy, nostalgia, c4d render, ultra detailed, octane render, volumetric lighting, 8k post-production isometric, isometric render, tiltshift",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Logo",
+        "key": "styles_nom_Cyberbill Logo",
+        "prompt": "2d vector illustration, emblem logo, 2d flat, centered, illustrator, symetrical, victory, 2D team logo, company logo design",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Low Poly",
+        "key": "styles_nom_Cyberbill Low Poly",
+        "prompt": "Low poly character, 3d isometric render, plain background, unity, kawaii, cute, blender, polycount",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Needle Felted",
+        "key": "styles_nom_Cyberbill Needle Felted",
+        "prompt": "3D Felt fiber toy, made from Felt fibers, Tiny 3D render, trending on cgsociety, maya, octane render, made of yarn, Cute",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Negative prompt",
+        "key": "styles_nom_Cyberbill Negative prompt",
+        "prompt": "",
+        "negative_prompt": "Blurry, ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, Low quality, Bad quality, Long neck\t"
+    },
+    {
+        "name": "Cyberbill Nightmare",
+        "key": "styles_nom_Cyberbill Nightmare",
+        "prompt": "nightmare by tim burton, monster dreams, v-ray octane, highly detailed by artgem, art, trending artstation, blender, vivid color, steampunk, messi, cinematic light, alexa, ultra primme",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Oil Painting",
+        "key": "styles_nom_Cyberbill Oil Painting",
+        "prompt": "oil painting from studio ghibli film, by noriyuki morimoto, digital artist, bright and bold colors, expansive sky, sense of adventure, epic scope studio ghibli",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Origami",
+        "key": "styles_nom_Cyberbill Origami",
+        "prompt": "origami style, paper sticker, studio lighting, plain background, pastel colors, papercraft",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Pencil Sketch",
+        "key": "styles_nom_Cyberbill Pencil Sketch",
+        "prompt": "Hyperrealist pencil sketch drawing, black and white painting, fantasy art, photo realistic, dynamic lighting, artstation, poster, volumetric lighting, very detailed, 4k, da vinci style made with a charcoal pencil",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Photograph",
+        "key": "styles_nom_Cyberbill Photograph",
+        "prompt": "high quality photography, 3 point lighting, flash with softbox, 4k, Canon EOS R3, hdr, smooth, sharp focus, high resolution, award winning photo, 80mm, f2.8, bokeh",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Pixar2",
+        "key": "styles_nom_Cyberbill Pixar2",
+        "prompt": "animation pixar style, pendleton ward, magali villeneuve, artgerm, rob rey and kentaro miura style, golden ratio, behance, trending on art station",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Postapocalyptic",
+        "key": "styles_nom_Cyberbill Postapocalyptic",
+        "prompt": "fog, animals, birds, deer, bunny, postapocalyptic, overgrown with plant life and ivy, artgerm, yoshitaka amano, gothic interior, 8k, octane render, unreal engine",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Poster Illustration",
+        "key": "styles_nom_Cyberbill Poster Illustration",
+        "prompt": "official fanart behance hd by jesper ejsing, by rhads, makoto shinkai and lois van baarle, ilya kuvshinov, rossdraws global illumination",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Psycho",
+        "key": "styles_nom_Cyberbill Psycho",
+        "prompt": "anthropomorphic, beautiful, borderlands 3 psycho portrait, colourful vector, graphic novel, grunge",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Punky",
+        "key": "styles_nom_Cyberbill Punky",
+        "prompt": "in a punk style, piercings, tatoos, trash, garbages, color paint splats, coloured spoils, dust and scratches, punk crete, rainbow coloured hairs,synthwave,dark mood lighting",
+        "negative_prompt": "ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, low contrast, underexposed, overexposed, bad art, beginner, amateur, di\t"
+    },
+    {
+        "name": "Cyberbill Realistic Anime Face",
+        "key": "styles_nom_Cyberbill Realistic Anime Face",
+        "prompt": "Closeup face portrait, smooth soft skin, beautiful eyes, intricate colored hair, symmetrical, anime wide eyes, soft lighting, detailed face, by makoto shinkai, stanley artgerm lau, wlop, rossdraws, concept art, digital painting",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Realistic Shaded",
+        "key": "styles_nom_Cyberbill Realistic Shaded",
+        "prompt": "fine-face, realistic shaded perfect face, fine details. Night setting. Very anime style. Realistic shaded lighting poster by Ilya Kuvshinov katsuhiro, magali villeneuve, artgerm, Jeremy Lipkin and Michael Garmash, Rob Rey and Kentarõ Miura style, trendin",
+        "negative_prompt": "blurry"
+    },
+    {
+        "name": "Cyberbill Render 3D",
+        "key": "styles_nom_Cyberbill Render 3D",
+        "prompt": "highly detailed, CG render, octane, bokeh, 4k, 8k, 8mm, unreal engine 3d",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Robotize",
+        "key": "styles_nom_Cyberbill Robotize",
+        "prompt": "steampunk robot happy Funny cartoonish, by Gediminas Pranckevicius",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Schematic",
+        "key": "styles_nom_Cyberbill Schematic",
+        "prompt": "23rd century scientific schematics, blueprint, hyperdetailed vector technical documents, callouts, legend, patent registry",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Sticker",
+        "key": "styles_nom_Cyberbill Sticker",
+        "prompt": "Sticker, Cute sticker, Kawaii sticker, die-cut, plain background, illustration minimalism, vector, pastel colors, kawaii",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Stuffed Plush",
+        "key": "styles_nom_Cyberbill Stuffed Plush",
+        "prompt": "kawaii plush toy, very cute, visible stitch line, soft lighting, vibrant, studio lighting, PBR, realistic texture, smooth",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Tokyo Background",
+        "key": "styles_nom_Cyberbill Tokyo Background",
+        "prompt": "highly detailed matte painting of a suburban tokyo street with a bright shimmering sky by Studio Ghibli, Mokoto Shinkai, by Artgerm, by beeple, volumetric lighting, octane render, 4K resolution, trending on artstation, vivid colours",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Toon Monster",
+        "key": "styles_nom_Cyberbill Toon Monster",
+        "prompt": "cartoon monster, cute, big eyes, big mouth, art by gediminas pranckevicius and Alexander Jansson, pixar, centered, dramatic lighting, glowing light, simple solid background, no background, detailed face, cinematic, illustration, no gradient, trending on a",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Typography",
+        "key": "styles_nom_Cyberbill Typography",
+        "prompt": "typography by kaws, studio ghibli by tim hildebrandt, michael whelan, background environment. sharpen. an intricate, elegant, highly detailed digital painting, concept art, smooth",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Warm Scene",
+        "key": "styles_nom_Cyberbill Warm Scene",
+        "prompt": "unreal engine, warm indoor lighting, arts station, detailed digital painting, cinematic, character design by mark ryden and pixar and hayao miyazaki, unreal 5, daz, hyperrealistic, octane rendering",
+        "negative_prompt": ""
+    },
+    {
+        "name": "Cyberbill Woolitize",
+        "key": "styles_nom_Cyberbill Woolitize",
+        "prompt": "puppet,intricated wool material,elegant,highly detailed,patchwork,sewing thread,patches,fabric texture,knitting,badges,embroidery",
+        "negative_prompt": "needle"
+    }
+]
