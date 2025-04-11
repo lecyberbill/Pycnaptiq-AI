@@ -160,7 +160,7 @@
     "quantite_bruit": "Quantité de bruit",
     "erreur_suppression_fichier":"Impossible de supprimer le fichier",
     "styles": "Styles",
-    "Selectionnez_un_style_predefini": "Sélectionner un style prédéfini",
+    "Selectionnez_un_ou_plusieurs_styles": "Sélectionner 1 à 4 des styles prédéfinis",
     "Aucun_style" : "Aucun style",
     "styles_nom_Aucun style": "Aucun style",
     "styles_nom_Photorealistic style": "Style photoréaliste",
@@ -385,5 +385,7 @@
     "force_inpainting":"Force de l'inpaintinfg",
     "generation_arretee": "Gération arrêtée",
 	"inpainting_reussi" : "Inpainting réussi",
-    "generation_arretee_pas_sauvegarde": "Génération arrêtée aucune image produite et savergardée"
+    "generation_arretee_pas_sauvegarde": "Génération arrêtée aucune image produite et savergardée",
+    "progression_inpainting": "Inpainting grogression",
+    "progression_generation": "Progression génération"
 }

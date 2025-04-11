@@ -19,6 +19,7 @@ import math
 from PIL import Image
 from packaging import version as pkg_version
 from importlib_metadata import PackageNotFoundError
+import base64
 
 
 init()
@@ -961,3 +962,179 @@ class ImageSDXLchecker:
         
         
         return self.image.resize((nouvelle_largeur, nouvelle_hauteur), resampling_filter)
+
+
+def styles_fusion(style_selection, prompt_text, base_negative_prompt, styles_config, translations):
+    """
+    Fusionne les styles sélectionnés avec le prompt utilisateur et gère les prompts négatifs.
+
+    Args:
+        style_selection (list): Liste des noms des styles sélectionnés.
+        prompt_text (str): Le prompt positif de l'utilisateur (potentiellement traduit).
+        base_negative_prompt (str): Le prompt négatif par défaut.
+        styles_config (list): La liste complète des dictionnaires de styles.
+        translations (dict): Le dictionnaire de traductions.
+
+    Returns:
+        tuple: Contenant:
+            - final_positive_prompt (str): Le prompt positif final combiné.
+            - final_negative_prompt (str): Le prompt négatif final combiné.
+            - style_display_names (list): La liste des noms des styles sélectionnés pour l'affichage.
+    """
+    combined_style_parts = []
+    combined_negative_parts = set()
+    style_display_names = []
+
+    if style_selection:  # Si au moins un style est sélectionné
+        for style_name in style_selection:
+            selected_style = next((item for item in styles_config if item["name"] == style_name), None)
+            if selected_style:
+                style_display_names.append(style_name)
+                # Extraire la partie style du prompt positif
+                style_prompt_part = selected_style.get("prompt", "").replace("{prompt}", "").strip(", ").strip()
+                if style_prompt_part:
+                    combined_style_parts.append(style_prompt_part)
+
+                # Ajouter les éléments du prompt négatif du style
+                style_neg_prompt = selected_style.get("negative_prompt", "")
+                if style_neg_prompt:
+                    style_neg_parts = {part.strip() for part in style_neg_prompt.split(',') if part.strip()}
+                    combined_negative_parts.update(style_neg_parts)
+        # Si des styles sont sélectionnés, combined_negative_parts contient UNIQUEMENT les négatifs des styles.
+    else:
+        # Aucun style sélectionné -> utiliser le négatif par défaut
+        if base_negative_prompt:
+            base_neg_parts = {part.strip() for part in base_negative_prompt.split(',') if part.strip()}
+            combined_negative_parts.update(base_neg_parts)
+        # style_display_names reste vide, ce qui est correct
+
+    # Construire le prompt positif final
+    final_style_string = ", ".join(filter(None, combined_style_parts))
+    if final_style_string:
+        final_positive_prompt = f"{prompt_text}, {final_style_string}"
+    else:
+        final_positive_prompt = prompt_text
+
+    # Construire le prompt négatif final (string)
+    final_negative_prompt = ", ".join(sorted(list(combined_negative_parts)))
+
+    return final_positive_prompt, final_negative_prompt, style_display_names
+
+def create_progress_bar_html(current_step: int, total_steps: int, progress_percent: int, image_fond_name: str = "piste.svg", image_remplissage_name: str = "barre.svg") -> str:
+    """
+    Génère le code HTML pour une barre de progression personnalisée avec texte et images SVG.
+
+    Args:
+        current_step (int): L'étape actuelle de la progression.
+        total_steps (int): Le nombre total d'étapes.
+        progress_percent (int): Le pourcentage de progression.
+        image_path_fond (str): Chemin relatif vers l'image SVG pour la piste.
+        image_path_remplissage (str): Chemin relatif vers l'image SVG pour le remplissage.
+
+    Returns:
+        str: La chaîne HTML complète pour la barre de progression.
+    """
+    # S'assurer que les chemins sont valides pour l'URL CSS (utiliser des slashes)
+    root_dir = Path(__file__).parent.parent
+    chemin_dossier_utils = root_dir / "html_util"
+    chemin_image_fond = chemin_dossier_utils / image_fond_name
+    chemin_image_remplissage = chemin_dossier_utils / image_remplissage_name
+    
+        # --- Lire et encoder les SVG en Data URI ---
+    def svg_to_data_uri(filepath):
+        if not filepath.is_file():
+            print(f"[ERREUR Utils] Fichier SVG non trouvé: {filepath}")
+            return "none" # Retourne 'none' pour la propriété CSS background-image
+        try:
+            with open(filepath, "rb") as f: # Lire en binaire
+                svg_bytes = f.read()
+            # Encoder en Base64
+            encoded_svg = base64.b64encode(svg_bytes).decode("utf-8")
+            # Créer la Data URI
+            return f"data:image/svg+xml;base64,{encoded_svg}"
+        except Exception as e:
+            print(f"[ERREUR Utils] Erreur lecture/encodage SVG {filepath}: {e}")
+            return "none"
+
+    data_uri_fond = svg_to_data_uri(chemin_image_fond)
+    data_uri_remplissage = svg_to_data_uri(chemin_image_remplissage)
+
+    # Définir les styles CSS avec les images SVG locales
+    # Note: On pourrait optimiser en ne générant la partie <style> qu'une seule fois
+    #       ou en la mettant dans un fichier CSS séparé, mais pour l'instant,
+    #       on la garde ici pour la simplicité de l'exemple.
+    css_styles = f"""
+    <style>
+        .progress-container {{
+            position: relative;
+            width: 100%;
+            height: 25px; /* Ajuste si besoin */
+            border-radius: 8px;
+            border: 1px solid #555;
+            overflow: hidden;
+            /* Le fond du conteneur peut servir de repli ou pour Firefox */
+            background-image: url('{data_uri_fond}');
+            background-size: cover; /* ou autre */
+            background-repeat: no-repeat;
+            background-position: center center;
+        }}
+        .custom-progress {{
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            border: none;
+            width: 100%;
+            height: 100%;
+            position: absolute; top: 0; left: 0;
+            background-color: transparent;
+            color: #4CAF50; /* Couleur de repli */
+        }}
+        /* Style pour Webkit (Piste/Fond) */
+        .custom-progress::-webkit-progress-bar {{
+            background-image: url('{data_uri_fond}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
+            border-radius: 8px;
+        }}
+        /* Style pour Webkit (Valeur/Remplissage) */
+        .custom-progress::-webkit-progress-value {{
+            background-image: url('{data_uri_remplissage}');
+            background-size: cover; /* Ajuste selon ton SVG */
+            background-repeat: no-repeat;
+            background-position: left center;
+            border-radius: 8px;
+            transition: width 0.1s ease;
+        }}
+        /* Style pour Firefox (Valeur/Remplissage) */
+        .custom-progress::-moz-progress-bar {{
+            background-image: url('{data_uri_remplissage}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: left center;
+            border-radius: 8px;
+            transition: width 0.1s ease;
+        }}
+
+        .progress-text-overlay {{
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9em;
+            color: #fff;
+            text-shadow: 0 0 3px #000, 0 0 3px #000;
+            line-height: 25px; /* Correspondre à la hauteur du conteneur */
+            z-index: 1;
+            pointer-events: none;
+            font-weight: bold;
+        }}
+    </style>
+    """
+
+    # Construire l'HTML final
+    progress_html = f'''
+        {css_styles}
+        <div class="progress-container">
+            <progress class="custom-progress" value="{current_step}" max="{total_steps}"></progress>
+            <div class="progress-text-overlay">{current_step}/{total_steps} ({progress_percent}%)</div>
+        </div>
+    '''
+    return progress_html

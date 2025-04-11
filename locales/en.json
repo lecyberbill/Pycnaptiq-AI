@@ -147,7 +147,7 @@
     "point_courbe_3":"Curve point 3",
     "nettete_adaptative":"Adaptative Sharpness",
     "rayon_flou": "Radius of Blur",
-    "Selectionnez_un_style_predefini": "Choose a predefined style",
+    "Selectionnez_un_ou_plusieurs_styles": "Select 1 to 4 of the predefined styles",
     "pourcentage_nettete": "Sharpness percentage",
     "seuil_difference": "Threshold difference",
     "bruit": "Noise",
@@ -382,5 +382,7 @@
     "generation_en_cours": "Generation in progress",
     "force_inpainting": "Inpainting strength",
 	"inpainting_reussi" : "Inpainting success",
-	"generation_arretee_pas_sauvegarde": "Arrested Generation no images produced and saved"
+	"generation_arretee_pas_sauvegarde": "Arrested Generation no images produced and saved",
+    "progression_inpainting": "Inpainting progress",
+    "progression_generation": "Generation progress"
 }
