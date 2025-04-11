@@ -607,10 +607,11 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
         filename = f"{date_str}_{heure_str}_inpainting_{image.width}x{image.height}.{IMAGE_FORMAT.lower()}"
         chemin_image = os.path.join(save_dir, filename)
         donnees_xmp = {
-            "IMAGE": translate("inpainting", translations),
+            "Module": "Inpainting",
             "Creator": AUTHOR,
             "Inference": num_steps,
             "Guidance": guidance_scale,
+            "Strength": strength,
             "Prompt": prompt_text,
             "Modèle": os.path.splitext(model_selectionne)[0],
             "Dimension": f"{image.width}x{image.height}",
