@@ -315,7 +315,7 @@ class Image2imageSDXLModule:
         return message, update_interactif, update_texte
     
 
-    def image_to_image_gen(self, prompt_libre, traduire, selected_styles, image, step, guidance, strength, module_translations):
+    def image_to_image_gen(self, prompt_libre, traduire, selected_styles, image, step, guidance, strength):
         """
         Generates an image using the loaded i2i model.
 
