@@ -1,34 +1,65 @@
 @echo off
 SETLOCAL ENABLEDELAYEDEXPANSION
 
-:: Aller directement au flux principal
+:: --- Configuration ---
+set "PYTHON_DIR_NAME=python-3.10.11-embed-amd64"
+set "VENV_DIR_NAME=venv"
+set "REQUIREMENTS_FILE=requirements.txt"
+set "MAIN_APP_SCRIPT=cyberbill_SDXL.py"
+
+:: --- Début du Script ---
 goto :main
 
-:: Définir les fonctions ici
+::-------------------------------------------------
+:: Fonction: load_language
+:: Charge les chaînes de caractères depuis un fichier de langue.
+:: Paramètre %1: Nom du fichier de langue (ex: install_fr.txt)
+::-------------------------------------------------
 :load_language
-set "lang_file=%1"
-echo Test: Trying to load %locales_dir%%lang_file%
+set "lang_file=%~1"
+echo Chargement du fichier de langue:/loading language file... %locales_dir%%lang_file%
 if not exist "%locales_dir%%lang_file%" (
-    echo [ERREUR] Fichier de langue %lang_file% manquant !
+    echo [ERREUR] Fichier de langue '%lang_file%' introuvable dans '%locales_dir%' !
+    echo [ERROR] Language file '%lang_file%' not found in '%locales_dir%' !
     exit /b 1
 )
-for /f "tokens=1,2 delims==" %%a in ('type "%locales_dir%%lang_file%"') do (
+for /f "usebackq tokens=1,* delims==" %%a in ("%locales_dir%%lang_file%") do (
     set "%%a=%%b"
+)
+if not defined INFO_WELCOME (
+    echo [ERREUR] Le fichier de langue '%lang_file%' semble invalide ou vide.
+    echo [ERROR] Language file '%lang_file%' seems invalid or empty.
+    exit /b 1
 )
 goto :eof
 
+::-------------------------------------------------
+:: Fonction: check_error
+:: Vérifie le code d'erreur précédent et affiche un message si > 0.
+:: Paramètre %1: Message d'erreur à afficher (clé de langue)
+::-------------------------------------------------
+:check_error
+if errorlevel 1 (
+    echo !%1!
+    pause
+    exit /b 1
+)
+goto :eof
 
+::-------------------------------------------------
+:: Flux Principal
+::-------------------------------------------------
 :main
-
-:: Définir le dossier courant
+:: Définir le dossier courant du script d'installation
+:: %~dp0 se termine par un backslash, pas besoin d'en ajouter un.
 set "script_dir=%~dp0"
 set "locales_dir=%script_dir%locales\"
 
-:: Choix de la langue
-echo Choisissez votre langue (Choose your language):
+:: --- Choix de la langue ---
+echo Choisissez votre langue / Choose your language:
 echo 1. Francais
 echo 2. English
-choice /c 12 /n /m "Votre choix (Your choice) ? "
+choice /c 12 /n /m "Votre choix / Your choice ? "
 if errorlevel 2 (
     call :load_language "install_en.txt"
 ) else (
@@ -36,46 +67,163 @@ if errorlevel 2 (
 )
 
 
+:: Active la bonne page de code pour l'UTF-8 (pour les messages)
 chcp 65001 > nul
-set "pythonDir=%cd%\python-3.10.11-embed-amd64"
-set "PYTHON_SCRIPTS=%pythonDir%\Scripts"
-set "PYTHON_PATH=%pythonDir%"
+echo !INFO_WELCOME!
 
-setx PATH "%PYTHON_SCRIPTS%;%pythonDir%"
-set PATH "%PYTHON_SCRIPTS%;%pythonDir%;%PATH%"
-:: Mise à jour du PATH dans l'environnement courant
-set PATH "%PYTHON_PATH%\Scripts;%PYTHON_PATH%;%PATH%"
-echo !INFO_PYTHON_ADDED_PATH!
+:: --- Définition des chemins absolus ---
+set "python_embed_dir=%script_dir%%PYTHON_DIR_NAME%"
+set "python_exe=%python_embed_dir%\python.exe"
+set "venv_dir=%script_dir%%VENV_DIR_NAME%"
+set "venv_python_exe=%venv_dir%\Scripts\python.exe"
+set "venv_pip_exe=%venv_dir%\Scripts\pip.exe"
+set "req_file_path=%script_dir%%REQUIREMENTS_FILE%"
+set "start_script_path=%script_dir%start.bat"
+set "main_app_path=%script_dir%%MAIN_APP_SCRIPT%"
 
-
-echo !INFO_VERIFY_CUDA!
-nvcc --version 2>NUL | findstr /C:"release 12.6" >nul
-if errorlevel 1 (
-    echo !ERROR_CUDA!
-	pause
-    exit /b 1
-) else (
-    echo !OK_CUDA!
-)
-
-echo !INFO_CREATE_VENV!
-"%pythonDir%\python.exe" -m virtualenv venv
-if errorlevel 1 (
-    echo !ERROR_CREATE_VENV!
+:: --- Vérifications Préliminaires ---
+echo !INFO_CHECK_PYTHON_EMBED!
+if not exist "%python_exe%" (
+    echo !ERROR_PYTHON_NOT_FOUND! "%python_exe%"
     pause
     exit /b 1
 )
+echo !OK_PYTHON_FOUND! "%python_exe%"
+
+echo !INFO_CHECK_REQUIREMENTS!
+if not exist "%req_file_path%" (
+    echo !ERROR_REQUIREMENTS_NOT_FOUND! "%req_file_path%"
+    pause
+    exit /b 1
+)
+echo !OK_REQUIREMENTS_FOUND! "%req_file_path%"
+
+:: --- Vérification CUDA ---
+echo !INFO_VERIFY_CUDA!
+nvcc --version > nul 2>&1
+if errorlevel 9009 (
+    echo !WARN_NVCC_NOT_FOUND!
+    echo !INFO_CUDA_DOWNLOAD! https://developer.nvidia.com/cuda-12-6-3-download-archive
+    pause
+    exit /b 1
+) else (
+    nvcc --version 2>NUL | findstr /R /C:"release 12\.[0-9][0-9]*" >nul
+    if errorlevel 1 (
+        echo !ERROR_CUDA_VERSION!
+        nvcc --version
+        pause
+        exit /b 1
+    ) else (
+        echo !OK_CUDA!
+    )
+)
+
+:: --- Création de l'Environnement Virtuel ---
+echo !INFO_CREATE_VENV! "%venv_dir%"
+if exist "%venv_dir%" (
+    echo !WARN_VENV_EXISTS!
+    set /p "overwrite_venv=!PROMPT_OVERWRITE_VENV! (O/N): "
+    if /i not "!overwrite_venv!"=="O" (
+        echo !INFO_VENV_SKIP_CREATE!
+        goto :skip_venv_creation
+    )
+    echo !INFO_DELETING_VENV!
+    rd /s /q "%venv_dir%"
+    call :check_error ERROR_DELETE_VENV
+)
+"%python_exe%" -m virtualenv "%venv_dir%"
+call :check_error ERROR_CREATE_VENV
 echo !OK_CREATE_VENV!
+:skip_venv_creation
 
-echo !INFO_ACTIVATE_VENV!
-call venv\Scripts\activate.bat
-echo !OK_ACTIVATE_VENV!
-
+:: --- Installation des Dépendances ---
 echo !INFO_INSTALL_DEP!
-python -m pip install --upgrade pip
-pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
-pip install --no-cache-dir -r requirements.txt
 
+echo !INFO_UPGRADE_PIP!
+"%venv_python_exe%" -m pip install --upgrade pip
+call :check_error ERROR_UPGRADE_PIP
+echo !OK_UPGRADE_PIP!
+
+echo !INFO_INSTALL_TORCH!
+"%venv_pip_exe%" install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+call :check_error ERROR_INSTALL_TORCH
+echo !OK_INSTALL_TORCH!
+
+echo !INFO_INSTALL_REQUIREMENTS! "%REQUIREMENTS_FILE%"
+"%venv_pip_exe%" install --no-cache-dir -r "%req_file_path%"
+call :check_error ERROR_INSTALL_REQUIREMENTS
+echo !OK_INSTALL_REQUIREMENTS!
+
+:: --- Création du script de démarrage start.bat ---
+echo !INFO_CREATE_START_SCRIPT! "%start_script_path%"
+(
+    echo @echo off
+    echo SETLOCAL
+    echo :: Script de demarrage genere par install.bat
+    echo :: Ne pas modifier manuellement, relancer install.bat si besoin.
+    echo.
+    echo title %MAIN_APP_SCRIPT% Launcher
+    echo.
+    echo :: Definit le repertoire du script de demarrage
+    echo set "start_script_dir=%%~dp0"
+    echo.
+    echo :: Definit le chemin absolu de l'environnement virtuel
+    echo set "venv_dir=%%start_script_dir%%%VENV_DIR_NAME%%"
+    echo set "main_script=%%start_script_dir%%%MAIN_APP_SCRIPT%%"
+    echo.
+    echo :: Verifie si le venv existe
+    echo if not exist "%%venv_dir%%\Scripts\activate.bat" (
+    echo    echo [ERREUR] Environnement virtuel introuvable a '%%venv_dir%%'.
+    echo    echo          Veuillez relancer install.bat.
+    echo    echo [ERROR] Virtual environment not found at '%%venv_dir%%'.
+    echo    echo         Please re-run install.bat.
+    echo    pause
+    echo    exit /b 1
+    echo ^)
+    echo.
+    echo :: Active l'environnement virtuel
+    echo echo Activation de l'environnement virtuel...
+    echo call "%%venv_dir%%\Scripts\activate.bat"
+    echo if errorlevel 1 (
+    echo     echo [ERREUR] Impossible d'activer l'environnement virtuel.
+    echo     echo [ERROR] Failed to activate the virtual environment.
+    echo     pause
+    echo     exit /b 1
+    echo ^)
+    echo echo Environnement virtuel active.
+    echo.
+    echo :: Verifie si le script principal existe
+    echo if not exist "%%main_script%%" (
+    echo    echo [ERREUR] Script principal '%%main_script%%' introuvable.
+    echo    echo [ERROR] Main script '%%main_script%%' not found.
+    echo    pause
+    echo    exit /b 1
+    echo ^)
+    echo.
+    echo :: Lance l'application principale
+    echo echo Lancement de l'application: %%main_script%% ...
+    echo python "%%main_script%%" %%*
+    echo.
+    echo echo L'application s'est terminee. Appuyez sur une touche pour fermer cette fenetre.
+    echo pause ^> nul
+    echo ENDLOCAL
+) > "%start_script_path%"
+
+:: Ajout d'une vérification explicite pour être sûr
+if not exist "%start_script_path%" (
+    echo [ERREUR CRITIQUE] Le fichier start.bat n'a pas pu etre cree. Verifiez les permissions d'ecriture ou des caracteres speciaux dans le script.
+    echo [CRITICAL ERROR] The start.bat file could not be created. Check write permissions or special characters in the script.
+    pause
+    exit /b 1
+)
+
+call :check_error ERROR_CREATE_START_SCRIPT
+echo !OK_CREATE_START_SCRIPT!
+
+
+echo.
 echo !INFO_INSTALL_DONE!
+echo !INFO_HOW_TO_START! "%start_script_path%"
+echo.
 pause
-exit
+exit /b 0
