@@ -954,8 +954,8 @@ with gr.Blocks(**block_kwargs) as interface:
             with gr.Column():
                 texte_bouton_gen_initial = translate("charger_modele_pour_commencer", translations) # Utiliser la même clé ou une clé spécifique
                 btn_generate = gr.Button(value=texte_bouton_gen_initial, interactive=False)
-                btn_stop = gr.Button(translate("arreter", translations))
-                btn_stop_after_gen = gr.Button(translate("stop_apres_gen", translations))
+                btn_stop = gr.Button(translate("arreter", translations), variant="stop")
+                btn_stop_after_gen = gr.Button(translate("stop_apres_gen", translations), variant="stop")
                 bouton_lister = gr.Button(translate("lister_modeles", translations))
                 with gr.Accordion(label="Lora", open=False) as lora_section:
                     with gr.Row():
@@ -1070,7 +1070,7 @@ with gr.Blocks(**block_kwargs) as interface:
                 
                 texte_bouton_inpaint_initial = translate("charger_modele_pour_commencer", translations)
                 bouton_generate_inpainting = gr.Button(value=texte_bouton_inpaint_initial, interactive=False)
-                bouton_stop_inpainting = gr.Button(translate("arreter_inpainting", translations))
+                bouton_stop_inpainting = gr.Button(translate("arreter_inpainting", translations), variant="stop")
 
             with gr.Column():
             
