@@ -387,5 +387,6 @@
 	"inpainting_reussi" : "Inpainting réussi",
     "generation_arretee_pas_sauvegarde": "Génération arrêtée aucune image produite et savergardée",
     "progression_inpainting": "Inpainting grogression",
-    "progression_generation": "Progression génération"
+    "progression_generation": "Progression génération",
+    "erreur_mauvais_type_modele": "Erreur mauvais type de modèle chargé, charger un modèle"
 }

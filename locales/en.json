@@ -384,5 +384,6 @@
 	"inpainting_reussi" : "Inpainting success",
 	"generation_arretee_pas_sauvegarde": "Arrested Generation no images produced and saved",
     "progression_inpainting": "Inpainting progress",
-    "progression_generation": "Generation progress"
+    "progression_generation": "Generation progress",
+    "erreur_mauvais_type_modele": "Error: Incorrect model type loaded. Please load a model."
 }

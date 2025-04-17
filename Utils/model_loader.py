@@ -1,6 +1,6 @@
 import torch
 import time
-from diffusers import StableDiffusionXLInpaintPipeline, StableDiffusionXLPipeline, AutoencoderKL, AutoPipelineForText2Image
+from diffusers import StableDiffusionXLInpaintPipeline, StableDiffusionXLPipeline, AutoencoderKL
 from transformers import AutoTokenizer, CLIPTextModel
 import os
 from pathlib import Path

@@ -9,7 +9,7 @@ import traceback
 from datetime import datetime
 import json
 import gradio as gr
-from diffusers import AutoPipelineForText2Image,StableDiffusionXLPipeline, AutoencoderKL, EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler, \
+from diffusers import  StableDiffusionXLPipeline, AutoencoderKL, EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler, \
     LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, StableDiffusionXLInpaintPipeline, \
     KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler, DPMSolverSinglestepScheduler
 import torch
@@ -102,15 +102,12 @@ image_executor = ThreadPoolExecutor(max_workers=10)
 device, torch_dtype, vram_total_gb = check_gpu_availability(translations)
 
 # Initialisation des variables globales
-pipe = None
+
 model_selectionne = None
 vae_selctionne = "Défaut VAE"
-compel = None
 loras_charges = {}
-
-
 # Créer une instance du gestionnaire de modules
-gestionnaire = GestionModule(translations=translations, language=DEFAULT_LANGUAGE, global_pipe=pipe, global_compel=compel, config=config)
+gestionnaire = GestionModule(translations=translations, language=DEFAULT_LANGUAGE, global_pipe=None, global_compel=None, config=config)
 # Charger tous les modules
 gestionnaire.charger_tous_les_modules()
 
@@ -166,79 +163,79 @@ sampler_options = [
 # selection des sampler
 def apply_sampler(sampler_selection):
     info = f"{translate('sampler_change', translations)}{sampler_selection}"
-    if pipe is not None:
+    if gestionnaire.global_pipe is not None:
         if sampler_selection == translate("sampler_euler", translations):
-            pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = EulerDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3)
             return info
         elif sampler_selection == translate("sampler_dpmpp_2m", translations):
-            pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = DPMSolverMultistepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpmpp_2s_a", translations):
-            pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_lms", translations):
-            pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = LMSDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_ddim", translations):
-            pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = DDIMScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_pndm", translations):
-            pipe.scheduler = PNDMScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = PNDMScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpm2", translations):
-            pipe.scheduler = KDPM2DiscreteScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = KDPM2DiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpm2_a", translations):
-            pipe.scheduler = KDPM2AncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = KDPM2AncestralDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpm_fast", translations):
-            pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = DPMSolverMultistepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpm_adaptive", translations):
-            pipe.scheduler = DEISMultistepScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = DEISMultistepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_heun", translations):
-            pipe.scheduler = HeunDiscreteScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = HeunDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpmpp_sde", translations):
-            pipe.scheduler = DPMSolverSDEScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = DPMSolverSDEScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_dpmpp_3m_sde", translations):
-            pipe.scheduler = DPMSolverSinglestepScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = DPMSolverSinglestepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_euler_a", translations):
-            pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
         elif sampler_selection == translate("sampler_unipc", translations):
-            pipe.scheduler = PNDMScheduler.from_config(pipe.scheduler.config)
+            gestionnaire.global_pipe.scheduler = PNDMScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
             print(txt_color("[OK] ", "ok"), info)
             gr.Info(info,3.0)
             return info
@@ -262,9 +259,9 @@ def style_choice(selected_style_user, STYLES):
     selected_style = next((item for item in STYLES if item["name"] == selected_style_user), None)
     return selected_style
 
-pipe, compel, *message = charger_modele(DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, pipe, compel)
+gestionnaire.global_pipe, gestionnaire.global_compel, *message = charger_modele(DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel)
 
-compel = compel
+gestionnaire.global_compel = gestionnaire.global_compel
 
 #==========================
 # Fonction GENERATION PROMPT A PARTIR IMAGE
@@ -309,7 +306,7 @@ def update_prompt(image):
 
 def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, *lora_inputs):
     """Génère des images avec Stable Diffusion."""
-    global pipe, compel, lora_charges, model_selectionne, vae_selctionne, is_generating
+    global lora_charges, model_selectionne, vae_selctionne, is_generating
     
     lora_checks = lora_inputs[:4]
     lora_dropdowns = lora_inputs[4:8]
@@ -341,12 +338,22 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
     try:
         
-        if pipe is None:
+        if gestionnaire.global_pipe is None:
             print(txt_color("[ERREUR] ","erreur"), translate("erreur_pas_modele", translations))
             gr.Warning(translate("erreur_pas_modele", translations), 4.0)
             final_message = translate("erreur_pas_modele", translations)
             return
         
+        if not isinstance(gestionnaire.global_pipe, StableDiffusionXLPipeline):
+            error_message = translate("erreur_mauvais_type_modele", translations)
+            print(txt_color("[ERREUR] ","erreur"), error_message)
+            gr.Warning(error_message, 4.0)
+            # Mettre à jour les variables finales pour le bloc finally
+            final_message = error_message
+            final_html_msg = f"<p style='color: red;'>{error_message}</p>"
+            return
+
+
         #initialisation du chrono
         start_time = time.time()
         # Réinitialiser l'état d'arrêt
@@ -367,9 +374,9 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         print(txt_color("[INFO] ","info"), f"Prompt Positif Final (string): {prompt_en}")
         print(txt_color("[INFO] ","info"), f"Prompt Négatif Final (string): {negative_prompt_str}")
 
-        # --- Utiliser Compel pour les prompts positif ET négatif ---
-        conditioning, pooled = compel(prompt_en)
-        neg_conditioning, neg_pooled = compel(negative_prompt_str)
+        # --- Utiliser gestionnaire.global_compel pour les prompts positif ET négatif ---
+        conditioning, pooled = gestionnaire.global_compel(prompt_en)
+        neg_conditioning, neg_pooled = gestionnaire.global_compel(negative_prompt_str)
         
         selected_format = selected_format.split(":")[0].strip()
         width, height = map(int, selected_format.split("*"))
@@ -377,7 +384,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         seed_strings = []
         formatted_seeds = ""
 
-        message_lora = gerer_lora(pipe, loras_charges, lora_checks, lora_dropdowns, lora_scales, LORAS_DIR, translations)
+        message_lora = gerer_lora(gestionnaire.global_pipe, loras_charges, lora_checks, lora_dropdowns, lora_scales, LORAS_DIR, translations)
         if message_lora:
             gr.Warning(message_lora, 4.0)
             final_message = message_lora
@@ -413,7 +420,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
             def run_pipeline():
                 generator = torch.Generator(device=device).manual_seed(seed)
-                final_image = pipe(
+                final_image = gestionnaire.global_pipe(
                     prompt_embeds=conditioning,
                     pooled_prompt_embeds=pooled,
                     negative_prompt_embeds=neg_conditioning,         
@@ -521,7 +528,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                     "Dimension": selected_format,
                     "Modèle": os.path.splitext(model_selectionne)[0],
                     "VAE": os.path.splitext(vae_selctionne)[0] if vae_selctionne else "Défaut VAE",
-                    "Sampler": pipe.scheduler.__class__.__name__,
+                    "Sampler": gestionnaire.global_pipe.scheduler.__class__.__name__,
                     "Loras": lora_info_str,
                     "Temps de génération": temps_generation_image 
                 }
@@ -578,7 +585,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         # Préparer les valeurs pour le yield dans finally en cas d'erreur
         final_images = []
         final_seeds = ""
-        final_html_msg = None
+        final_html_msg = f"<p style='color: red;'>{final_message}</p>" 
         final_preview_img = None
         final_progress_html = ""
 
@@ -592,7 +599,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
 def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_scale, traduire):
     """Génère une image inpainted avec Stable Diffusion XL."""
-    global pipe, compel, stop_gen
+    global  stop_gen
 
     # --- Définir les états des boutons ---
     btn_gen_inp_off = gr.update(interactive=False)
@@ -618,12 +625,22 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
     try:
         start_time = time.time()
         stop_gen.clear()
-        if pipe is None:
+        if gestionnaire.global_pipe is None:
             msg = translate("erreur_pas_modele_inpainting", translations)
             print(txt_color("[ERREUR] ", "erreur"), msg)
             gr.Warning(msg, 4.0)
             final_msg_status_result = msg
             return
+
+        if not isinstance(gestionnaire.global_pipe, StableDiffusionXLInpaintPipeline):
+            error_message = translate("erreur_mauvais_type_modele_inpainting", translations)
+            print(txt_color("[ERREUR] ", "erreur"), error_message)
+            gr.Warning(error_message, 4.0)
+            # Mettre à jour les variables finales pour le bloc finally
+            final_msg_status_result = error_message
+            final_msg_load_result = f"<p style='color: red;'>{error_message}</p>"
+            # Important : retourner immédiatement
+            return # Sortir de la fonction ici
 
         if image is None or mask is None:
             msg = translate("erreur_image_mask_manquant", translations)
@@ -654,11 +671,11 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
 
         # Translate the prompt if requested
         prompt_text = translate_prompt(text, translations) if traduire else text
-        conditioning, pooled = compel(prompt_text)
+        conditioning, pooled = gestionnaire.global_compel(prompt_text)
         
-        active_adapters = pipe.get_active_adapters()
+        active_adapters = gestionnaire.global_pipe.get_active_adapters()
         for adapter_name in active_adapters:
-            pipe.set_adapters(adapter_name, 0)
+            gestionnaire.global_pipe.set_adapters(adapter_name, 0)
         
         image_rgb = image.convert("RGB")
         mask_rgb = mask
@@ -679,7 +696,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
             print(txt_color("[INFO] ", "info"), translate("debut_inpainting", translations))
             gr.Info(translate("debut_inpainting", translations), 3.0)
             try: # Ajouter try/except
-                inpainted_image_result = pipe(
+                inpainted_image_result = gestionnaire.global_pipe(
                     pooled_prompt_embeds=pooled,
                     prompt_embeds=conditioning,
                     image=image_rgb,
@@ -697,7 +714,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
                  print(txt_color("[INFO]", "info"), translate("inpainting_interrompu_interne", translations))
             except Exception as e:
                  # Ne pas imprimer l'erreur si c'est juste une interruption signalée par _interrupt
-                 if not (hasattr(pipe, '_interrupt') and pipe._interrupt):
+                 if not (hasattr(gestionnaire.global_pipe, '_interrupt') and gestionnaire.global_pipe._interrupt):
                      print(txt_color("[ERREUR]", "erreur"), f"Erreur dans run_pipeline (inpainting): {e}")
                      final_image_container["error"] = e
 
@@ -731,8 +748,8 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
         elif "error" in final_image_container:
              final_progress_html = f'<p style="color: red;">{translate("erreur_lors_inpainting", translations)}</p>'
         
-        if hasattr(pipe, '_interrupt'):
-            pipe._interrupt = False
+        if hasattr(gestionnaire.global_pipe, '_interrupt'):
+            gestionnaire.global_pipe._interrupt = False
         
         if "error" in final_image_container:
              error_message = f"{translate('erreur_lors_inpainting', translations)}: {final_image_container['error']}"
@@ -814,8 +831,8 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
         final_msg_load_result = str(e)
 
     finally:
-        if hasattr(pipe, '_interrupt'):
-            pipe._interrupt = False
+        if hasattr(gestionnaire.global_pipe, '_interrupt'):
+            gestionnaire.global_pipe._interrupt = False
         yield final_image_result, final_msg_load_result, final_msg_status_result, final_progress_result, btn_load_inp_on, btn_gen_inp_on
 
 
@@ -844,7 +861,7 @@ def stop_generation_process():
 if DEFAULT_MODEL in modeles_disponibles:
     print(f"{txt_color('[INFO]','info')}", f"{DEFAULT_MODEL} {translate('va_se_charger', translations)} {MODELS_DIR}")
     # Use DEFAULT_MODEL and "Défaut VAE" directly
-    pipe, compel, *message = charger_modele(DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, pipe, compel)
+    gestionnaire.global_pipe, gestionnaire.global_compel, *message = charger_modele(DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel)
     model_selectionne = DEFAULT_MODEL
     vae_selctionne = "Défaut VAE"
 
@@ -859,15 +876,25 @@ else:
 # =========================
 
 def update_globals_model(nom_fichier, nom_vae):
-    global pipe, compel, model_selectionne, vae_selctionne
-    pipe, compel, *message = charger_modele(nom_fichier, nom_vae, translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, pipe, compel, gradio_mode=True)
-    if pipe is not None:
+    global  model_selectionne, vae_selctionne, loras_charges
+    returned_values = charger_modele(nom_fichier, nom_vae, translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel, gradio_mode=True)
+    if len(returned_values) >= 3:
+        gestionnaire.global_pipe = returned_values[0]
+        gestionnaire.global_compel = returned_values[1]
+        message = returned_values[2] # Ou *message si plus de 3 valeurs
+    else:
+         # Gérer le cas où charger_modele ne retourne pas assez de valeurs
+         print(txt_color("[ERREUR]", "erreur"), "Retour inattendu de charger_modele")
+         gestionnaire.global_pipe = None
+         gestionnaire.global_compel = None
+         message = "Erreur interne lors du chargement."
+
+
+    if gestionnaire.global_pipe is not None:
         # Chargement réussi
         model_selectionne = nom_fichier
         vae_selctionne = nom_vae
         loras_charges.clear()
-        gestionnaire.update_global_pipe(pipe)
-        gestionnaire.update_global_compel(compel)
         etat_interactif = True
         texte_bouton = translate("generer", translations) # Texte normal
     else:
@@ -881,17 +908,16 @@ def update_globals_model(nom_fichier, nom_vae):
 
     update_interactif = gr.update(interactive=etat_interactif)
     update_texte = gr.update(value=texte_bouton)
-        # Retourner le message et les deux mises à jour pour le bouton
+    # Retourner le message et les deux mises à jour pour le bouton
     return message, update_interactif, update_texte
 
 def update_globals_model_inpainting(nom_fichier):
-    global pipe, compel, model_selectionne 
-    pipe, compel, message = charger_modele_inpainting(nom_fichier, translations, INPAINT_MODELS_DIR, device, torch_dtype, vram_total_gb, pipe, compel) 
-    if pipe is not None:
+    global model_selectionne
+    gestionnaire.global_pipe, gestionnaire.global_compel, message = charger_modele_inpainting(nom_fichier, translations, INPAINT_MODELS_DIR, device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel)
+
+    if gestionnaire.global_pipe is not None:
         # Chargement réussi
         model_selectionne = nom_fichier
-        gestionnaire.update_global_pipe(pipe)
-        gestionnaire.update_global_compel(compel)
         etat_interactif = True
         texte_bouton = translate("generer_inpainting", translations) # Texte normal
     else:
