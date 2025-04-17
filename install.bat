@@ -6,14 +6,15 @@ set "PYTHON_DIR_NAME=python-3.10.11-embed-amd64"
 set "VENV_DIR_NAME=venv"
 set "REQUIREMENTS_FILE=requirements.txt"
 set "MAIN_APP_SCRIPT=cyberbill_SDXL.py"
+set "locales_dir=%~dp0locales\"
 
-:: --- DÃ©but du Script ---
+:: --- Début du Script ---
 goto :main
 
 ::-------------------------------------------------
 :: Fonction: load_language
-:: Charge les chaÃ®nes de caractÃ¨res depuis un fichier de langue.
-:: ParamÃ¨tre %1: Nom du fichier de langue (ex: install_fr.txt)
+:: Charge les chaînes de caractères depuis un fichier de langue.
+:: Paramètre %1: Nom du fichier de langue (ex: install_fr.txt)
 ::-------------------------------------------------
 :load_language
 set "lang_file=%~1"
@@ -35,8 +36,8 @@ goto :eof
 
 ::-------------------------------------------------
 :: Fonction: check_error
-:: VÃ©rifie le code d'erreur prÃ©cÃ©dent et affiche un message si > 0.
-:: ParamÃ¨tre %1: Message d'erreur Ã  afficher (clÃ© de langue)
+:: Vérifie le code d'erreur précédent et affiche un message si > 0.
+:: Paramètre %1: Message d'erreur à afficher (clé de langue)
 ::-------------------------------------------------
 :check_error
 if errorlevel 1 (
@@ -50,10 +51,9 @@ goto :eof
 :: Flux Principal
 ::-------------------------------------------------
 :main
-:: DÃ©finir le dossier courant du script d'installation
+:: Définir le dossier courant du script d'installation
 :: %~dp0 se termine par un backslash, pas besoin d'en ajouter un.
 set "script_dir=%~dp0"
-set "locales_dir=%script_dir%locales\"
 
 :: --- Choix de la langue ---
 echo Choisissez votre langue / Choose your language:
@@ -66,12 +66,11 @@ if errorlevel 2 (
     call :load_language "install_fr.txt"
 )
 
-
 :: Active la bonne page de code pour l'UTF-8 (pour les messages)
 chcp 65001 > nul
 echo !INFO_WELCOME!
 
-:: --- DÃ©finition des chemins absolus ---
+:: --- Définition des chemins absolus ---
 set "python_embed_dir=%script_dir%%PYTHON_DIR_NAME%"
 set "python_exe=%python_embed_dir%\python.exe"
 set "venv_dir=%script_dir%%VENV_DIR_NAME%"
@@ -81,7 +80,7 @@ set "req_file_path=%script_dir%%REQUIREMENTS_FILE%"
 set "start_script_path=%script_dir%start.bat"
 set "main_app_path=%script_dir%%MAIN_APP_SCRIPT%"
 
-:: --- VÃ©rifications PrÃ©liminaires ---
+:: --- Vérifications Préliminaires ---
 echo !INFO_CHECK_PYTHON_EMBED!
 if not exist "%python_exe%" (
     echo !ERROR_PYTHON_NOT_FOUND! "%python_exe%"
@@ -98,7 +97,7 @@ if not exist "%req_file_path%" (
 )
 echo !OK_REQUIREMENTS_FOUND! "%req_file_path%"
 
-:: --- VÃ©rification CUDA ---
+:: --- Vérification CUDA ---
 echo !INFO_VERIFY_CUDA!
 nvcc --version > nul 2>&1
 if errorlevel 9009 (
@@ -118,7 +117,7 @@ if errorlevel 9009 (
     )
 )
 
-:: --- CrÃ©ation de l'Environnement Virtuel ---
+:: --- Création de l'Environnement Virtuel ---
 echo !INFO_CREATE_VENV! "%venv_dir%"
 if exist "%venv_dir%" (
     echo !WARN_VENV_EXISTS!
@@ -136,7 +135,7 @@ call :check_error ERROR_CREATE_VENV
 echo !OK_CREATE_VENV!
 :skip_venv_creation
 
-:: --- Installation des DÃ©pendances ---
+:: --- Installation des Dépendances ---
 echo !INFO_INSTALL_DEP!
 
 echo !INFO_UPGRADE_PIP!
@@ -154,7 +153,7 @@ echo !INFO_INSTALL_REQUIREMENTS! "%REQUIREMENTS_FILE%"
 call :check_error ERROR_INSTALL_REQUIREMENTS
 echo !OK_INSTALL_REQUIREMENTS!
 
-:: --- CrÃ©ation du script de dÃ©marrage start.bat ---
+:: --- Création du script de démarrage start.bat ---
 echo !INFO_CREATE_START_SCRIPT! "%start_script_path%"
 (
     echo @echo off
@@ -174,7 +173,7 @@ echo !INFO_CREATE_START_SCRIPT! "%start_script_path%"
     echo :: Verifie si le venv existe
     echo if not exist "%%venv_dir%%\Scripts\activate.bat" (
     echo    echo [ERREUR] Environnement virtuel introuvable a '%%venv_dir%%'.
-    echo    echo          Veuillez relancer install.bat.
+    echo    echo         Veuillez relancer install.bat.
     echo    echo [ERROR] Virtual environment not found at '%%venv_dir%%'.
     echo    echo         Please re-run install.bat.
     echo    pause
@@ -209,7 +208,7 @@ echo !INFO_CREATE_START_SCRIPT! "%start_script_path%"
     echo ENDLOCAL
 ) > "%start_script_path%"
 
-:: Ajout d'une vÃ©rification explicite pour Ãªtre sÃ»r
+:: Ajout d'une vérification explicite pour être sûr
 if not exist "%start_script_path%" (
     echo [ERREUR CRITIQUE] Le fichier start.bat n'a pas pu etre cree. Verifiez les permissions d'ecriture ou des caracteres speciaux dans le script.
     echo [CRITICAL ERROR] The start.bat file could not be created. Check write permissions or special characters in the script.
