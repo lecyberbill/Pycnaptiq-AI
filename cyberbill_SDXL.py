@@ -23,7 +23,6 @@ from core.Inpaint import apply_mask_effects
 from Utils.model_loader import charger_modele, charger_modele_inpainting, charger_lora, decharge_lora, gerer_lora
 from Utils.utils import enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, GestionModule, styles_fusion, create_progress_bar_html,\
     telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, check_gpu_availability, decharger_modele, ImageSDXLchecker
-#from modules.retouche import ImageEditor
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Process
 torch.backends.cudnn.deterministic = True
@@ -267,7 +266,9 @@ pipe, compel, *message = charger_modele(DEFAULT_MODEL, "Défaut VAE", translatio
 
 compel = compel
 
-#générer prompt à partir d'une image
+#==========================
+# Fonction GENERATION PROMPT A PARTIR IMAGE
+#==========================
 
 def generate_caption(image):
     """generate a prompt from an image."""
@@ -302,23 +303,49 @@ def update_prompt(image):
         return generate_caption(image)
     return ""
 
-
+#==========================
+# Fonction GENERATION IMAGE
+#==========================
 
 def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, *lora_inputs):
     """Génère des images avec Stable Diffusion."""
-    global pipe, compel, lora_charges, model_selectionne, vae_selctionne
+    global pipe, compel, lora_charges, model_selectionne, vae_selctionne, is_generating
     
     lora_checks = lora_inputs[:4]
     lora_dropdowns = lora_inputs[4:8]
     lora_scales = lora_inputs[8:]
 
- 
+    bouton_charger_update_off = gr.update(interactive=False)
+    btn_generate_update_off = gr.update(interactive=False)
+    bouton_charger_update_on = gr.update(interactive=True)
+    btn_generate_update_on = gr.update(interactive=True)
+
+    initial_images = []
+    initial_seeds = ""
+    initial_time = translate("preparation", translations)
+    initial_html = ""
+    initial_preview = None
+    initial_progress = ""
+
+    yield initial_images, initial_seeds, initial_time, initial_html, initial_preview, initial_progress, bouton_charger_update_off, btn_generate_update_off
+
+    is_generating = True
+
+    final_images = []
+    final_seeds = ""
+    final_message = ""
+    final_html_msg = ""
+    final_preview_img = None
+    final_progress_html = ""
+
+
     try:
         
         if pipe is None:
             print(txt_color("[ERREUR] ","erreur"), translate("erreur_pas_modele", translations))
             gr.Warning(translate("erreur_pas_modele", translations), 4.0)
-            return None, None, translate("erreur_pas_modele", translations), None, None
+            final_message = translate("erreur_pas_modele", translations)
+            return
         
         #initialisation du chrono
         start_time = time.time()
@@ -353,7 +380,8 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         message_lora = gerer_lora(pipe, loras_charges, lora_checks, lora_dropdowns, lora_scales, LORAS_DIR, translations)
         if message_lora:
             gr.Warning(message_lora, 4.0)
-            return None, None, message_lora, None, None 
+            final_message = message_lora
+            return
        
 
         # principal loop for genrated images
@@ -362,14 +390,16 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             PREVIEW_QUEUE.clear()
             final_image_container = {}
             html_message_result = translate("generation_en_cours", translations)
+
             if stop_event.is_set():  # Vérifie si un arrêt est demandé
                 print(txt_color("[INFO] ","info"), translate("arrete_demande_apres", translations), f"{idx} {translate('images', translations)}.")
                 gr.Info(translate("arrete_demande_apres", translations) + f"{idx} {translate('images', translations)}.", 3.0)
+                final_message = translate("generation_arretee", translations) # Message pour le finally
                 break
                 
             print(txt_color("[INFO] ","info"), f"{translate('generation_image', translations)} {idx+1} {translate('seed_utilise', translations)} {seed}")
             gr.Info(translate('generation_image', translations) + f"{idx+1} {translate('seed_utilise', translations)} {seed}", 3.0)
-            is_generating = True
+
             
             progress_update_queue = queue.Queue()
 
@@ -403,6 +433,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             thread.start()
             
             last_index = 0
+            last_progress_html = ""
             while thread.is_alive() or last_index < len(PREVIEW_QUEUE) or not progress_update_queue.empty():
                 # Lire la dernière progression de la queue (sans bloquer)
                 current_step, total_steps = None, num_steps
@@ -411,23 +442,30 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                         current_step, total_steps = progress_update_queue.get_nowait()
                     except queue.Empty:
                         break # Sortir si la queue est vide
+                new_progress_html = last_progress_html 
 
                 if current_step is not None:
                     # Construire l'HTML de la barre de progression
                     progress_percent = int((current_step / total_steps) * 100)
-                    last_progress_html = create_progress_bar_html(current_step, total_steps, progress_percent)
+                    new_progress_html = create_progress_bar_html(current_step, total_steps, progress_percent)
+                    last_progress_html = new_progress_html
 
                 # Yield les aperçus s'il y en a de nouveaux
                 preview_img_to_yield = None
+                preview_yielded = False
                 while last_index < len(PREVIEW_QUEUE):
                     preview_img_to_yield = PREVIEW_QUEUE[last_index]
                     last_index += 1
                     # Yield avec l'aperçu et la dernière progression connue
-                    yield images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result, preview_img_to_yield, last_progress_html
+                    yield images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result, preview_img_to_yield, last_progress_html, bouton_charger_update_off, btn_generate_update_off
+                    preview_yielded = True
+                # Si aucune preview n'a été yield mais que la barre de progression a changé, yield la progression
+                if not preview_yielded and new_progress_html != last_progress_html:
+                     yield images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result, None, new_progress_html, bouton_charger_update_off, btn_generate_update_off                
+                
                 time.sleep(0.05)
 
             thread.join() # Attendre la fin du thread (ou son interruption)
-            is_generating = False # Mettre à jour l'état de génération
             PREVIEW_QUEUE.clear()
 
 
@@ -435,12 +473,12 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             if not stop_gen.is_set():
                  final_progress_html = final_progress_html = create_progress_bar_html(num_steps, num_steps, 100)
 
-            # --- NOUVELLE VÉRIFICATION : Après la fin du thread ---
+            
             if stop_gen.is_set():
                 print(txt_color("[INFO]", "info"), translate("generation_arretee_pas_sauvegarde", translations))
                 gr.Info(translate("generation_arretee_pas_sauvegarde", translations), 3.0)
-                # On sort de la boucle for, car l'arrêt concerne toute la tâche
-                yield images, " ".join(seed_strings), translate("generation_arretee", translations), translate("generation_arretee_pas_sauvegarde", translations), None, final_progress_html
+                final_message = translate("generation_arretee", translations)
+                yield images, " ".join(seed_strings), translate("generation_arretee", translations), translate("generation_arretee_pas_sauvegarde", translations), None, final_progress_html, bouton_charger_update_off, btn_generate_update_off
                 break # Important: sortir de la boucle for
 
             # --- Si la génération n'a PAS été arrêtée ---
@@ -449,8 +487,8 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             if final_image is None:
                 print(txt_color("[ERREUR] ", "erreur"), translate("erreur_pas_image_genere", translations))
                 gr.Warning(translate("erreur_pas_image_genere", translations), 4.0)
-                # Continuer à la prochaine image du lot si possible
-                yield images, " ".join(seed_strings), translate("generation_arretee", translations), translate("generation_arretee_pas_sauvegarde", translations), None, final_progress_html
+                # Yield l'état d'erreur (boutons toujours off) avant de continuer
+                yield images, " ".join(seed_strings), translate("erreur_pas_image_genere", translations), translate("erreur_pas_image_genere", translations), None, final_progress_html, bouton_charger_update_off, btn_generate_update_off
                 continue # Passer à l'itération suivante
             
             temps_generation_image = f"{(time.time() - depart_time):.2f} sec"            
@@ -492,7 +530,6 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             chemin_image = os.path.join(save_dir, filename)
 
             gr.Info(translate("image_sauvegarder", translations) + " " + chemin_image, 3.0)    
-            is_generating = False
             
             # Déléguer la tâche d'enregistrement de l'image au ThreadPoolExecutor
             image_future = image_executor.submit(enregistrer_image, final_image, chemin_image, translations, IMAGE_FORMAT)
@@ -516,58 +553,98 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                  print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_lors_generation_html', translations)}: {html_err}")
                  html_message_result = translate("erreur_lors_generation_html", translations)
                        
-            yield images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}", html_message_result, final_image, final_progress_html
+            yield images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}", html_message_result, final_image, final_progress_html, bouton_charger_update_off, btn_generate_update_off
                    
         # --- Fin de la boucle ---
-        elapsed_time = f"{(time.time() - start_time):.2f} sec"
-        final_message = translate('temps_total_generation', translations) + " : " + elapsed_time
-        if stop_gen.is_set() or stop_event.is_set(): # Vérifier si arrêté
-             final_message = translate("generation_arretee", translations)
 
-        print(txt_color("[INFO] ","info"), final_message)
-        gr.Info(final_message, 3.0)
-
-        return images, formatted_seeds, final_message, None, None, ""
+        final_images = images
+        final_seeds = formatted_seeds
+        final_html_msg = html_message_result 
+        final_preview_img = None  
+        final_progress_html = "" 
+        
+        if not final_message:
+            elapsed_time = f"{(time.time() - start_time):.2f} sec"
+            final_message = translate('temps_total_generation', translations) + " : " + elapsed_time
+            print(txt_color("[INFO] ","info"), final_message)
+            gr.Info(final_message, 3.0)
 
     except Exception as e:
-        is_generating = False
+        # Gérer les erreurs inattendues
+        is_generating = False # Mettre à jour le flag en cas d'erreur
         print(txt_color("[ERREUR] ","erreur"), f"{translate('erreur_lors_generation', translations)} : {e}")
-         # Pour un débogage plus détaillé
         traceback.print_exc() # Imprime la trace complète de l'erreur
-        error_message = f"{translate('erreur_lors_generation', translations)} : {str(e)}"
-        raise gr.Error(error_message)
-        return [], "", error_message, None, None, ""
+        final_message = f"{translate('erreur_lors_generation', translations)} : {str(e)}"
+        # Préparer les valeurs pour le yield dans finally en cas d'erreur
+        final_images = []
+        final_seeds = ""
+        final_html_msg = None
+        final_preview_img = None
+        final_progress_html = ""
 
+    finally:
+        is_generating = False # Assurer que le flag est remis à False
+        yield final_images, final_seeds, final_message, final_html_msg, final_preview_img, final_progress_html, bouton_charger_update_on, btn_generate_update_on
 
+#==========================
+# Fonction INPAINTED IMAGE
+#==========================
 
 def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_scale, traduire):
     """Génère une image inpainted avec Stable Diffusion XL."""
     global pipe, compel, stop_gen
-    initial_progress_html = ""
+
+    # --- Définir les états des boutons ---
+    btn_gen_inp_off = gr.update(interactive=False)
+    btn_load_inp_off = gr.update(interactive=False)
+    btn_gen_inp_on = gr.update(interactive=True)
+    btn_load_inp_on = gr.update(interactive=True)
+
+    # --- Placeholders pour le premier yield ---
+    initial_image = None
+    initial_msg_load = "" # Message chargement/HTML
+    initial_msg_status = translate("preparation", translations) # Message statut
+    initial_progress = "" # Barre de progression
+
+    # --- Yield initial pour désactiver les boutons ---
+    yield initial_image, initial_msg_load, initial_msg_status, initial_progress, btn_load_inp_off, btn_gen_inp_off
+
+    # --- Initialiser les variables pour le résultat final ---
+    final_image_result = None
+    final_msg_load_result = ""
+    final_msg_status_result = ""
+    final_progress_result = ""
+
     try:
         start_time = time.time()
         stop_gen.clear()
         if pipe is None:
-            print(txt_color("[ERREUR] ", "erreur"), translate("erreur_pas_modele_inpainting", translations))
-            gr.Warning(translate("erreur_pas_modele_inpainting", translations), 4.0)
-            return None, translate("erreur_pas_modele_inpainting", translations), initial_progress_html
+            msg = translate("erreur_pas_modele_inpainting", translations)
+            print(txt_color("[ERREUR] ", "erreur"), msg)
+            gr.Warning(msg, 4.0)
+            final_msg_status_result = msg
+            return
 
         if image is None or mask is None:
-            print(txt_color("[ERREUR] ", "erreur"), translate("erreur_image_mask_manquant", translations))
-            gr.Warning(translate("erreur_image_mask_manquant", translations), 4.0)
-            return None, translate("erreur_image_mask_manquant", translations), initial_progress_html
+            msg = translate("erreur_image_mask_manquant", translations)
+            print(txt_color("[ERREUR] ", "erreur"), msg)
+            gr.Warning(msg, 4.0)
+            final_msg_status_result = msg
 
-         # --- CORRECTION : 'image' et 'mask' sont déjà des objets PIL ---
-        # Vérifier les types par sécurité
+            return
+
+
+        # Vérifications de type (gardées par sécurité)
         if not isinstance(image, Image.Image):
-             print(txt_color("[ERREUR]", "erreur"), f"generate_inpainted_image a reçu un type invalide pour 'image': {type(image)}")
-             raise gr.Error(f"Type d'image invalide reçu pour l'inpainting: {type(image)}", 4.0)
-             return None, "Erreur type image", "Erreur type image", initial_progress_html
-
+             msg = f"Type d'image invalide reçu pour l'inpainting: {type(image)}"
+             print(txt_color("[ERREUR]", "erreur"), msg)
+             final_msg_status_result = "Erreur type image"
+             return
         if not isinstance(mask, Image.Image):
-             print(txt_color("[ERREUR]", "erreur"), f"generate_inpainted_image a reçu un type invalide pour 'mask': {type(mask)}")
-             raise gr.Error(f"Type de masque invalide reçu pour l'inpainting: {type(mask)}", 4.0)
-             return None, "Erreur type masque", "Erreur type masque", initial_progress_html
+             msg = f"Type de masque invalide reçu pour l'inpainting: {type(mask)}"
+             print(txt_color("[ERREUR]", "erreur"), msg)
+             final_msg_status_result = "Erreur type masque"
+             return
 
 
         actual_total_steps = math.ceil(num_steps * strength)
@@ -578,6 +655,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
         # Translate the prompt if requested
         prompt_text = translate_prompt(text, translations) if traduire else text
         conditioning, pooled = compel(prompt_text)
+        
         active_adapters = pipe.get_active_adapters()
         for adapter_name in active_adapters:
             pipe.set_adapters(adapter_name, 0)
@@ -626,6 +704,9 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
 
         thread = threading.Thread(target=run_pipeline)
         thread.start()
+
+        last_progress_html = "" 
+
         while thread.is_alive() or not progress_update_queue.empty():
             # Lire la dernière progression de la queue (sans bloquer)
             current_step, total_steps = None, actual_total_steps
@@ -634,15 +715,16 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
                     current_step, total_steps = progress_update_queue.get_nowait()
                 except queue.Empty:
                     break # Sortir si la queue est vide
+            new_progress_html = last_progress_html 
             if current_step is not None:
                 progress_percent = int((current_step / total_steps) * 100)
-                last_progress_html = create_progress_bar_html(current_step, total_steps, progress_percent)
+                new_progress_html = create_progress_bar_html(current_step, total_steps, progress_percent)
                 # Yield la mise à jour (image=None, messages inchangés, html mis à jour)
-                yield None, None, None, last_progress_html
+                yield None, gr.update(), gr.update(), last_progress_html, btn_load_inp_off, btn_gen_inp_off
             time.sleep(0.05)  
         thread.join()
 
-        final_progress_html = ""
+        current_final_progress_html = ""
 
         if not stop_gen.is_set() and "error" not in final_image_container:
              final_progress_html = create_progress_bar_html(actual_total_steps, actual_total_steps, 100)
@@ -655,76 +737,91 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
         if "error" in final_image_container:
              error_message = f"{translate('erreur_lors_inpainting', translations)}: {final_image_container['error']}"
              print(txt_color("[ERREUR]", "erreur"), error_message)
-             # Retourner 4 valeurs
-             return None, error_message, error_message, final_progress_html
+             final_msg_status_result = translate('erreur_lors_inpainting', translations)
+             final_msg_load_result = error_message # Mettre l'erreur détaillée ici
+             current_final_progress_html = f'<p style="color: red;">{translate("erreur_lors_inpainting", translations)}</p>'
 
 
-        if stop_gen.is_set():
+        elif stop_gen.is_set():
             print(txt_color("[INFO]", "info"), translate("inpainting_arrete_pas_sauvegarde", translations))
             gr.Info(translate("inpainting_arrete_pas_sauvegarde", translations), 3.0)
-            # Retourner des valeurs indiquant l'arrêt
-            return None, translate("inpainting_arrete", translations), translate("inpainting_arrete_pas_sauvegarde", translations), final_progress_html
-
-        # --- Si l'inpainting n'a PAS été arrêté ---
-        inpainted_image = final_image_container.get("final", None)
-
-        if inpainted_image is None:
-             # Cela ne devrait pas arriver si pas d'erreur et pas arrêté, mais par sécurité
-             err_msg = translate("erreur_pas_image_inpainting", translations)
-             print(txt_color("[ERREUR]", "erreur"), err_msg)
-             gr.Warning(err_msg, 4.0)
-             # Retourner 4 valeurs
-             return None, translate("erreur_lors_inpainting", translations), err_msg, final_progress_html
-
+            final_msg_status_result = translate("inpainting_arrete", translations)
+            final_msg_load_result = translate("inpainting_arrete_pas_sauvegarde", translations)
+        
+        else:
+            inpainted_image = final_image_container.get("final", None)
+        
+        
+            if inpainted_image is None:
+                 err_msg = translate("erreur_pas_image_inpainting", translations)
+                 print(txt_color("[ERREUR]", "erreur"), err_msg)
+                 gr.Warning(err_msg, 4.0)
+                 final_msg_status_result = translate("erreur_lors_inpainting", translations)
+                 final_msg_load_result = err_msg
+            
+            else:
+                # --- SUCCÈS ---
+                final_image_result = inpainted_image # Image pour le yield final
+                current_final_progress_html = create_progress_bar_html(actual_total_steps, actual_total_steps, 100)
        
-        temps_generation_image = f"{(time.time() - start_time):.2f} sec"
-        date_str = datetime.now().strftime("%Y_%m_%d")
-        heure_str = datetime.now().strftime("%H_%M_%S")
-        save_dir = os.path.join(SAVE_DIR, date_str)
-        os.makedirs(save_dir, exist_ok=True)
-        filename = f"{date_str}_{heure_str}_inpainting_{image.width}x{image.height}.{IMAGE_FORMAT.lower()}"
-        chemin_image = os.path.join(save_dir, filename)
-        donnees_xmp = {
-            "Module": "Inpainting",
-            "Creator": AUTHOR,
-            "Inference": num_steps,
-            "Guidance": guidance_scale,
-            "Strength": strength,
-            "Prompt": prompt_text,
-            "Modèle": os.path.splitext(model_selectionne)[0],
-            "Dimension": f"{image.width}x{image.height}",
-            "Temps de génération": temps_generation_image
-        }
+                temps_generation_image = f"{(time.time() - start_time):.2f} sec"
+                date_str = datetime.now().strftime("%Y_%m_%d")
+                heure_str = datetime.now().strftime("%H_%M_%S")
+                save_dir = os.path.join(SAVE_DIR, date_str)
+                os.makedirs(save_dir, exist_ok=True)
+                filename = f"{date_str}_{heure_str}_inpainting_{image.width}x{image.height}.{IMAGE_FORMAT.lower()}"
+                chemin_image = os.path.join(save_dir, filename)
+                donnees_xmp = {
+                    "Module": "Inpainting",
+                    "Creator": AUTHOR,
+                    "Inference": num_steps,
+                    "Guidance": guidance_scale,
+                    "Strength": strength,
+                    "Prompt": prompt_text,
+                    "Modèle": os.path.splitext(model_selectionne)[0],
+                    "Dimension": f"{image.width}x{image.height}",
+                    "Temps de génération": temps_generation_image
+                }
 
-        image_future = image_executor.submit(enregistrer_image, inpainted_image, chemin_image, translations, IMAGE_FORMAT)
-        html_future = html_executor.submit(enregistrer_etiquettes_image_html, chemin_image, donnees_xmp, translations, is_last_image=True)
+                image_future = image_executor.submit(enregistrer_image, inpainted_image, chemin_image, translations, IMAGE_FORMAT)
+                html_future = html_executor.submit(enregistrer_etiquettes_image_html, chemin_image, donnees_xmp, translations, is_last_image=True)
+        
+                try:
+                    html_message_result = html_future.result(timeout=10)
+                    final_msg_load_result = html_message_result # Message HTML pour le yield final
+                except Exception as html_err:
+                    print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_lors_generation_html', translations)}: {html_err}")
+                    final_msg_load_result = translate("erreur_lors_generation_html", translations)
 
-        # Attendre et récupérer le résultat HTML
-        try:
-            html_message_result = html_future.result(timeout=10)
-        except Exception as html_err:
-            print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_lors_generation_html', translations)}: {html_err}")
-            html_message_result = translate("erreur_lors_generation_html", translations)
+                final_msg_status_result = translate("inpainting_reussi", translations) # Message statut pour le yield final
+                print(txt_color("[OK] ", "ok"), translate("fin_inpainting", translations))
+                gr.Info(translate("fin_inpainting", translations), 3.0)
 
-        print(txt_color("[OK] ", "ok"), translate("fin_inpainting", translations))
-        gr.Info(translate("fin_inpainting", translations), 3.0)
-        yield inpainted_image, html_message_result, translate("inpainting_reussi", translations), final_progress_html
-        return inpainted_image, html_message_result, translate("inpainting_reussi", translations), final_progress_html
+        # Mettre à jour la variable de progression finale pour le finally
+        final_progress_result = current_final_progress_html
 
     except (ValueError, RuntimeError) as e: # Erreurs spécifiques (ex: traduction)
         print(txt_color("[ERREUR]", "erreur"), f"Erreur spécifique interceptée dans inpainting: {e}")
-        raise gr.Error(str(e))
+        traceback.print_exc()
+        final_msg_status_result = f"Erreur: {e}"
 
-        
+
     except Exception as e:
         err_msg = f"{translate('erreur_lors_inpainting', translations)}: {e}"
         print(txt_color("[ERREUR] ", "erreur"), err_msg)
-        import traceback
         traceback.print_exc()
-        raise gr.Error(err_msg)
+        final_msg_status_result = translate('erreur_lors_inpainting', translations)
+        final_msg_load_result = str(e)
+
+    finally:
+        if hasattr(pipe, '_interrupt'):
+            pipe._interrupt = False
+        yield final_image_result, final_msg_load_result, final_msg_status_result, final_progress_result, btn_load_inp_on, btn_gen_inp_on
 
 
-
+#==========================
+# Fonctions pour arrêter la génération image
+#==========================
 
 
 def stop_generation():
@@ -815,18 +912,10 @@ def update_globals_model_inpainting(nom_fichier):
 # Outils pour gérer les iamges du module Inpainting
 #==========================
 
-# Assure-toi que numpy est importé
-import numpy as np
-# Assure-toi que Image est importé depuis PIL
-from PIL import Image, ImageOps
-import os
-
-# ... (autres imports et code)
-
 def process_uploaded_image(uploaded_image):
     """Vérifie et redimensionne l'image uploadée avant de l'envoyer à ImageMask."""
     if uploaded_image is None:
-        return None # Ne rien faire si aucune image
+        return None
 
     print(txt_color("[INFO]", "info"), translate("verification_image_entree", translations))
     image_checker = ImageSDXLchecker(uploaded_image, translations)
@@ -835,28 +924,26 @@ def process_uploaded_image(uploaded_image):
     if not isinstance(resized_image, Image.Image):
         print(txt_color("[ERREUR]", "erreur"), translate("erreur_redimensionnement_image_fond", translations).format(type(resized_image)))
         gr.Warning(translate("erreur_redimensionnement_image_fond", translations).format(type(resized_image)), 4.0)
-        return None # Retourner None en cas d'erreur
+        return None 
 
-    print(txt_color("[INFO]", "info"), translate("image_prete_pour_mask", translations)) # Nouvelle clé
-    # Retourner l'image (potentiellement redimensionnée) pour l'afficher dans ImageMask
+    print(txt_color("[INFO]", "info"), translate("image_prete_pour_mask", translations))
     return resized_image
 
-# --- MODIFICATION : Fonction simplifiée pour les effets du masque ---
+# Fonction simplifiée pour les effets du masque ---
 def update_inpainting_mask_effects(image_and_mask, opacity, blur_radius):
     """Applique seulement les effets d'opacité/flou sur le masque actuel."""
-    # Utilise directement apply_mask_effects (qui gère déjà les erreurs internes)
     processed_mask = apply_mask_effects(image_and_mask, translations, opacity, blur_radius)
     return processed_mask
 
 
-# --- NOUVELLE fonction pour mettre à jour seulement les effets ---
+# mettre à jour seulement les effets ---
 def update_inpainting_mask_effects(resized_original, resized_mask, opacity, blur_radius):
     """Applique seulement les effets d'opacité/flou sur le masque déjà redimensionné."""
     if resized_original and resized_mask:
         # Recréer le dictionnaire attendu par apply_mask_effects
         temp_dict_for_effects = {
-            "background": resized_original, # Nécessaire pour la structure, même si non utilisé
-            "layers": [resized_mask],       # Le masque redimensionné stocké
+            "background": resized_original, 
+            "layers": [resized_mask],       
             "composite": None
         }
         processed_mask = apply_mask_effects(temp_dict_for_effects, translations, opacity, blur_radius)
@@ -870,16 +957,9 @@ def update_image_mask_and_initial_effects(validated_image, opacity, blur_radius)
     """Met à jour ImageMask et calcule le masque initial."""
     if validated_image is None:
         return None, None # Pour ImageMask et mask_output
-
-    # Créer un masque initial vide (ou basé sur validated_image si nécessaire)
-    # Ici, on suppose qu'apply_mask_effects peut gérer un dict sans masque réel
-    # ou on crée un masque noir initial.
-    # Pour être sûr, créons un masque noir de la bonne taille.
     initial_mask_for_effects = Image.new('L', validated_image.size, 0) # Masque noir
     temp_dict = {"background": validated_image, "layers": [initial_mask_for_effects]}
-
     initial_processed_mask = apply_mask_effects(temp_dict, translations, opacity, blur_radius)
-
     # Retourner l'image pour ImageMask et le masque initial pour mask_output
     return validated_image, initial_processed_mask
 
@@ -891,9 +971,11 @@ def update_inpainting_mask_effects(image_and_mask, opacity, blur_radius):
 
 
 
-# =========================
-# Interface utilisateur (Gradio)
-# =========================
+############################################################
+############################################################
+#####################USER INTERFACE#########################
+############################################################
+############################################################
 
 block_kwargs = {"theme": gradio_change_theme(GRADIO_THEME)}
 if js_code:
@@ -905,8 +987,11 @@ with gr.Blocks(**block_kwargs) as interface:
 
 
 ############################################################
+########***************************************************
 ########TAB GENRATION IMAGE
-############################################################   
+########***************************************************
+############################################################
+  
      with gr.Tab(translate("generation_image", translations)):
         with gr.Row():
             with gr.Column(scale=1, min_width=200):
@@ -924,9 +1009,9 @@ with gr.Blocks(**block_kwargs) as interface:
                 time_output = gr.Textbox(label=translate("temps_rendu", translations), interactive=False)
                 html_output = gr.Textbox(label=translate("mise_a_jour_html", translations), interactive=False)
                 message_chargement = gr.Textbox(label=translate("statut", translations), value=translate("aucun_modele_charge", translations))       
-                
                 image_input = gr.Image(label=translate("telechargez_image", translations), type="pil", visible=False)
                 use_image_checkbox.change(fn=lambda use_image: gr.update(visible=use_image), inputs=use_image_checkbox, outputs=image_input)
+
             with gr.Column(scale=1, min_width=200):
                 image_output = gr.Gallery(label=translate("images_generees", translations))
                 progress_html_output = gr.HTML(value="")
@@ -936,8 +1021,6 @@ with gr.Blocks(**block_kwargs) as interface:
                 seed_input = gr.Number(label=translate("seed", translations), value=-1)
                 num_images_slider = gr.Slider(1, 200, value=1, label=translate("nombre_images_generer", translations), step=1)                
                 
-                   #enhance_checkbox = gr.Checkbox(label=translate("enhance_image", translations), value=False, visible=photo_editing_loaded)
-
                                     
             with gr.Column(scale=1, min_width=200):
                 with gr.Row():
@@ -1012,8 +1095,8 @@ with gr.Blocks(**block_kwargs) as interface:
 
         btn_generate.click(
             generate_image,
-            inputs=[text_input, style_dropdown, guidance_slider, num_steps_slider, format_dropdown, traduire_checkbox, seed_input, num_images_slider, *lora_checks, *lora_dropdowns, *lora_scales],  # enhance_checkbox],
-            outputs=[image_output, seed_output, time_output, html_output, preview_image_output, progress_html_output]
+            inputs=[text_input, style_dropdown, guidance_slider, num_steps_slider, format_dropdown, traduire_checkbox, seed_input, num_images_slider, *lora_checks, *lora_dropdowns, *lora_scales],
+            outputs=[image_output, seed_output, time_output, html_output, preview_image_output, progress_html_output, bouton_charger, btn_generate]
         )
         btn_stop.click(stop_generation_process, outputs=time_output)
         btn_stop_after_gen.click(stop_generation, outputs=time_output)
@@ -1165,8 +1248,18 @@ with gr.Blocks(**block_kwargs) as interface:
                     guidance_inpainting_slider,
                     traduire_inpainting_checkbox
                 ],
-                outputs=[inpainting_ressultion_output, message_chargement_inpainting, message_inpainting, progress_inp_html_output]
-            )  
+                outputs=[
+                    inpainting_ressultion_output,          # Image finale
+                    message_chargement_inpainting,         # Message de chargement/HTML
+                    message_inpainting,                    # Message de statut
+                    progress_inp_html_output,              # Barre de progression HTML
+                    bouton_charger_inpainting,             # Bouton Charger (pour état)
+                    bouton_generate_inpainting             # Bouton Générer (pour état)
+                ]
+            )
+
+
+
 ############################################################
 ########TAB MODULES
 ############################################################
