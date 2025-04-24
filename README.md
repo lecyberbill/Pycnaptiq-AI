@@ -75,7 +75,12 @@ Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini p
 ## Capture de l'interface
 
 Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
-![image](https://github.com/user-attachments/assets/7e03b05f-028b-46e6-93de-ab2b7ce12280)
+![Capture d'écran 2025-04-24 073557](https://github.com/user-attachments/assets/b3455d1c-308c-4907-8aa6-970d0b92ce7b)
+
+
+Presets depuis la version Béta 1.7, il est possible d'enregistrer des presets,
+![Capture d'écran 2025-04-24 074037](https://github.com/user-attachments/assets/cb6dea51-7c86-4c52-9ad4-584573fc91f8)
+une fois l'image produite donner un nom et une note (facultatif), et enregistré les données de votre création pour en garder une trace
 
 L'Inpainting, définir une zone de l'image à modifier, ici un visage d'une peronne de 80 ans à la place d'une jeune femme
 ![image](https://github.com/user-attachments/assets/d60b8d1b-8e77-4988-abe7-3f81ca0f4a34)
@@ -108,39 +113,42 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
     "MODELS_DIR": "models\\checkpoints",
     "VAE_DIR": "models\\vae",
     "INPAINT_MODELS_DIR": "models\\inpainting",
-    "LORAS_DIR": "models\\loras",
-    "SAVE_DIR": "output",
+	"LORAS_DIR": "models\\loras",
+	"SAVE_DIR": "Output",
     "IMAGE_FORMAT": "webp",
-    "DEFAULT_MODEL": "your_default_modele.safetensors",
-    "NEGATIVE_PROMPT": "deformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
+	"DEFAULT_MODEL": "your_default_modele.safetensors",
+	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
-        {"dimensions": "704*1408", "orientation": "Portrait"},
-        {"dimensions": "704*1344", "orientation": "Portrait"},
-        {"dimensions": "768*1344", "orientation": "Portrait"},
-        {"dimensions": "768*1280", "orientation": "Portrait"},
-        {"dimensions": "832*1216", "orientation": "Portrait"},
-        {"dimensions": "832*1152", "orientation": "Portrait"},
-        {"dimensions": "896*1152", "orientation": "Portrait"},
-        {"dimensions": "896*1088", "orientation": "Portrait"},
-        {"dimensions": "960*1088", "orientation": "Portrait"},
-        {"dimensions": "960*1024", "orientation": "Portrait"},
-        {"dimensions": "1024*1024", "orientation": "Carré"},
-        {"dimensions": "1024*960", "orientation": "Paysage"},
-        {"dimensions": "1088*960", "orientation": "Paysage"},
-        {"dimensions": "1088*896", "orientation": "Paysage"},
-        {"dimensions": "1408*704", "orientation": "Paysage"},
-        {"dimensions": "1344*704", "orientation": "Paysage"},
-        {"dimensions": "1344*768", "orientation": "Paysage"},
-        {"dimensions": "1280*768", "orientation": "Paysage"},
-        {"dimensions": "1216*832", "orientation": "Paysage"},
-        {"dimensions": "1152*832", "orientation": "Paysage"},
-        {"dimensions": "1152*896", "orientation": "Paysage"}
-    ],
-    "OPEN_BROWSER": "Yes",
-    "GRADIO_THEME": "Defaut",
-    "SHARE": "False",
-    "LANGUAGE": "en"
+    {"dimensions": "704*1408", "orientation": "Portrait"},
+    {"dimensions": "704*1344", "orientation": "Portrait"},
+    {"dimensions": "768*1344", "orientation": "Portrait"},
+    {"dimensions": "768*1280", "orientation": "Portrait"},
+    {"dimensions": "832*1216", "orientation": "Portrait"},
+    {"dimensions": "832*1152", "orientation": "Portrait"},
+    {"dimensions": "896*1152", "orientation": "Portrait"},
+    {"dimensions": "896*1088", "orientation": "Portrait"},
+    {"dimensions": "960*1088", "orientation": "Portrait"},
+    {"dimensions": "960*1024", "orientation": "Portrait"},
+    {"dimensions": "1024*1024", "orientation": "Carré"},
+    {"dimensions": "1024*960", "orientation": "Paysage"},
+    {"dimensions": "1088*960", "orientation": "Paysage"},
+    {"dimensions": "1088*896", "orientation": "Paysage"},
+    {"dimensions": "1408*704", "orientation": "Paysage"},
+    {"dimensions": "1344*704", "orientation": "Paysage"},
+    {"dimensions": "1344*768", "orientation": "Paysage"},
+    {"dimensions": "1280*768", "orientation": "Paysage"},
+    {"dimensions": "1216*832", "orientation": "Paysage"},
+    {"dimensions": "1152*832", "orientation": "Paysage"},
+    {"dimensions": "1152*896", "orientation": "Paysage"}
+	],
+	"OPEN_BROWSER": "Yes",
+	"GRADIO_THEME": "Default",
+	"SHARE":"No",
+    "LANGUAGE": "fr",
+	"PRESETS_PER_PAGE": 12,
+	"PRESET_COLS_PER_ROW":4
 }
+
 ```
 ### 🛠️ Champs principaux :
 
@@ -193,6 +201,10 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
 - **`LANGUAGE`** : Définit la langue utilisée dans l'interface utilisateur.  
   - `en` : Anglais  
   - `fr` : Français
+ 
+ - **`PRESETS`** : Possibilité de régler l'affichage des presets, nombre par page, et nombre par colonne, tenir compte du fait que le nombre de presets par colonne soit un multiple du nombre de presets par page.  
+  - `PRESETS_PER_PAGE`: 12,
+  - `PRESET_COLS_PER_ROW`:4
 
 NOTE : 
 C:\dossier\de\modeles
