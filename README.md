@@ -1,111 +1,109 @@
-# cyberbill générateur d'image 🚀
+# cyberbill image generator 🚀
 
-Ce développement a été très inspiré de l'excellent logiciel Fooocus https://github.com/lllyasviel/Fooocus dont la dernière version date d'août 2024.
-Bien que de nombreux fork sont apparus, j'ai voulu faire un logiciel complet en partant de zéro ou presque, puisque je puise dans les bibliothèques Gradio, Diffusers, huggingface, compel, onnxruntime, rembg etc. c'est donc un assemblage cohérent de diverses sources, et le travail de nombreuses équipes que je remercie chaleureusement.
+This development was heavily inspired by the excellent software Fooocus https://github.com/lllyasviel/Fooocus, whose latest version dates back to August 2024.
+Although many forks have appeared, I wanted to create a complete software almost from scratch, drawing from libraries like Gradio, Diffusers, huggingface, compel, onnxruntime, rembg, etc. It is therefore a coherent assembly of various sources, and the work of many teams whom I warmly thank.
 
-Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini pour m'aider... étant débutant j'ai beaucoup appri en consevant ce logiciel. Comme un prof à mes côtés, avec quand même de bonnes notions et de la volonté, on peut s'éclater et apporter sa pierre à la communauté, aussi petite soit-elle. 
+Passionate about image generation and AI, I heavily relied on Gemini to help me... being a beginner, I learned a lot while designing this software. Like having a teacher by my side, with good foundations and determination, one can have fun and contribute to the community, however small the contribution may be.
 
-## 📌 Prérequis
-- **CUDA 12.6** installé ✅
-- **Carte Nvidia RTX** : Non testé sur d'autres cartes.
-- **8 Go de VRAM recommandés** : Optimisation non disponible pour les petites cartes graphiques.
+## 📌 Prerequisites
+- **CUDA 12.6** installed ✅
+- **Nvidia RTX Card**: Not tested on other cards.
+- **8 GB of VRAM recommended**: Optimization not available for smaller graphics cards.
 
 ## 📥 Installation
-1. **Téléchargez le projet**  
-   - Choisissez le fichier `zip` ou `cyberbill_SDXL.zip` et décompressez-le dans le répertoire de votre choix.
+1.  **Download the project**
+    - Choose the `zip` file or `cyberbill_SDXL.zip` and unzip it into the directory of your choice.
 
-2. **Installez CUDA 12.6** via [ce lien](https://developer.nvidia.com/cuda-12-6-0-download-archive).
+2.  **Install CUDA 12.6** via this [link] (https://developer.nvidia.com/cuda-12-6-0-download-archive).
 
-3. **Lancez le script `install.bat`**  
-   - Cela configure l'environnement nécessaire pour le logiciel.
+3.  **Run the `install.bat` script**
+    - This sets up the necessary environment for the software.
 
-4. **Démarrez l'application avec `start.bat`**  
-   - Double-cliquez sur ce fichier pour lancer l'interface utilisateur.
+4.  **Start the application with `start.bat`**
+    - Double-click this file to launch the user interface.
+
+## ▶️ Launching the application
+1.  **Double-click on `start.bat`** 🎯
+    - This activates the environment and launches the application.
+2.  **Or use the command line:**
+    ```sh
+    venv\Scripts\activate
+    python cyberbill_SDXL.py
+    ```
 
 
-## ▶️ Lancement de l’application
-1. **Double-cliquez sur `start.bat`** 🎯  
-   - Cela active l’environnement et lance l’application.
-2. **Ou utilisez la ligne de commande :**
-   ```sh
-   venv\Scripts\activate
-   python cyberbill_SDXL.py
 
-   
-   
-## ▶️ Utilisation
-### 🌟 Étapes essentielles
-1. **Charger un modèle SDXL**  
-   - Placez les fichiers `.safetensors` dans `models/checkpoints`.
-   - Cliquez sur **"Lister les modèles"**, puis sélectionnez le modèle souhaité.
+## ▶️ Usage
+### 🌟 Essential Steps
+1.  **Load an SDXL model**
+    - Place the `.safetensors` files in `models/checkpoints`.
+    - Click on **"List models"**, then select the desired model.
 
-   NOTE : Le logiciel est fourni **sans modèle**.
-	- Si aucun modèle n'est trouvé au lancement, le programme vous demandera si vous souhaitez en charger un. Répondez par o ou n (oui ou non). Le modèle sera alors chargé. Il s'agit d'un modèle générique qui donne de bons résultats : MegaChonkXL.
-	- Par ailleurs, vous pouvez télécharger vos propres modèles sur différentes sources (modèle checkpoints SDXL 1.0 au format .safetensors à placer dans le répertoire `/models/checkpoints`).
+    NOTE: The software is provided **without a model**.
+    - If no model is found at launch, the program will ask if you want to load one. Answer with y or n (yes or no). The model will then be loaded. This is a generic model that yields good results: MegaChonkXL.
+    - Alternatively, you can download your own models from various sources (SDXL 1.0 checkpoint models in `.safetensors` format to be placed in the `/models/checkpoints` directory).
 
-		Exemples de sites : [civitai.com](https://civitai.com/) | [lexica.art](https://lexica.art/) | [huggingface.co](https://huggingface.co)
+        Example sites: [civitai.com](https://civitai.com/) | [lexica.art](https://lexica.art/) | [huggingface.co](https://huggingface.co)
 
-2. **Configurer vos paramètres**  
-   - **VAE** :
-     - Placez vos fichiers `.safetensors` dans `/models/vae/`. Les fichiers dans leur grande majorité sont fournis avec un VAE intégré, il est généralement pas necessaire d'en télécharger un... mais au cas où !
-     - Le VAE transforme l'image latente en une version complète et détaillée.
-   - **Sampler** :
-     - Sélectionnez un algorithme pour guider la génération de l'image (Euler, DDIM, etc.).
-   - **Guidage** :
-     - Détermine la fidélité de l'image au prompt :
-       - *3-7* : Résultats créatifs.
-       - *10-20* : Résultats précis.
-   - **Étapes** :
-     - Recommandé : environ 30 pour un équilibre qualité/vitesse.
-   - **Seed** :
-     - Utilisez -1 pour un seed aléatoire ou définissez un seed fixe pour reproduire des résultats.
-   - **Dimensions** :
-     - Sélectionnez un format prédéfini compatible avec le modèle.
-   - **Nombre d'images** :
-     - Sélectionnez le nombre d'image à générer.
+2.  **Configure your settings**
+    - **VAE**:
+        - Place your `.safetensors` files in `/models/vae/`. The vast majority of files come with an integrated VAE, so it's generally not necessary to download one... but just in case!
+        - The VAE transforms the latent image into a complete and detailed version.
+    - **Sampler**:
+        - Select an algorithm to guide image generation (Euler, DDIM, etc.).
+    - **Guidance (CFG Scale)**:
+        - Determines the image's fidelity to the prompt:
+            - *3-7*: Creative results.
+            - *10-20*: Precise results.
+    - **Steps**:
+        - Recommended: around 30 for a balance between quality/speed.
+    - **Seed**:
+        - Use -1 for a random seed or set a fixed seed to reproduce results.
+    - **Dimensions**:
+        - Select a predefined format compatible with the model.
+    - **Number of images**:
+        - Select the number of images to generate.
 
-3. **Ajouter un prompt**
-   - Entrez un texte décrivant l'image souhaitée.
-   - Activez "Traduire en anglais" pour automatiser la traduction.
-   - En cochant la case générer un prompt à partir d'une image, vous pouvez coller ou uploader une image à partir de votre disque, et un prompt sera alors proposé.
+3.  **Add a prompt**
+    - Enter text describing the desired image.
+    - Activate "Translate to English" to automate the translation.
+    - By checking the box "generate a prompt from an image", you can paste or upload an image from your disk, and a prompt will then be suggested.
 
-4. **Générer des images**
-   - Cliquez sur **"Générer"**. Les images sont enregistrées dans le dossier `output` avec un rapport HTML.
+4.  **Generate images**
+    - Click on **"Generate"**. Images are saved in the `output` folder along with an HTML report.
 
-## Capture de l'interface
+## Interface Capture
 
-Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
+Image generator, prompt calculated from the image, adding a LoRA
 ![Capture d'écran 2025-04-24 073557](https://github.com/user-attachments/assets/b3455d1c-308c-4907-8aa6-970d0b92ce7b)
 
-
-Presets depuis la version Béta 1.7, il est possible d'enregistrer des presets,
+Presets since Beta version 1.7, it is possible to save presets,
 ![Capture d'écran 2025-04-24 074037](https://github.com/user-attachments/assets/cb6dea51-7c86-4c52-9ad4-584573fc91f8)
-une fois l'image produite donner un nom et une note (facultatif), et enregistré les données de votre création pour en garder une trace
+once the image is produced, give it a name and a rating (optional), and save your creation's data to keep track of it.
 
-L'Inpainting, définir une zone de l'image à modifier, ici un visage d'une peronne de 80 ans à la place d'une jeune femme
+Inpainting, define an area of the image to modify, here an 80-year-old person's face instead of a young woman's
 ![image](https://github.com/user-attachments/assets/d60b8d1b-8e77-4988-abe7-3f81ca0f4a34)
 
-[MODULE] Amélioration d'image avec AuraSR (https://github.com/fal-ai/aura-sr)
+[MODULE] Image enhancement with AuraSR (https://github.com/fal-ai/aura-sr)
 ![image](https://github.com/user-attachments/assets/4f188555-de5b-47ca-ae07-e24083894eef)
 
-[MODULE] Cicitai browser 
+[MODULE] Civitai browser
 ![image](https://github.com/user-attachments/assets/506ab5fa-eacd-4f9b-be93-2c35b157cbc6)
 
-[MODULE] Retouche d'image
+[MODULE] Image Editing
 ![image](https://github.com/user-attachments/assets/2e31935f-8f0d-445d-a123-9784033f7042)
 
-[MODULE] Image to Image (ici prompt et style sélectionné)
+[MODULE] Image to Image (here prompt and style selected)
 ![image](https://github.com/user-attachments/assets/a3493385-5b48-40eb-82e8-75932d540253)
 
-[MODULE] Remove Background basé sur RemBG https://github.com/danielgatis/rembg 
+[MODULE] Remove Background based on RemBG https://github.com/danielgatis/rembg
 ![iamge](https://github.com/user-attachments/assets/15717a23-9828-4e14-8a78-465110b22f76)
 
+## ▶️ Advanced Configuration
 
-## ▶️ Configuration avancée
+### 🌟 Configuration File: `config.json`
 
-### 🌟 Fichier de configuration : `config.json`
-
-Le fichier `config.json`, situé dans le dossier `/config`, permet de personnaliser les paramètres principaux de l'application. Voici une version détaillée :
+The `config.json` file, located in the `/config` folder, allows you to customize the main settings of the application. Here is a detailed version:
 
 ```json
 {
@@ -129,236 +127,235 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
     {"dimensions": "896*1088", "orientation": "Portrait"},
     {"dimensions": "960*1088", "orientation": "Portrait"},
     {"dimensions": "960*1024", "orientation": "Portrait"},
-    {"dimensions": "1024*1024", "orientation": "Carré"},
-    {"dimensions": "1024*960", "orientation": "Paysage"},
-    {"dimensions": "1088*960", "orientation": "Paysage"},
-    {"dimensions": "1088*896", "orientation": "Paysage"},
-    {"dimensions": "1408*704", "orientation": "Paysage"},
-    {"dimensions": "1344*704", "orientation": "Paysage"},
-    {"dimensions": "1344*768", "orientation": "Paysage"},
-    {"dimensions": "1280*768", "orientation": "Paysage"},
-    {"dimensions": "1216*832", "orientation": "Paysage"},
-    {"dimensions": "1152*832", "orientation": "Paysage"},
-    {"dimensions": "1152*896", "orientation": "Paysage"}
+    {"dimensions": "1024*1024", "orientation": "Square"},
+    {"dimensions": "1024*960", "orientation": "Landscape"},
+    {"dimensions": "1088*960", "orientation": "Landscape"},
+    {"dimensions": "1088*896", "orientation": "Landscape"},
+    {"dimensions": "1408*704", "orientation": "Landscape"},
+    {"dimensions": "1344*704", "orientation": "Landscape"},
+    {"dimensions": "1344*768", "orientation": "Landscape"},
+    {"dimensions": "1280*768", "orientation": "Landscape"},
+    {"dimensions": "1216*832", "orientation": "Landscape"},
+    {"dimensions": "1152*832", "orientation": "Landscape"},
+    {"dimensions": "1152*896", "orientation": "Landscape"}
 	],
 	"OPEN_BROWSER": "Yes",
 	"GRADIO_THEME": "Default",
 	"SHARE":"No",
-    "LANGUAGE": "fr",
+    "LANGUAGE": "en",
 	"PRESETS_PER_PAGE": 12,
 	"PRESET_COLS_PER_ROW":4
 }
 
 ```
-### 🛠️ Champs principaux :
 
-- **`AUTHOR`** : Nom ou auteur du fichier de configuration.
-- **`MODELS_DIR`** : Répertoire où sont stockés les modèles de base SDXL.
-- **`VAE_DIR`** : Emplacement pour les VAE personnalisés.
-- **`INPAINT_MODELS_DIR`** : Chemin vers les modèles dédiés à l'inpainting.
-- **`LORAS_DIR`** : Emplacement pour charger les fichiers LoRA au format `.safetensors`.
-- **`SAVE_DIR`** : Dossier où sont sauvegardées les images générées.
-- **`IMAGE_FORMAT`** : Format des fichiers image : `webp`, `jpeg`, ou `png`.
-- **`DEFAULT_MODEL`** : Modèle chargé par défaut au démarrage.
-- **`NEGATIVE_PROMPT`** : Prompt négatif générique appliqué par défaut, utile pour exclure des éléments indésirables dans les résultats générés.
-- **`FORMATS`** : Dimensions des images, spécifiées en multiples de 4, avec des orientations comme `Portrait`, `Carré`, et `Paysage`.
-- **`OPEN_BROWSER`** :  
-  - `Yes` ouvre l'application directement dans le navigateur par défaut.  
-  - `No` désactive l'ouverture automatique du navigateur.
-- **`GRADIO_THEME`** : Personnalisez l'apparence de l'interface utilisateur grâce aux thèmes disponibles.
-- **`SHARE`** :  
-  - `True` permet de partager l'application en ligne via Gradio.  
-  - `False` limite l'utilisation au local.
-- **`LANGUAGE`** : Langue de l'interface utilisateur (`en` pour anglais, `fr` pour français).
+### 🛠️ Main Fields:
 
-### 🌟 Options supplémentaires en détail
+- **`AUTHOR`**: Name or author of the configuration file.
+- **`MODELS_DIR`**: Directory where base SDXL models are stored.
+- **`VAE_DIR`**: Location for custom VAEs.
+- **`INPAINT_MODELS_DIR`**: Path to models dedicated to inpainting.
+- **`LORAS_DIR`**: Location to load LoRA files in `.safetensors` format.
+- **`SAVE_DIR`**: Folder where generated images are saved.
+- **`IMAGE_FORMAT`**: Image file format: `webp`, `jpeg`, or `png`.
+- **`DEFAULT_MODEL`**: Model loaded by default at startup.
+- **`NEGATIVE_PROMPT`**: Generic negative prompt applied by default, useful for excluding unwanted elements in generated results.
+- **`FORMATS`**: Image dimensions, specified in multiples of 4, with orientations like `Portrait`, `Square`, and `Landscape`.
+- **`OPEN_BROWSER`**:
+  - `Yes` opens the application directly in the default browser.
+  - `No` disables automatic browser opening.
+- **`GRADIO_THEME`**: Customize the user interface appearance with available themes.
+- **`SHARE`**:
+  - `True` allows sharing the application online via Gradio.
+  - `False` limits usage to local only.
+- **`LANGUAGE`**: User interface language (`en` for English, `fr` for French).
 
-- **`FORMATS`** : Détermine les dimensions des images. Chaque option doit respecter des multiples de 4 pour assurer une compatibilité optimale.  
-  - **Exemple** :  
-    - Portrait : `704*1408`, `768*1280`  
-    - Carré : `1024*1024`  
-    - Paysage : `1408*704`, `1280*768`
+### 🌟 Additional Options in Detail
 
-- **`OPEN_BROWSER`** :  
-  - `Yes` : Ouvre l'application directement dans le navigateur par défaut.  
-  - `No` : Désactive l'ouverture automatique du navigateur.
+- **`FORMATS`**: Determines image dimensions. Each option must respect multiples of 4 for optimal compatibility.
+  - **Example**:
+    - Portrait: `704*1408`, `768*1280`
+    - Square: `1024*1024`
+    - Landscape: `1408*704`, `1280*768`
 
-- **`GRADIO_THEME`** : Définit l'apparence de l'interface utilisateur.  
-  - **Thèmes disponibles** :  
-    - `Base` : Minimaliste avec une couleur primaire bleue.  
-    - `Default` : Thème par défaut (orange et gris).  
-    - `Origin` : Inspiré des versions classiques de Gradio.  
-    - `Citrus` : Jaune vibrant avec des effets 3D sur les boutons.  
-    - `Monochrome` : Noir et blanc avec un style classique.  
-    - `Soft` : Tons violets avec des bords arrondis.  
-    - `Glass` : Effet visuel "verre" avec des dégradés bleus.  
-    - `Ocean` : Tons bleu-vert avec des transitions horizontales.
+- **`OPEN_BROWSER`**:
+  - `Yes`: Opens the application directly in the default browser.
+  - `No`: Disables automatic browser opening.
 
-- **`SHARE`** :  
-  - `True` : Permet de partager l'application en ligne via Gradio.  
-  - `False` : Restreint l'application à un usage local uniquement.
+- **`GRADIO_THEME`**: Defines the user interface appearance.
+  - **Available Themes**:
+    - `Base`: Minimalist with a blue primary color.
+    - `Default`: Default theme (orange and gray).
+    - `Origin`: Inspired by classic Gradio versions.
+    - `Citrus`: Vibrant yellow with 3D effects on buttons.
+    - `Monochrome`: Black and white with a classic style.
+    - `Soft`: Purple tones with rounded edges.
+    - `Glass`: "Glass" visual effect with blue gradients.
+    - `Ocean`: Blue-green tones with horizontal transitions.
 
-- **`LANGUAGE`** : Définit la langue utilisée dans l'interface utilisateur.  
-  - `en` : Anglais  
-  - `fr` : Français
- 
- - **`PRESETS`** : Possibilité de régler l'affichage des presets, nombre par page, et nombre par colonne, tenir compte du fait que le nombre de presets par colonne soit un multiple du nombre de presets par page.  
+- **`SHARE`**:
+  - `True`: Allows sharing the application online via Gradio.
+  - `False`: Restricts the application to local use only.
+
+- **`LANGUAGE`**: Defines the language used in the user interface.
+  - `en`: English
+  - `fr`: French
+
+- **`PRESETS`**: Ability to adjust the display of presets, number per page, and number per column. Ensure the number of presets per column is a multiple of the number of presets per page.
   - `PRESETS_PER_PAGE`: 12,
-  - `PRESET_COLS_PER_ROW`:4
+  - `PRESET_COLS_PER_ROW`: 4
 
-NOTE : 
-C:\dossier\de\modeles
-Vous devrez l'écrire comme ceci :
-C:\\\dossier\\\de\\\modeles
-pour c:\repertoire\mes_modeles\checkpoints il faudra écrire c:\\\repertoire\\\mes_modeles\\\checkpoints
+NOTE:
+For paths like `C:\path\to\models`, you need to write it like this:
+`C:\\path\\to\\models`
+So, for `c:\directory\my_models\checkpoints`, you should write `c:\\directory\\my_models\\checkpoints`
 
- 
+## Learn More About Choosing Samplers:
 
-## Savoir plus sur le choix des Samplers :
-    EulerDiscreteScheduler (Rapide et détaillé): Un sampler Euler classique, rapide et qui produit des images détaillées. Bon point de départ et souvent utilisé pour son efficacité. Vous l'avez déjà.
-    DDIMScheduler (Rapide et créatif): DDIM (Denoising Diffusion Implicit Models) est plus rapide que les méthodes classiques et peut être plus créatif, offrant parfois des résultats plus variés et surprenants. Peut être un bon choix pour l'exploration rapide.
-    DPMSolverMultistepScheduler (Rapide et de haute qualité): Une version optimisée et plus rapide des solveurs DPM. Offre un bon compromis entre vitesse et qualité d'image, souvent considéré comme un des meilleurs choix pour la vitesse sans sacrifier trop la qualité.
+    EulerDiscreteScheduler (Fast and detailed): A classic Euler sampler, fast and produces detailed images. Good starting point and often used for its efficiency. You already have it.
+    DDIMScheduler (Fast and creative): DDIM (Denoising Diffusion Implicit Models) is faster than classic methods and can be more creative, sometimes offering more varied and surprising results. Can be a good choice for rapid exploration.
+    DPMSolverMultistepScheduler (Fast and high-quality): An optimized and faster version of DPM solvers. Offers a good compromise between speed and image quality, often considered one of the best choices for speed without sacrificing too much quality.
 
-Samplers de Haute Qualité et Photorealistic (pour un rendu détaillé et réaliste):
+High-Quality and Photorealistic Samplers (for detailed and realistic rendering):
 
-    DPM++ 2M Karras (Photoréaliste et détaillé): Un sampler très performant pour obtenir des images photoréalistes et très détaillées. Le "Karras" indique l'utilisation d'un schéma de bruitage amélioré (Karras noise schedule) qui améliore la qualité. Vous l'avez déjà et c'est un excellent choix.
-    PNDMScheduler (Stable et photoréaliste): PNDM (Pseudo Numerical Methods for Diffusion Models) est stable et tend à produire des images photoréalistes avec moins de bruit. Peut être un bon choix si vous recherchez un rendu plus propre.
-    DPM++ SDE Karras (Photoréaliste et avec réduction du bruit): Combine les avantages de DPM++ avec une méthode SDE (Stochastic Differential Equations) et le bruitage Karras. Très efficace pour réduire le bruit et obtenir un rendu photoréaliste de haute qualité.
-    DPM++ 2M SDE Karras (Combine photoréalisme et réduction du bruit): Une autre variante de DPM++ SDE Karras qui combine photoréalisme et réduction du bruit, possiblement avec des caractéristiques légèrement différentes de la version simple DPM++ SDE Karras.
-    KDPM2DiscreteScheduler (Détaillé et net): Une autre variante de KDPM qui tend à produire des images très détaillées et nettes. Bon choix si vous recherchez la précision.
+    DPM++ 2M Karras (Photorealistic and detailed): A high-performing sampler for obtaining photorealistic and highly detailed images. "Karras" indicates the use of an improved noise schedule (Karras noise schedule) which enhances quality. You already have it, and it's an excellent choice.
+    PNDMScheduler (Stable and photorealistic): PNDM (Pseudo Numerical Methods for Diffusion Models) is stable and tends to produce photorealistic images with less noise. Can be a good choice if you are looking for a cleaner rendering.
+    DPM++ SDE Karras (Photorealistic and with noise reduction): Combines the advantages of DPM++ with an SDE (Stochastic Differential Equations) method and Karras noise. Very effective for reducing noise and achieving high-quality photorealistic rendering.
+    DPM++ 2M SDE Karras (Combines photorealism and noise reduction): Another variant of DPM++ SDE Karras that combines photorealism and noise reduction, possibly with slightly different characteristics from the simple DPM++ SDE Karras version.
+    KDPM2DiscreteScheduler (Detailed and sharp): Another KDPM variant that tends to produce very detailed and sharp images. Good choice if you are looking for precision.
 
-Samplers Artistiques et Fluides (pour un rendu plus pictural ou stylisé):
+Artistic and Fluid Samplers (for a more pictorial or stylized rendering):
 
-    Euler Ancestral (Artistique et fluide): Un sampler Euler Ancestral qui produit des images plus fluides et artistiques. "Ancestral" signifie qu'il ajoute du bruit à chaque étape de débruitage, ce qui peut donner un aspect plus pictural. Vous l'avez déjà et c'est un bon choix pour des styles artistiques.
-    KDPM2AncestralDiscreteScheduler (Artistique et net): Combine les caractéristiques de KDPM2 (détaillé et net) avec l'approche Ancestral (artistique). Peut offrir un bon compromis entre détail et style artistique.
-    HeunDiscreteScheduler (Bon compromis vitesse/qualité): Heun est un sampler qui essaie de trouver un bon équilibre entre vitesse et qualité, et peut parfois produire des résultats avec un aspect plus doux ou "peint".
-    LMSDiscreteScheduler (Équilibré et polyvalent): LMS (Linear Multistep Method) est un sampler plus polyvalent qui peut donner de bons résultats dans divers styles. Il est souvent considéré comme un bon choix général, ni trop rapide ni trop lent, ni trop spécialisé dans un style particulier.
+    Euler Ancestral (Artistic and fluid): An Euler Ancestral sampler that produces more fluid and artistic images. "Ancestral" means it adds noise at each denoising step, which can give a more pictorial look. You already have it, and it's a good choice for artistic styles.
+    KDPM2AncestralDiscreteScheduler (Artistic and sharp): Combines the characteristics of KDPM2 (detailed and sharp) with the Ancestral approach (artistic). Can offer a good compromise between detail and artistic style.
+    HeunDiscreteScheduler (Good speed/quality compromise): Heun is a sampler that tries to find a good balance between speed and quality, and can sometimes produce results with a softer or "painted" look.
+    LMSDiscreteScheduler (Balanced and versatile): LMS (Linear Multistep Method) is a more versatile sampler that can yield good results in various styles. It is often considered a good general choice, neither too fast nor too slow, nor too specialized in a particular style.
 
-## Liste des Samplers pour la Génération d'Images
+## List of Samplers for Image Generation
 
-Cette section décrit les différents samplers disponibles pour la génération d'images dans votre outil.  Le choix du sampler peut grandement influencer le style, la qualité et la vitesse de génération de l'image.
+This section describes the different samplers available for image generation in your tool. The choice of sampler can greatly influence the style, quality, and speed of image generation.
 
 ---
 
-### Samplers Rapides et Efficaces
+### Fast and Efficient Samplers
 
-Ces samplers sont idéaux pour les itérations rapides, les tests, ou les systèmes moins puissants. Ils offrent une bonne vitesse de génération d'image.
+These samplers are ideal for rapid iterations, testing, or less powerful systems. They offer good image generation speed.
 
-*   **EulerDiscreteScheduler (Rapide et détaillé):**  Sampler Euler classique, connu pour sa rapidité et sa capacité à produire des images détaillées. Un bon point de départ et souvent utilisé pour son efficacité.
+*   **EulerDiscreteScheduler (Fast and detailed):** Classic Euler sampler, known for its speed and ability to produce detailed images. A good starting point and often used for its efficiency.
 
-*   **DDIMScheduler (Rapide et créatif):**  DDIM (Denoising Diffusion Implicit Models) est plus rapide que les méthodes classiques et peut être plus créatif, offrant des résultats variés et parfois surprenants.  Bon pour l'exploration rapide et la génération d'images originales.
+*   **DDIMScheduler (Fast and creative):** DDIM (Denoising Diffusion Implicit Models) is faster than traditional methods and can be more creative, offering varied and sometimes surprising results. Good for rapid exploration and generating original images.
 
-*   **DPMSolverMultistepScheduler (Rapide et de haute qualité):** Version optimisée et rapide des solveurs DPM. Offre un excellent compromis entre vitesse et qualité d'image. Souvent considéré comme l'un des meilleurs choix pour une génération rapide sans trop sacrifier la qualité.
-
----
-
-### Samplers de Haute Qualité et Photoréalistes
-
-Ces samplers sont conçus pour produire des images de la plus haute qualité, avec un rendu photoréaliste et très détaillé. Ils peuvent être plus lents, mais offrent un niveau de détail et de réalisme supérieur.
-
-*   **DPM++ 2M Karras (Photoréaliste et détaillé):** Sampler très performant pour obtenir des images photoréalistes et extrêmement détaillées.  L'indication "Karras" signifie qu'il utilise un schéma de bruitage amélioré (Karras noise schedule) qui optimise la qualité de l'image.  Excellent choix pour le photoréalisme.
-
-*   **PNDMScheduler (Stable et photoréaliste):**  PNDM (Pseudo Numerical Methods for Diffusion Models) est stable et tend à générer des images photoréalistes avec moins de bruit.  Bon choix si vous recherchez un rendu plus propre et réaliste.
-
-*   **DPM++ SDE Karras (Photoréaliste et avec réduction du bruit):** Combine les avantages de DPM++ avec une méthode SDE (Stochastic Differential Equations) et le bruitage Karras. Très efficace pour réduire le bruit et obtenir un rendu photoréaliste de très haute qualité.
-
-*   **DPM++ 2M SDE Karras (Combine photoréalisme et réduction du bruit):** Variante de DPM++ SDE Karras qui combine également photoréalisme et réduction du bruit. Peut présenter des nuances légèrement différentes par rapport à la version simple DPM++ SDE Karras.
-
-*   **KDPM2DiscreteScheduler (Détaillé et net):** Variante de KDPM qui produit des images très détaillées et nettes. Idéal si la précision et la netteté des détails sont primordiales.
+*   **DPMSolverMultistepScheduler (Fast and high-quality):** Optimized and fast version of DPM solvers. Offers an excellent compromise between speed and image quality. Often considered one of the best choices for fast generation without sacrificing too much quality.
 
 ---
 
-### Samplers Artistiques et Fluides
+### High-Quality and Photorealistic Samplers
 
-Ces samplers sont plus orientés vers un rendu artistique, pictural ou stylisé. Ils peuvent produire des images avec un aspect plus doux, fluide ou "peint".
+These samplers are designed to produce the highest quality images, with photorealistic and highly detailed rendering. They may be slower but offer a superior level of detail and realism.
 
-*   **Euler Ancestral (Artistique et fluide):** Sampler Euler Ancestral qui génère des images plus fluides et avec un aspect artistique. L'approche "Ancestral" ajoute du bruit à chaque étape de débruitage, ce qui contribue à un rendu plus pictural.  Excellent pour les styles artistiques et créatifs.
+*   **DPM++ 2M Karras (Photorealistic and detailed):** High-performing sampler for obtaining photorealistic and extremely detailed images. The "Karras" indication means it uses an improved noise schedule (Karras noise schedule) that optimizes image quality. Excellent choice for photorealism.
 
-*   **KDPM2AncestralDiscreteScheduler (Artistique et net):** Combine les caractéristiques de KDPM2 (détaillé et net) avec l'approche Ancestral (artistique). Offre un bon équilibre entre détails précis et style artistique.
+*   **PNDMScheduler (Stable and photorealistic):** PNDM (Pseudo Numerical Methods for Diffusion Models) is stable and tends to generate photorealistic images with less noise. Good choice if you are looking for a cleaner and more realistic rendering.
 
-*   **HeunDiscreteScheduler (Bon compromis vitesse/qualité):** Sampler Heun qui cherche un bon équilibre entre vitesse et qualité. Peut produire des résultats avec un aspect plus doux ou "peint".  Un bon choix polyvalent pour différents styles.
+*   **DPM++ SDE Karras (Photorealistic and with noise reduction):** Combines the advantages of DPM++ with an SDE (Stochastic Differential Equations) method and Karras noise. Very effective for reducing noise and achieving very high-quality photorealistic rendering.
 
-*   **LMSDiscreteScheduler (Équilibré et polyvalent):** LMS (Linear Multistep Method) est un sampler polyvalent qui peut donner de bons résultats dans divers styles d'images.  Considéré comme un bon choix général, ni trop rapide ni trop spécialisé dans un style particulier.
+*   **DPM++ 2M SDE Karras (Combines photorealism and noise reduction):** Variant of DPM++ SDE Karras that also combines photorealism and noise reduction. May present slightly different nuances compared to the simple DPM++ SDE Karras version.
 
----
-
-### Samplers "Abrégés" ou Variantes
-
-Ces samplers sont souvent des versions abrégées ou des variantes d'autres samplers, offrant des comportements similaires ou légèrement modifiés.
-
-*   **Euler A (Euler Ancestral, version abrégée):**  Raccourci pour Euler Ancestral. Se comporte de manière très similaire à Euler Ancestral et peut être utilisé de manière interchangeable.
-
-*   **LMS (Linear Multistep Method, version abrégée):** Raccourci pour LMSDiscreteScheduler. Similaire en comportement à LMSDiscreteScheduler.
-
-*   **PLMS (P-sampler - Pseudo Linear Multistep Method):** Variante de LMS qui peut présenter des caractéristiques légèrement différentes en termes de stabilité ou de style. Peut être intéressant à expérimenter si vous utilisez déjà LMS.
-
-*   **DEISMultistepScheduler (Excellent pour les détails fins):**  DEIS (Denoising Estimator Implicit Solvers) est conçu pour exceller dans la préservation des détails fins. Choix idéal si la précision des détails est primordiale et que vous travaillez sur des images complexes.
+*   **KDPM2DiscreteScheduler (Detailed and sharp):** KDPM variant that produces very detailed and sharp images. Ideal if precision and sharpness of details are paramount.
 
 ---
 
-**Note Importante:**
+### Artistic and Fluid Samplers
 
-*   Les descriptions ci-dessus sont des généralisations basées sur les caractéristiques typiques de chaque sampler. Les résultats réels peuvent varier en fonction du modèle utilisé, du prompt, des paramètres de génération et d'autres facteurs.
-*   L'expérimentation est la clé !  N'hésitez pas à tester différents samplers pour voir ceux qui correspondent le mieux à votre style et à vos besoins spécifiques.
+These samplers are more oriented towards an artistic, pictorial, or stylized rendering. They can produce images with a softer, fluid, or "painted" look.
 
+*   **Euler Ancestral (Artistic and fluid):** Euler Ancestral sampler that generates more fluid images with an artistic look. The "Ancestral" approach adds noise at each denoising step, contributing to a more pictorial rendering. Excellent for artistic and creative styles.
 
-## ▶️ Modules Supplémentaires
+*   **KDPM2AncestralDiscreteScheduler (Artistic and sharp):** Combines the characteristics of KDPM2 (detailed and sharp) with the Ancestral approach (artistic). Offers a good balance between precise details and artistic style.
 
-### 🌟 Aperçu des Modules
-L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui s'activent automatiquement lorsqu'ils sont placés dans le répertoire `/modules`. Ces modules enrichissent les fonctionnalités de base et permettent aux utilisateurs de personnaliser leur expérience.
+*   **HeunDiscreteScheduler (Good speed/quality compromise):** Heun sampler that seeks a good balance between speed and quality. Can produce results with a softer or "painted" look. A good versatile choice for different styles.
 
-### 📚 Liste des Modules Disponibles
-1. **Retouche d'image**  
-   - Fournit des outils basiques pour modifier ou améliorer vos créations.
-   - Compatible avec les images générées par l'application ou externes.
-
-2. **Upscaling**  
-   - Améliore la résolution des images grâce à SDXL.
-   - Idéal pour des rendus nets et détaillés.
-
-3. **Amélioration d'image**  
-   - Utilise AuraSR pour optimiser la clarté et les détails de vos images.
-
-4. **Suppression d'arrière-plan**  
-   - Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.
-
-5. **Navigation sur Civitai**  
-   - Permet de parcourir la bibliothèque Civitai pour découvrir de nouveaux modèles et prompts.
-   - Option de copier des prompts intéressants directement depuis l'interface.
-
-6. **Module de test**  
-   - Fournit un squelette de base pour aider les utilisateurs à créer leurs propres modules.
-   - Idéal pour les développeurs souhaitant expérimenter ou personnaliser leurs fonctionnalités.
+*   **LMSDiscreteScheduler (Balanced and versatile):** LMS (Linear Multistep Method) is a versatile sampler that can yield good results in various image styles. Considered a good general choice, neither too fast nor too specialized in a particular style.
 
 ---
 
-### 🛠️ Activation des Modules
-- **Placement automatique** : Placez le module désiré dans le dossier `/modules`. L'application détecte automatiquement sa présence et l'active.
-- **Interface utilisateur** : Les modules activés seront accessibles depuis le menu principal ou des onglets spécifiques. Relancer l'application pour une prise en compte
+### "Abbreviated" or Variant Samplers
+
+These samplers are often abbreviated versions or variants of other samplers, offering similar or slightly modified behaviors.
+
+*   **Euler A (Euler Ancestral, abbreviated version):** Shortcut for Euler Ancestral. Behaves very similarly to Euler Ancestral and can be used interchangeably.
+
+*   **LMS (Linear Multistep Method, abbreviated version):** Shortcut for LMSDiscreteScheduler. Similar in behavior to LMSDiscreteScheduler.
+
+*   **PLMS (P-sampler - Pseudo Linear Multistep Method):** Variant of LMS that may exhibit slightly different characteristics in terms of stability or style. May be interesting to experiment with if you already use LMS.
+
+*   **DEISMultistepScheduler (Excellent for fine details):** DEIS (Denoising Estimator Implicit Solvers) is designed to excel in preserving fine details. Ideal choice if detail precision is paramount and you are working on complex images.
 
 ---
 
-### 🌈 Configuration des Modules
-Certains modules proposent des options de configuration avancées :
-- **Module d'upscaling** :  
-  - Ajustez la résolution cible directement dans les paramètres de l'application.
-  
-- **Suppression d'arrière-plan** :  
-  
-- **Retouche d'image** :  
-  - Permet d'importer des images externes et d'appliquer des filtres rapidement.
+**Important Note:**
+
+*   The descriptions above are generalizations based on the typical characteristics of each sampler. Actual results may vary depending on the model used, the prompt, generation parameters, and other factors.
+*   Experimentation is key! Feel free to test different samplers to see which ones best suit your style and specific needs.
+
+## ▶️ Additional Modules
+
+### 🌟 Modules Overview
+The **cyberbill_SDXL** application offers several complementary modules that activate automatically when placed in the `/modules` directory. These modules enhance the basic functionalities and allow users to customize their experience.
+
+### 📚 List of Available Modules
+1.  **Image Editing**
+    - Provides basic tools to modify or enhance your creations.
+    - Compatible with images generated by the application or external ones.
+
+2.  **Upscaling**
+    - Enhances image resolution using SDXL.
+    - Ideal for sharp and detailed renderings.
+
+3.  **Image Enhancement**
+    - Uses AuraSR to optimize the clarity and details of your images.
+
+4.  **Background Removal**
+    - Based on RemBG, this module quickly isolates the subject of the image by removing its background.
+
+5.  **Civitai Browser**
+    - Allows browsing the Civitai library to discover new models and prompts.
+    - Option to copy interesting prompts directly from the interface.
+
+6.  **Test Module**
+    - Provides a basic skeleton to help users create their own modules.
+    - Ideal for developers wishing to experiment or customize their features.
 
 ---
 
-### 🔧 Développement de Modules Personnalisés
-Le module de test inclus fournit un cadre pratique pour développer vos propres modules. Voici comment procéder :
-1. **Structure du module** :  
-   - Chaque module doit inclure un fichier principal nommé `monModule_mod.py` et des dépendances spécifiques.
+### 🛠️ Activating Modules
+- **Automatic Placement**: Place the desired module in the `/modules` folder. The application automatically detects its presence and activates it.
+- **User Interface**: Activated modules will be accessible from the main menu or specific tabs. Restart the application for changes to take effect.
 
-2. **Configuration** :  
-   - Utilisez le fichier `monMocule_mod.json` du module pour définir ses comportements et paramètres et les traductions.
+---
 
-3. **Documentation** :  
-   - Ajoutez des instructions claires dans le dossier du module pour guider les utilisateurs.
+### 🌈 Configuring Modules
+Some modules offer advanced configuration options:
+- **Upscaling Module**:
+  - Adjust the target resolution directly in the application settings.
+
+- **Background Removal**:
+  - (Configuration details might be specific to the module)
+
+- **Image Editing**:
+  - Allows importing external images and applying filters quickly.
+
+---
+
+### 🔧 Developing Custom Modules
+The included test module provides a practical framework for developing your own modules. Here's how to proceed:
+1.  **Module Structure**:
+    - Each module must include a main file named `myModule_mod.py` and specific dependencies.
+
+2.  **Configuration**:
+    - Use the module's `myModule_mod.json` file to define its behaviors, parameters, and translations.
+
+3.  **Documentation**:
+    - Add clear instructions in the module's folder to guide users.
 
 ---
