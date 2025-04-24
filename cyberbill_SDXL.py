@@ -9,6 +9,7 @@ import traceback
 from datetime import datetime
 import json
 import gradio as gr
+from gradio import update
 from diffusers import  StableDiffusionXLPipeline, AutoencoderKL, EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler, \
     LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, StableDiffusionXLInpaintPipeline, \
     KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler, DPMSolverSinglestepScheduler
@@ -28,8 +29,10 @@ from multiprocessing import Process
 torch.backends.cudnn.deterministic = True
 import queue
 from compel import Compel, ReturnedEmbeddingsType
-from io import BytesIO 
-
+from io import BytesIO
+from presets.presets_Manager import PresetManager
+import functools
+from functools import partial
 
 print (f"cyberbill_SDXL version {txt_color(version(),'info')}")
 # Load the configuration first
@@ -38,6 +41,12 @@ config = charger_configuration()
 
 DEFAULT_LANGUAGE = config.get("LANGUAGE", "fr")  # Utilisez 'fr' comme langue par défaut si 'LANGUAGE' n'est pas défini.
 translations = load_locales(DEFAULT_LANGUAGE)
+
+# --- Importer et initialiser PresetManager ---
+preset_manager = PresetManager(translations)
+# --- États pour la sauvegarde des presets ---
+
+selected_sampler_key_state = gr.State(value=None)
 
 
 # Dossiers contenant les modèles
@@ -55,11 +64,13 @@ AUTHOR= config["AUTHOR"]
 SHARE= config["SHARE"]
 OPEN_BROWSER= config["OPEN_BROWSER"]
 DEFAULT_MODEL= config["DEFAULT_MODEL"]
+PRESETS_PER_PAGE = config.get("PRESETS_PER_PAGE", 12) # Nombre de presets à afficher par page
+PRESET_COLS_PER_ROW = config.get("PRESET_COLS_PER_ROW", 4)
+
 for style in config["STYLES"]:
         style["name"] = translate(style["key"], translations)
 STYLES=config["STYLES"]
 PREVIEW_QUEUE = []
-
 
 
 # Check if photo_editing_mod is loaded
@@ -153,7 +164,7 @@ sampler_options = [
     translate("sampler_unipc", translations),
 ]
 
-
+global_selected_sampler_key = "sampler_euler"
 # =========================
 # Définition des fonctions
 # =========================
@@ -162,90 +173,90 @@ sampler_options = [
 
 # selection des sampler
 def apply_sampler(sampler_selection):
-    info = f"{translate('sampler_change', translations)}{sampler_selection}"
+    """Applique le sampler sélectionné et retourne un message et la clé interne du sampler."""
+    global global_selected_sampler_key
+    info_base = translate('sampler_change', translations)
+    sampler_key = None # Initialiser la clé à None
+    sampler_applied = False
+
     if gestionnaire.global_pipe is not None:
+        # --- MODIFICATION : Ajouter le retour de la clé interne ---
         if sampler_selection == translate("sampler_euler", translations):
             gestionnaire.global_pipe.scheduler = EulerDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3)
-            return info
+            sampler_key = "sampler_euler"
         elif sampler_selection == translate("sampler_dpmpp_2m", translations):
             gestionnaire.global_pipe.scheduler = DPMSolverMultistepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_dpmpp_2m"
         elif sampler_selection == translate("sampler_dpmpp_2s_a", translations):
+            # Note: Souvent EulerAncestralDiscreteScheduler est utilisé pour DPM++ 2S Ancestral
             gestionnaire.global_pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_dpmpp_2s_a" # Assurez-vous que cette clé est celle que vous voulez stocker
         elif sampler_selection == translate("sampler_lms", translations):
             gestionnaire.global_pipe.scheduler = LMSDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_lms"
         elif sampler_selection == translate("sampler_ddim", translations):
             gestionnaire.global_pipe.scheduler = DDIMScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_ddim"
         elif sampler_selection == translate("sampler_pndm", translations):
             gestionnaire.global_pipe.scheduler = PNDMScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_pndm"
         elif sampler_selection == translate("sampler_dpm2", translations):
             gestionnaire.global_pipe.scheduler = KDPM2DiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_dpm2"
         elif sampler_selection == translate("sampler_dpm2_a", translations):
             gestionnaire.global_pipe.scheduler = KDPM2AncestralDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_dpm2_a"
         elif sampler_selection == translate("sampler_dpm_fast", translations):
+            # Note: Souvent DPMSolverMultistepScheduler est utilisé pour DPM Fast
             gestionnaire.global_pipe.scheduler = DPMSolverMultistepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_dpm_fast" # Assurez-vous que cette clé est celle que vous voulez stocker
         elif sampler_selection == translate("sampler_dpm_adaptive", translations):
+            # Note: Souvent DEISMultistepScheduler est utilisé pour DPM Adaptive
             gestionnaire.global_pipe.scheduler = DEISMultistepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_dpm_adaptive" # Assurez-vous que cette clé est celle que vous voulez stocker
         elif sampler_selection == translate("sampler_heun", translations):
             gestionnaire.global_pipe.scheduler = HeunDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_heun"
         elif sampler_selection == translate("sampler_dpmpp_sde", translations):
             gestionnaire.global_pipe.scheduler = DPMSolverSDEScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_dpmpp_sde"
         elif sampler_selection == translate("sampler_dpmpp_3m_sde", translations):
+             # Note: Souvent DPMSolverSinglestepScheduler est utilisé pour DPM++ 3M SDE
             gestionnaire.global_pipe.scheduler = DPMSolverSinglestepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_dpmpp_3m_sde" # Assurez-vous que cette clé est celle que vous voulez stocker
         elif sampler_selection == translate("sampler_euler_a", translations):
             gestionnaire.global_pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_euler_a"
         elif sampler_selection == translate("sampler_unipc", translations):
+            # Note: Souvent PNDMScheduler est utilisé pour UniPC, vérifiez la config
             gestionnaire.global_pipe.scheduler = PNDMScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info,3.0)
-            return info
+            sampler_key = "sampler_unipc" # Assurez-vous que cette clé est celle que vous voulez stocker
         else:
-            print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_sampler_inconnu', translations)} {sampler_selection}")  
-            gr.Warning(translate('erreur_sampler_inconnu', translations) + " " + sampler_selection, 4.0)
-            return f"{translate('erreur_sampler_inconnu', translations)} {sampler_selection}"
+            error_msg = translate('erreur_sampler_inconnu', translations) + " " + sampler_selection
+            print(txt_color("[ERREUR] ", "erreur"), error_msg)
+            gr.Warning(error_msg, 4.0)
+            return error_msg, None # Retourner None pour la clé en cas d'erreur
+
+        if sampler_key:
+            global_selected_sampler_key = sampler_key # Mise à jour de la variable globale
+            sampler_applied = True
+
+        # Si une clé a été trouvée
+        if sampler_applied == True:
+            info = f"{info_base}{sampler_selection}"
+            print(txt_color("[OK] ", "ok"), info)
+            gr.Info(info, 3.0)
+            return info, sampler_key # Retourner le message 
+        else:
+             # Ce cas ne devrait pas arriver si toutes les conditions ci-dessus retournent une clé
+             internal_error_msg = "Erreur interne: Sampler connu mais clé non retournée."
+             print(txt_color("[ERREUR] ", "erreur"), internal_error_msg)
+             return internal_error_msg, None
 
     else:
-        return translate("charger_modele_avant_sampler", translations)
+        # Si aucun modèle n'est chargé
+        no_model_msg = translate("charger_modele_avant_sampler", translations)
+        return no_model_msg, None # Retourner None pour la clé
 
 
 def style_choice(selected_style_user, STYLES):
@@ -306,7 +317,7 @@ def update_prompt(image):
 
 def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, *lora_inputs):
     """Génère des images avec Stable Diffusion."""
-    global lora_charges, model_selectionne, vae_selctionne, is_generating
+    global lora_charges, model_selectionne, vae_selctionne, is_generating, global_selected_sampler_key
     
     lora_checks = lora_inputs[:4]
     lora_dropdowns = lora_inputs[4:8]
@@ -316,6 +327,8 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
     btn_generate_update_off = gr.update(interactive=False)
     bouton_charger_update_on = gr.update(interactive=True)
     btn_generate_update_on = gr.update(interactive=True)
+    final_save_button_state = gr.update(interactive=False)
+    btn_save_preset_off = gr.update(interactive=False)
 
     initial_images = []
     initial_seeds = ""
@@ -323,8 +336,16 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
     initial_html = ""
     initial_preview = None
     initial_progress = ""
+    output_gen_data_json = None
+    output_preview_image = None
 
-    yield initial_images, initial_seeds, initial_time, initial_html, initial_preview, initial_progress, bouton_charger_update_off, btn_generate_update_off
+    yield (
+        initial_images, initial_seeds, initial_time, initial_html, initial_preview, initial_progress,
+        bouton_charger_update_off, btn_generate_update_off,
+        btn_save_preset_off,
+        output_gen_data_json,
+        output_preview_image
+    )
 
     is_generating = True
 
@@ -383,6 +404,8 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         images = [] # Initialize a list to store all generated images
         seed_strings = []
         formatted_seeds = ""
+        current_data_for_preset = None
+        preview_image_for_preset = None
 
         message_lora = gerer_lora(gestionnaire.global_pipe, loras_charges, lora_checks, lora_dropdowns, lora_scales, LORAS_DIR, translations)
         if message_lora:
@@ -464,18 +487,30 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                     preview_img_to_yield = PREVIEW_QUEUE[last_index]
                     last_index += 1
                     # Yield avec l'aperçu et la dernière progression connue
-                    yield images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result, preview_img_to_yield, last_progress_html, bouton_charger_update_off, btn_generate_update_off
+                    yield (
+                        images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
+                        preview_img_to_yield, last_progress_html,
+                        bouton_charger_update_off, btn_generate_update_off,
+                        gr.update(interactive=False),
+                        output_gen_data_json,
+                        output_preview_image
+                    )
                     preview_yielded = True
                 # Si aucune preview n'a été yield mais que la barre de progression a changé, yield la progression
                 if not preview_yielded and new_progress_html != last_progress_html:
-                     yield images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result, None, new_progress_html, bouton_charger_update_off, btn_generate_update_off                
+                     yield (
+                         images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
+                         None, new_progress_html,
+                         bouton_charger_update_off, btn_generate_update_off,
+                         gr.update(interactive=False),
+                         output_gen_data_json,
+                         output_preview_image
+                     )            
                 
                 time.sleep(0.05)
 
             thread.join() # Attendre la fin du thread (ou son interruption)
             PREVIEW_QUEUE.clear()
-
-
             final_progress_html = ""
             if not stop_gen.is_set():
                  final_progress_html = final_progress_html = create_progress_bar_html(num_steps, num_steps, 100)
@@ -485,18 +520,58 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 print(txt_color("[INFO]", "info"), translate("generation_arretee_pas_sauvegarde", translations))
                 gr.Info(translate("generation_arretee_pas_sauvegarde", translations), 3.0)
                 final_message = translate("generation_arretee", translations)
-                yield images, " ".join(seed_strings), translate("generation_arretee", translations), translate("generation_arretee_pas_sauvegarde", translations), None, final_progress_html, bouton_charger_update_off, btn_generate_update_off
+                yield (
+                    images, " ".join(seed_strings), translate("generation_arretee", translations),
+                    translate("generation_arretee_pas_sauvegarde", translations), None, final_progress_html,
+                    bouton_charger_update_off, btn_generate_update_off,
+                    gr.update(interactive=False) 
+                )
                 break # Important: sortir de la boucle for
 
             # --- Si la génération n'a PAS été arrêtée ---
             final_image = final_image_container.get("final", None)
 
+
+
             if final_image is None:
                 print(txt_color("[ERREUR] ", "erreur"), translate("erreur_pas_image_genere", translations))
                 gr.Warning(translate("erreur_pas_image_genere", translations), 4.0)
                 # Yield l'état d'erreur (boutons toujours off) avant de continuer
-                yield images, " ".join(seed_strings), translate("erreur_pas_image_genere", translations), translate("erreur_pas_image_genere", translations), None, final_progress_html, bouton_charger_update_off, btn_generate_update_off
+                yield (
+                    images, " ".join(seed_strings), translate("erreur_pas_image_genere", translations),
+                    translate("erreur_pas_image_genere", translations), None, final_progress_html,
+                    bouton_charger_update_off, btn_generate_update_off,
+                    gr.update(interactive=False) 
+                )
                 continue # Passer à l'itération suivante
+
+            current_data_for_preset = {
+                "model": model_selectionne, 
+                "vae": vae_selctionne,
+                "original_prompt": prompt_text,     
+                "prompt": prompt_en,
+                "negative_prompt": negative_prompt_str,
+                "styles": json.dumps(selected_style_display_names if selected_style_display_names else []),
+                "guidance_scale": guidance_scale,
+                "num_steps": num_steps,
+                "sampler_key": global_selected_sampler_key,
+                "seed": seed, # Utiliser le seed actuel de la boucle
+                "width": width,
+                "height": height,
+                # Construire la liste des LoRAs actifs
+                "loras": json.dumps([
+                    {"name": lora_dropdowns[i], "weight": lora_scales[i]}
+                    for i, check in enumerate(lora_checks) if check and lora_dropdowns[i] != translate("aucun_lora_disponible", translations)
+                ]),
+                "rating": 0,
+                "notes": "" # Champ pour les notes, initialement vide
+            }
+
+            preview_image_for_preset = final_image.copy()
+            
+            output_gen_data_json = json.dumps(current_data_for_preset)
+            output_preview_image = preview_image_for_preset
+            print(txt_color("[DEBUG]", "info"), "Variables globales mises à jour.")
             
             temps_generation_image = f"{(time.time() - depart_time):.2f} sec"            
             
@@ -522,6 +597,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                     "Seed": seed,
                     "Inference": num_steps,
                     "Guidance": guidance_scale,
+                    "original_prompt": prompt_text,
                     "Prompt": prompt_en,
                     "Negatif Prompt": negative_prompt_str,
                     "Style": style_info_str,
@@ -560,9 +636,20 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                  print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_lors_generation_html', translations)}: {html_err}")
                  html_message_result = translate("erreur_lors_generation_html", translations)
                        
-            yield images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}", html_message_result, final_image, final_progress_html, bouton_charger_update_off, btn_generate_update_off
-                   
+            yield (
+                images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}",
+                html_message_result, final_image, final_progress_html,
+                bouton_charger_update_off, btn_generate_update_off,
+                gr.update(interactive=False),
+                output_gen_data_json,
+                output_preview_image
+            )
+                    
         # --- Fin de la boucle ---
+
+        print(txt_color("[DEBUG]", "info"), f"État après yield itération {idx}:")
+        print(f"  Données: {'OK' if output_gen_data_json else 'None'}")
+        print(f"  Image: {'OK' if output_gen_data_json else 'None'}")
 
         final_images = images
         final_seeds = formatted_seeds
@@ -576,6 +663,9 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             print(txt_color("[INFO] ","info"), final_message)
             gr.Info(final_message, 3.0)
 
+        if not stop_event.is_set() and not stop_gen.is_set() and final_images: 
+             final_save_button_state = gr.update(interactive=True) 
+
     except Exception as e:
         # Gérer les erreurs inattendues
         is_generating = False # Mettre à jour le flag en cas d'erreur
@@ -588,10 +678,18 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         final_html_msg = f"<p style='color: red;'>{final_message}</p>" 
         final_preview_img = None
         final_progress_html = ""
+        final_save_button_state = gr.update(interactive=False)
 
     finally:
         is_generating = False # Assurer que le flag est remis à False
-        yield final_images, final_seeds, final_message, final_html_msg, final_preview_img, final_progress_html, bouton_charger_update_on, btn_generate_update_on
+        yield (
+            final_images, final_seeds, final_message, final_html_msg,
+            final_preview_img, final_progress_html,
+            bouton_charger_update_on, btn_generate_update_on,
+            final_save_button_state,
+            output_gen_data_json,
+            output_preview_image
+        )
 
 #==========================
 # Fonction INPAINTED IMAGE
@@ -897,6 +995,7 @@ def update_globals_model(nom_fichier, nom_vae):
         loras_charges.clear()
         etat_interactif = True
         texte_bouton = translate("generer", translations) # Texte normal
+
     else:
         # Chargement échoué
         model_selectionne = None
@@ -905,6 +1004,7 @@ def update_globals_model(nom_fichier, nom_vae):
         gestionnaire.update_global_compel(None)
         etat_interactif = False
         texte_bouton = translate("charger_modele_pour_commencer", translations) # Texte désactivé
+        selected_sampler_key_state.value = None
 
     update_interactif = gr.update(interactive=etat_interactif)
     update_texte = gr.update(value=texte_bouton)
@@ -963,20 +1063,20 @@ def update_inpainting_mask_effects(image_and_mask, opacity, blur_radius):
 
 
 # mettre à jour seulement les effets ---
-def update_inpainting_mask_effects(resized_original, resized_mask, opacity, blur_radius):
-    """Applique seulement les effets d'opacité/flou sur le masque déjà redimensionné."""
-    if resized_original and resized_mask:
-        # Recréer le dictionnaire attendu par apply_mask_effects
-        temp_dict_for_effects = {
-            "background": resized_original, 
-            "layers": [resized_mask],       
-            "composite": None
-        }
-        processed_mask = apply_mask_effects(temp_dict_for_effects, translations, opacity, blur_radius)
-        return processed_mask
-    else:
-        # Si les images stockées ne sont pas valides
-        return None
+# def update_inpainting_mask_effects(resized_original, resized_mask, opacity, blur_radius):
+#     """Applique seulement les effets d'opacité/flou sur le masque déjà redimensionné."""
+#     if resized_original and resized_mask:
+#         # Recréer le dictionnaire attendu par apply_mask_effects
+#         temp_dict_for_effects = {
+#             "background": resized_original, 
+#             "layers": [resized_mask],       
+#             "composite": None
+#         }
+#         processed_mask = apply_mask_effects(temp_dict_for_effects, translations, opacity, blur_radius)
+#         return processed_mask
+#     else:
+#         # Si les images stockées ne sont pas valides
+#         return None
 
 # --- Fonction pour mettre à jour ImageMask ET calculer le masque initial ---
 def update_image_mask_and_initial_effects(validated_image, opacity, blur_radius):
@@ -989,13 +1089,382 @@ def update_image_mask_and_initial_effects(validated_image, opacity, blur_radius)
     # Retourner l'image pour ImageMask et le masque initial pour mask_output
     return validated_image, initial_processed_mask
 
-# --- Fonction pour les effets (reste la même) ---
-def update_inpainting_mask_effects(image_and_mask, opacity, blur_radius):
-    """Applique seulement les effets d'opacité/flou sur le masque actuel."""
-    processed_mask = apply_mask_effects(image_and_mask, translations, opacity, blur_radius)
-    return processed_mask
+#################################################
+#FONCTIONS pour les presets :
+#################################################
+def handle_preset_rename_click(preset_id, current_trigger): # Ajouter current_trigger
+    """Met à jour l'état d'édition ET déclenche un refresh via le trigger."""
+    print(f"[Action Preset {preset_id}] Clic Renommer. Trigger actuel: {current_trigger}")
+    # Retourner l'update pour l'état d'édition ET l'update pour le trigger
+    return gr.update(value=preset_id), gr.update(value=current_trigger + 1)
+
+def handle_preset_cancel_click(current_trigger): # Ajouter current_trigger
+    """Annule l'édition en cours ET déclenche un refresh."""
+    print("[Action Preset] Clic Annuler Édition.")
+    # Mettre l'ID à None ET incrémenter le trigger
+    return gr.update(value=None), gr.update(value=current_trigger + 1)
+
+def handle_preset_rename_submit(preset_id, new_name, current_trigger):
+    """Soumet le nouveau nom pour le preset."""
+    print(f"[Action Preset {preset_id}] Submit Renommer vers '{new_name}'.")
+    if not preset_id or not new_name:
+        gr.Warning(translate("erreur_nouveau_nom_vide", translations))
+        return gr.update(value=preset_id), gr.update() # Garder l'édition, ne pas rafraîchir
+
+    success, message = preset_manager.rename_preset(preset_id, new_name)
+    if success:
+        gr.Info(message)
+        # Succès: Annuler l'édition et déclencher refresh
+        return gr.update(value=None), gr.update(value=current_trigger + 1)
+    else:
+        gr.Warning(message)
+        # Échec: Garder l'édition, ne pas rafraîchir
+        return gr.update(value=preset_id), gr.update()
+
+def handle_preset_delete_click(preset_id, current_trigger, page, search, sort, filter_models, filter_samplers, filter_loras, current_search_value):
+    """Supprime le preset, déclenche un refresh ET met à jour la pagination."""
+     # Initialiser les updates en cas d'erreur (3 éléments maintenant)
+    trigger_update_on_error = gr.update()
+    pagination_update_on_error = gr.update()
+    search_update_on_error = gr.update()
+
+    success, message = preset_manager.delete_preset(preset_id)
+    if success:
+        gr.Info(message)
+        pagination_update = update_pagination_display(page, search, sort, filter_models, filter_samplers, filter_loras)
+        # --- LE HACK ---
+        current_search_str = current_search_value if current_search_value else ""
+        if current_search_str.endswith(" "):
+            temp_search_value = current_search_str[:-1] # Enlever l'espace
+        else:
+            temp_search_value = current_search_str + " " # Ajouter un espace
+        
+        search_update_hack = gr.update(value=temp_search_value)
+        # --- FIN HACK ---
+        # Retourner l'update du trigger ET l'update de la pagination
+        return gr.update(value=current_trigger + 1), pagination_update,search_update_hack
+    else:
+        gr.Warning(message)
+        # Retourner des updates vides si erreur
+        return trigger_update_on_error, pagination_update_on_error, search_update_on_error
+
+def handle_preset_rating_change(preset_id, new_rating_value):
+    """Met à jour la note du preset."""
+
+    if preset_id is not None and new_rating_value is not None:
+        success, message = preset_manager.update_preset_rating(preset_id, int(new_rating_value))
+        if not success:
+            gr.Warning(message)
+    # Pas de retour nécessaire, la mise à jour DB suffit (sauf si tri par note actif)
+
+def update_pagination_and_trigger_refresh(page, search, sort, filter_models, filter_samplers, filter_loras, current_trigger):
+    """Met à jour l'UI de pagination ET incrémente le trigger de refresh."""
+    # Calculer les updates pour la pagination
+    pagination_updates = update_pagination_display(page, search, sort, filter_models, filter_samplers, filter_loras)
+    # Préparer l'update pour le trigger
+    trigger_update = gr.update(value=current_trigger + 1)
+    # Retourner les updates de pagination + l'update du trigger
+    return list(pagination_updates) + [trigger_update]
+
+# --- Handlers pour la pagination ---
+def handle_page_change(direction, current_page):
+    """Calcule la nouvelle page."""
+    new_page = current_page + direction
+    # Retourne SEULEMENT l'update pour l'état de la page
+    return gr.update(value=new_page)
+
+# --- Fonction pour mettre à jour les filtres après sauvegarde ---
+def update_filter_choices_after_save():
+    models, samplers, loras = get_filter_options()
+    return gr.update(choices=models), gr.update(choices=samplers), gr.update(choices=loras)
 
 
+# --- Remettre la fonction de sauvegarde (adaptée pour retourner les updates de filtre) ---
+def handle_save_preset(preset_name, preset_notes, current_gen_data_json, preview_image_pil, current_trigger, current_search_value):
+    """
+    Gère l'appel à preset_manager pour sauvegarder le preset.
+    Appelée par l'événement .click() de bouton_save_current_preset.
+    Retourne les updates pour vider les champs et mettre à jour les filtres.
+    """
+    # --- AJOUT PRINT POUR DEBUG ---
+    # --- FIN AJOUT ---
+    # --- Initialiser les updates pour les filtres (au cas où on échoue avant) ---
+    filter_updates_on_error = [gr.update(), gr.update(), gr.update()]
+    trigger_update_on_error = gr.update()
+    search_update_on_error = gr.update()
+    # --- FIN INITIALISATION ---
+
+    if not preset_name:
+        gr.Warning(translate("erreur_nom_preset_vide", translations), 3.0)
+        # Retourner 5 updates vides
+        return gr.update(), gr.update(), *filter_updates_on_error, trigger_update_on_error, search_update_on_error
+
+    current_gen_data = None
+    if isinstance(current_gen_data_json, str):
+        try:
+            current_gen_data = json.loads(current_gen_data_json)
+        except json.JSONDecodeError as e:
+            print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_decodage_json_preset', translations)}: {e}")
+            gr.Warning(translate("erreur_interne_decodage_json", translations), 3.0)
+            # Retourner 5 updates vides
+            return gr.update(), gr.update(), *filter_updates_on_error, trigger_update_on_error, search_update_on_error
+    else:
+         # Si ce n'est pas une chaîne, c'est probablement None ou déjà un dict
+         if isinstance(current_gen_data_json, dict):
+             current_gen_data = current_gen_data_json
+         else:
+             print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_type_inattendu_json_preset', translations)}: {type(current_gen_data_json)}")
+             gr.Warning(translate("erreur_interne_donnees_generation_invalides", translations), 3.0)
+             # Retourner 5 updates vides
+             return gr.update(), gr.update(), *filter_updates_on_error, trigger_update_on_error, search_update_on_error
+
+    # Vérifier si l'image est une instance PIL valide
+    if not isinstance(preview_image_pil, Image.Image):
+         # Essayer de charger depuis BytesIO si c'est des bytes (peut arriver depuis gr.State)
+         if isinstance(preview_image_pil, bytes):
+             try:
+                 preview_image_pil = Image.open(BytesIO(preview_image_pil))
+                 print(txt_color("[INFO]", "info"), translate("info_image_preview_chargee_bytes", translations))
+             except Exception as img_err:
+                 print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_chargement_image_preview_bytes', translations)}: {img_err}")
+                 preview_image_pil = None # Marquer comme invalide
+         else:
+             preview_image_pil = None # Marquer comme invalide si ce n'est ni Image ni bytes
+
+    if not isinstance(current_gen_data, dict) or preview_image_pil is None:
+         print(txt_color("[ERREUR]", "erreur"), translate("erreur_donnees_generation_ou_image_manquantes", translations))
+         print(f"  Type data après JSON: {type(current_gen_data)}")
+         print(f"  Type image après vérif: {type(preview_image_pil)}")
+         gr.Warning(translate("erreur_pas_donnees_generation", translations), 3.0)
+         # Retourner 5 updates vides
+         return gr.update(), gr.update(), *filter_updates_on_error,  trigger_update_on_error, search_update_on_error
+
+    data_to_save = current_gen_data.copy()
+    data_to_save['notes'] = preset_notes
+
+    # --- APPEL À LA SAUVEGARDE ---
+    # C'est ici que 'success' et 'message' sont définis
+    try:
+        success, message = preset_manager.save_gen_image_preset(preset_name, data_to_save, preview_image_pil)
+    except Exception as save_err:
+        print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_appel_sauvegarde_preset', translations)}: {save_err}")
+        traceback.print_exc()
+        success = False
+        message = translate("erreur_interne_sauvegarde_preset", translations)# Ajouter clé de traduction
+    # --- FIN APPEL ---
+
+    if success: # Maintenant 'success' est défini
+        gr.Info(message, 3.0)
+        # --- Succès: Récupérer les updates réelles pour les filtres ---
+        try:
+            update_model, update_sampler, update_lora = update_filter_choices_after_save()
+            current_search_str = current_search_value if current_search_value else ""
+            if current_search_str.endswith(" "):
+                temp_search_value = current_search_str[:-1] # Enlever l'espace
+            else:
+                temp_search_value = current_search_str + " " # Ajouter un espace
+            search_update_hack = gr.update(value=temp_search_value)
+            # Retourner updates pour vider les champs + les updates des filtres
+            return gr.update(value=""), gr.update(value=""), update_model, update_sampler, update_lora, gr.update(value=current_trigger + 1), search_update_hack
+        except Exception as filter_err:
+            print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_update_filtres_preset', translations)}: {filter_err}")
+            # Retourner quand même les updates pour vider les champs + updates vides pour filtres
+            return gr.update(value=""), gr.update(value=""), *filter_updates_on_error, gr.update(value=current_trigger + 1), search_update_hack
+    else:
+        gr.Warning(message, 4.0)
+        # Échec: Laisser les champs + pas d'update filtre
+        return gr.update(), gr.update(), *filter_updates_on_error, trigger_update_on_error, search_update_on_error
+
+def handle_preset_load_click(preset_id):
+    """
+    Charge les données d'un preset et met à jour les contrôles de l'UI de génération.
+    Appelée par le bouton 'Charger' d'un preset.
+    """
+    print(f"[Action Preset {preset_id}] Clic Charger.")
+    preset_data = preset_manager.load_preset_data(preset_id)
+
+    if preset_data is None:
+        msg = translate("erreur_chargement_preset_introuvable", translations).format(preset_id)
+        gr.Warning(msg)
+        # Retourner des updates vides pour tous les outputs attendus
+        num_lora_slots = 4 # Assurez-vous que cela correspond au nombre de slots LoRA
+        # 7 contrôles de base + 3 par LoRA + 1 message = 7 + 3*4 + 1 = 20 outputs
+        return [gr.update()] * (7 + 3 * num_lora_slots + 1)
+
+    try:
+        # --- Extraire les données du preset avec des valeurs par défaut ---
+        original_prompt_value = preset_data.get('original_prompt', preset_data.get('prompt', ''))
+        if original_prompt_value is None:
+            # Fallback pour les anciens presets qui n'ont que le prompt fusionné
+            original_prompt_value = preset_data.get('prompt', '')
+        # Le prompt négatif n'est pas directement dans l'UI, on le charge pas ici
+        styles_data = preset_data.get('styles', [])
+        # Les styles sont stockés comme une liste de noms d'affichage (déjà traduits lors de la sauvegarde)
+        loaded_style_names = []
+        if isinstance(styles_data, str):
+            # Si c'est une chaîne, essayer de la décoder
+            try:
+                loaded_style_names = json.loads(styles_data)
+                # Assurer que le résultat est bien une liste après décodage
+                if not isinstance(loaded_style_names, list):
+                    loaded_style_names = [] # Réinitialiser si le type est incorrect
+            except json.JSONDecodeError:
+                loaded_style_names = [] # Réinitialiser en cas d'erreur de décodage
+        elif isinstance(styles_data, list):
+            # Si c'est déjà une liste, l'utiliser directement
+            loaded_style_names = styles_data
+        else:
+            # Gérer les autres types inattendus
+            loaded_style_names = []
+        model_name = preset_data.get('model', None)
+        vae_name = preset_data.get('vae', None)
+        guidance = preset_data.get('guidance_scale', 7.0)
+        steps = preset_data.get('num_steps', 30)
+        sampler_key = preset_data.get('sampler_key', 'sampler_euler')
+        sampler_display = translate(sampler_key, translations) # Traduire la clé pour l'affichage
+        seed = preset_data.get('seed', -1)
+        width = preset_data.get('width', 1024)
+        height = preset_data.get('height', 1024)
+        loras_data = preset_data.get('loras', []) # Récupérer la donnée (peut être str ou list)
+        loaded_loras = [] 
+
+        available_models = lister_fichiers(MODELS_DIR, translations, gradio_mode=True)
+        available_vaes = lister_fichiers(VAE_DIR, translations, gradio_mode=True)
+
+        model_update = gr.update() # Par défaut, ne rien changer
+        if model_name and model_name in available_models:
+            model_update = gr.update(value=model_name)
+
+        elif model_name:
+            print(f"[WARN Preset Load] Modèle '{model_name}' du preset non trouvé dans les options actuelles.")
+
+        vae_update = gr.update() # Par défaut, ne rien changer
+        if vae_name and vae_name in available_vaes:
+            vae_update = gr.update(value=vae_name)
+            # Appeler la fonction pour charger le VAE en backend si nécessaire
+            # Note: Similaire au modèle, dépend si le dropdown déclenche le chargement.
+            # Sinon, il faudrait appeler une fonction comme handle_vae_change(vae_name)
+        elif vae_name:
+            gr.Warning(translate("erreur_vae_preset_introuvable", translations).format(vae_name))
+        if isinstance(loras_data, str):
+            # Si c'est une chaîne, essayer de la décoder
+            try:
+                loaded_loras = json.loads(loras_data)
+                # Assurer que le résultat est bien une liste après décodage
+                if not isinstance(loaded_loras, list):
+                    loaded_loras = [] # Réinitialiser si le type est incorrect
+            except json.JSONDecodeError:
+                loaded_loras = [] # Réinitialiser en cas d'erreur de décodage
+        elif isinstance(loras_data, list):
+            # Si c'est déjà une liste, l'utiliser directement
+            loaded_loras = loras_data
+        else:
+            # Gérer les autres types inattendus
+            loaded_loras = []
+        # --- Préparer la chaîne de format exacte pour le dropdown ---
+        format_string = f"{width}*{height}"
+        orientation_key = None
+        # Retrouver l'orientation à partir de la config originale
+        for fmt in config["FORMATS"]:
+            dims = fmt.get("dimensions", "")
+            if dims == f"{width}*{height}":
+                orientation_key = fmt.get("orientation")
+                break
+        if orientation_key:
+            # Utiliser la clé pour obtenir la traduction actuelle
+            format_string += f" {translate(orientation_key, translations)}"
+        else:
+            # Fallback si non trouvé (ne devrait pas arriver)
+            format_string = f"{width}*{height} {translate('orientation_inconnue', translations)}" # Ajoutez cette clé si besoin
+
+        # --- Vérifier si le format existe dans les choix actuels ---
+        if format_string not in FORMATS:
+             format_string = FORMATS[0] # Ou une autre valeur par défaut
+
+        # --- Préparer les updates pour les LoRAs ---
+        num_lora_slots = 4
+        lora_check_updates = [gr.update(value=False) for _ in range(num_lora_slots)]
+        lora_dd_updates = [gr.update(value=None, interactive=False, choices=[translate("aucun_lora_disponible", translations)]) for _ in range(num_lora_slots)]
+        lora_scale_updates = [gr.update(value=0) for _ in range(num_lora_slots)]
+
+        # Obtenir la liste actuelle des LoRAs disponibles
+        available_loras = lister_fichiers(LORAS_DIR, translations, gradio_mode=True)
+        has_available_loras = bool(available_loras) and translate("aucun_modele_trouve", translations) not in available_loras and translate("repertoire_not_found", translations) not in available_loras
+        lora_choices = available_loras if has_available_loras else [translate("aucun_lora_disponible", translations)]
+
+        for i, lora_info in enumerate(loaded_loras):
+            if i >= num_lora_slots: break # Ne charger que le nombre de slots disponibles
+            lora_name = lora_info.get('name')
+            lora_weight = lora_info.get('weight')
+            if lora_name and lora_weight is not None:
+                # Vérifier si le LoRA chargé est dans la liste actuelle
+                if lora_name in lora_choices:
+                    lora_check_updates[i] = gr.update(value=True)
+                    # Mettre à jour les choix, la valeur ET rendre interactif
+                    lora_dd_updates[i] = gr.update(choices=lora_choices, value=lora_name, interactive=True)
+                    lora_scale_updates[i] = gr.update(value=lora_weight)
+                else:
+                    print(f"[WARN] LoRA '{lora_name}' du preset non trouvé. Ignoré pour le slot {i+1}.")
+                    # Laisser le slot désactivé
+
+        # --- Préparer l'update du Sampler et appliquer au backend ---
+        sampler_update_msg, _ = apply_sampler(sampler_display) # Appelle la fonction existante pour mettre à jour le pipe
+        # Vérifier si le sampler chargé est valide
+        if sampler_display not in sampler_options:
+             default_sampler_display = translate('sampler_euler', translations)
+             apply_sampler(default_sampler_display) # Appliquer le défaut
+             sampler_update = gr.update(value=default_sampler_display)
+             sampler_update_msg = translate("sampler_preset_invalide_defaut", translations).format(sampler_display) # Nouvelle clé
+        else:
+             sampler_update = gr.update(value=sampler_display)
+             # Le sampler a déjà été appliqué par apply_sampler() ci-dessus
+
+        # --- Préparer l'update des Styles ---
+        # Filtrer les styles chargés pour ne garder que ceux présents dans les options actuelles
+        valid_style_choices = [style["name"] for style in STYLES if style["name"] != translate("Aucun_style", translations)]
+        final_style_selection = [s_name for s_name in loaded_style_names if s_name in valid_style_choices]
+        if len(final_style_selection) != len(loaded_style_names):
+            print("[WARN] Certains styles du preset ne sont plus disponibles et ont été ignorés.")
+
+
+        # --- Construire la liste des outputs dans l'ordre exact attendu par .click() ---
+        outputs_list = [
+            model_update, 
+            vae_update, 
+            gr.update(value=original_prompt_value),                 # text_input
+            gr.update(value=final_style_selection),  # style_dropdown
+            gr.update(value=guidance),               # guidance_slider
+            gr.update(value=steps),                  # num_steps_slider
+            gr.update(value=format_string),          # format_dropdown
+            sampler_update,                          # sampler_dropdown
+            gr.update(value=seed),                   # seed_input
+            *lora_check_updates,                     # lora_checks (4)
+            *lora_dd_updates,                        # lora_dropdowns (4)
+            *lora_scale_updates,                     # lora_scales (4)
+            gr.update(value=translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}'))) # message_chargement
+        ]
+        print(f"[INFO] Preset '{preset_data.get('name', f'ID: {preset_id}')}' chargé dans l'UI.")
+        gr.Info(translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}')), 2.0)
+        return outputs_list
+
+    except Exception as e:
+        print(txt_color("[ERREUR]", "erreur"), f"Erreur lors du chargement du preset {preset_id}: {e}")
+        traceback.print_exc()
+        gr.Warning(translate("erreur_generale_chargement_preset", translations))
+        # Retourner des updates vides pour tous les outputs attendus (MAJ du nombre)
+        num_lora_slots = 4
+        return [gr.update()] * (2 + 7 + 3 * num_lora_slots + 1) 
+
+def reset_page_state_only():
+    """Retourne simplement une mise à jour pour mettre l'état de la page à 1."""
+    print("[Reset Page State] Mise à jour de current_preset_page à 1.")
+    return gr.update(value=1)
+
+def handle_page_dropdown_change(page_selection):
+    """Gère le changement du dropdown de page."""
+    print(f"!!! Dropdown Page Change Détecté: Nouvelle page = {page_selection} !!!")
+    # Retourner SEULEMENT la valeur sélectionnée pour mettre à jour l'état
+    return page_selection
 
 ############################################################
 ############################################################
@@ -1009,7 +1478,19 @@ if js_code:
 
 
 with gr.Blocks(**block_kwargs) as interface:
-     gr.Markdown(f"# Cyberbill SDXL images generator version {version()}")
+    # --- États ---
+    # --- États pour les Presets ---
+    # État pour le trigger de rafraîchissement manuel/après action
+    preset_refresh_trigger = gr.State(0)
+    # État pour la page actuelle
+    current_preset_page_state = gr.State(1)
+    # --- Fin États Presets ---
+    last_successful_generation_data = gr.State(value=None) # Pour stocker les données JSON
+    last_successful_preview_image = gr.State(value=None) 
+
+    # --- Fin États -
+
+    gr.Markdown(f"# Cyberbill SDXL images generator version {version()}")
 
 
 ############################################################
@@ -1018,7 +1499,7 @@ with gr.Blocks(**block_kwargs) as interface:
 ########***************************************************
 ############################################################
   
-     with gr.Tab(translate("generation_image", translations)):
+    with gr.Tab(translate("generation_image", translations)):
         with gr.Row():
             with gr.Column(scale=1, min_width=200):
                 text_input = gr.Textbox(label=translate("prompt", translations), info=translate("entrez_votre_texte_ici", translations), elem_id="promt_input")
@@ -1036,7 +1517,7 @@ with gr.Blocks(**block_kwargs) as interface:
                 html_output = gr.Textbox(label=translate("mise_a_jour_html", translations), interactive=False)
                 message_chargement = gr.Textbox(label=translate("statut", translations), value=translate("aucun_modele_charge", translations))       
                 image_input = gr.Image(label=translate("telechargez_image", translations), type="pil", visible=False)
-                use_image_checkbox.change(fn=lambda use_image: gr.update(visible=use_image), inputs=use_image_checkbox, outputs=image_input)
+
 
             with gr.Column(scale=1, min_width=200):
                 image_output = gr.Gallery(label=translate("images_generees", translations))
@@ -1058,14 +1539,32 @@ with gr.Blocks(**block_kwargs) as interface:
                         vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=vaes, value=value)
                         sampler_dropdown = gr.Dropdown(label=translate("selectionner_sampler", translations), choices=sampler_options)
                         bouton_charger = gr.Button(translate("charger_modele", translations))
+                        
 
                         
             with gr.Column():
                 texte_bouton_gen_initial = translate("charger_modele_pour_commencer", translations) # Utiliser la même clé ou une clé spécifique
-                btn_generate = gr.Button(value=texte_bouton_gen_initial, interactive=False)
+                btn_generate = gr.Button(value=texte_bouton_gen_initial, interactive=False, variant="primary")
                 btn_stop = gr.Button(translate("arreter", translations), variant="stop")
                 btn_stop_after_gen = gr.Button(translate("stop_apres_gen", translations), variant="stop")
                 bouton_lister = gr.Button(translate("lister_modeles", translations))
+                with gr.Accordion(translate("sauvegarder_preset_section", translations), open=False): # Nouvelle clé de traduction pour le titre
+                    preset_name_input = gr.Textbox(
+                        label=translate("nom_preset", translations),
+                        placeholder=translate("entrez_nom_preset", translations)
+                    )
+                    preset_notes_input = gr.Textbox(
+                        label=translate("notes_preset", translations),
+                        placeholder=translate("entrez_notes_preset", translations),
+                        lines=3
+                    )
+                    # Le bouton est maintenant DANS l'accordéon et déclenche la sauvegarde
+                    bouton_save_current_preset = gr.Button(
+                        translate("confirmer_sauvegarde_preset", translations), # Nouveau texte pour le bouton
+                        variant="primary", # Le rendre plus visible
+                        interactive=False # Toujours inactif par défaut
+                    )
+
                 with gr.Accordion(label="Lora", open=False) as lora_section:
                     with gr.Row():
                         with gr.Column():
@@ -1105,27 +1604,223 @@ with gr.Blocks(**block_kwargs) as interface:
                         gr.update(value=translate("lora_trouve", translations) + ", ".join(loras) if has_loras else translate("aucun_lora_disponible", translations))
                     )
 
-                bouton_lister.click(
-                    fn=mettre_a_jour_listes,
-                    outputs=[modele_dropdown, vae_dropdown, *lora_dropdowns, lora_message]
-                )
-                
-                bouton_charger.click(
-                    fn=update_globals_model,
-                    inputs=[modele_dropdown, vae_dropdown],
-                    outputs=[message_chargement, btn_generate, btn_generate]
-                )
-                sampler_dropdown.change(fn=apply_sampler, inputs=sampler_dropdown, outputs=message_chargement)
 
-        image_input.change(fn=generate_caption, inputs=image_input, outputs=text_input)
+############################################################
+########TAB PRESETS
+############################################################
 
-        btn_generate.click(
-            generate_image,
-            inputs=[text_input, style_dropdown, guidance_slider, num_steps_slider, format_dropdown, traduire_checkbox, seed_input, num_images_slider, *lora_checks, *lora_dropdowns, *lora_scales],
-            outputs=[image_output, seed_output, time_output, html_output, preview_image_output, progress_html_output, bouton_charger, btn_generate]
-        )
-        btn_stop.click(stop_generation_process, outputs=time_output)
-        btn_stop_after_gen.click(stop_generation, outputs=time_output)
+
+    with gr.Tab(translate("Preset", translations)) as preset_tab:
+        def get_filter_options():
+            filter_data = preset_manager.get_distinct_preset_filters()
+            models = filter_data.get('models', [])
+            samplers = filter_data.get('samplers', [])
+            loras = filter_data.get('loras', [])# Peut nécessiter un traitement spécial si stocké en JSON
+            sampler_display_names = [translate(s_key, translations) for s_key in samplers if translate(s_key, translations) in sampler_options]
+            return models, sampler_display_names, loras
+
+        initial_models, initial_samplers, initial_loras = get_filter_options()
+        # --- Contrôles (Statiques) ---
+        with gr.Row():
+            preset_search_input = gr.Textbox(
+                label=translate("rechercher_preset", translations),
+                placeholder="..."
+                # scale=2 # Ajuster l'échelle si besoin
+            )
+            preset_sort_dropdown = gr.Dropdown(
+                # Vous pouvez réorganiser cette liste comme vous le souhaitez
+                choices=["Date Création", "Nom A-Z", "Nom Z-A", "Date Utilisation", "Note"],
+                value="Date Création", # Ceci détermine la sélection par défaut
+                label=translate("trier_par", translations)
+            )
+
+        with gr.Row():
+            preset_filter_model = gr.Dropdown(
+                label=translate("filtrer_par_modele", translations),
+                choices=initial_models,
+                value=[], # Permettre sélection multiple
+                multiselect=True,
+                elem_id="preset_filter_model"
+            )
+            preset_filter_sampler = gr.Dropdown(
+                label=translate("filtrer_par_sampler", translations),
+                choices=initial_samplers,
+                value=[],
+                multiselect=True,
+                elem_id="preset_filter_sampler"
+            )
+            preset_filter_lora = gr.Dropdown(
+                label=translate("filtrer_par_lora", translations),
+                choices=initial_loras,
+                value=[],
+                multiselect=True,
+                elem_id="preset_filter_lora"
+            )
+            preset_page_dropdown = gr.Dropdown(
+                label=translate("page", translations), # Ajouter clé de traduction
+                choices=[1], # Initialiser avec la page 1
+                value=1,
+                interactive=False, # Sera activé si plusieurs pages
+                elem_id="preset_page_dropdown"
+            )
+        # --- Fin Contrôles ---
+
+        @gr.render(inputs=[
+            current_preset_page_state,
+            preset_search_input,
+            preset_sort_dropdown,
+            preset_filter_model,
+            preset_filter_sampler,
+            preset_filter_lora,
+            preset_refresh_trigger
+        ])
+        def render_presets_with_decorator(page, search, sort, filter_models, filter_samplers, filter_loras, editing_id, trigger_val):
+            """
+            Décorée par @gr.render. Récupère les presets et crée l'UI dynamiquement.
+            Les liaisons d'événements sont faites ici.
+            Retourne les composants UI et les updates pour la pagination.
+            """
+
+            sampler_keys_to_filter = []
+            if filter_samplers: # Si des samplers sont sélectionnés
+                # Créer un mapping inverse: {nom_affiche_traduit: cle_interne}
+                reverse_sampler_map = {v: k for k, v in translations.items() if k.startswith("sampler_")}
+                for sampler_display_name in filter_samplers:
+                    internal_key = reverse_sampler_map.get(sampler_display_name)
+                    if internal_key:
+                        sampler_keys_to_filter.append(internal_key)
+                    else:
+                        print(txt_color("[ERREUR ]", "erreur"), translate("gestion_samplers_erreur", translations).format(sampler_display_name))
+                        # Gérer le cas où la traduction inverse échoue (ne devrait pas arriver)
+            # 1. Récupérer les données
+            all_presets_data = preset_manager.load_presets_for_display(
+                preset_type='gen_image', search_term=search, sort_by=sort,
+                selected_models=filter_models or None,
+                selected_samplers=sampler_keys_to_filter or None, # <-- Utiliser les clés internes ici
+                selected_loras=filter_loras or None
+            )
+
+            # 2. Calculer la pagination
+            total_presets = len(all_presets_data)
+            total_pages = math.ceil(total_presets / PRESETS_PER_PAGE) if total_presets > 0 else 1
+            current_page = max(1, min(page, total_pages))
+            start_index = (current_page - 1) * PRESETS_PER_PAGE
+            end_index = start_index + PRESETS_PER_PAGE
+            presets_for_page = all_presets_data[start_index:end_index]
+
+            # --- Fonction utilitaire safe_get (identique à avant) ---
+            def safe_get_from_row(row, key, default=None):
+                try:
+                    return row[key] if key in row.keys() else default
+                except (IndexError, TypeError): return default
+
+            gen_ui_outputs = [
+                modele_dropdown,
+                vae_dropdown,
+                text_input,
+                style_dropdown,
+                guidance_slider,
+                num_steps_slider,
+                format_dropdown,
+                sampler_dropdown,
+                seed_input,
+                # Ajouter tous les composants LoRA individuellement
+                *lora_checks,    # Dépaqueter la liste des 4 checkboxes
+                *lora_dropdowns, # Dépaqueter la liste des 4 dropdowns
+                *lora_scales,    # Dépaqueter la liste des 4 sliders
+                message_chargement # Le message de statut de l'onglet génération
+            ]
+
+            delete_inputs = [
+                preset_refresh_trigger,
+                current_preset_page_state, # Page actuelle
+                preset_search_input,       # Recherche actuelle
+                preset_sort_dropdown,      # Tri actuel
+                preset_filter_model,       # Filtres actuels...
+                preset_filter_sampler,
+                preset_filter_lora,
+                preset_search_input        # <--- AJOUT : Recherche actuelle pour le hack
+            ]
+        # --- Définir les outputs pour la suppression (incluant la recherche) ---
+            delete_outputs = [
+                preset_refresh_trigger,    # Output pour le trigger
+                pagination_dd_output,      # Output pour le dropdown de pagination
+                preset_search_input        # <--- AJOUT : Output pour la recherche (hack)
+            ]
+        # --- Fin définition ---
+
+            if not presets_for_page:
+                gr.Markdown(f"*{translate('aucun_preset_trouve', translations)}*", key="no_presets_found_md") # Clé pour le cas vide
+            else:
+                num_rows_for_page = math.ceil(len(presets_for_page) / PRESET_COLS_PER_ROW)
+                preset_idx_on_page = 0
+                for r in range(num_rows_for_page):
+                    # --- PAS DE key= sur gr.Row ---
+                    with gr.Row(equal_height=False):
+                        for c in range(PRESET_COLS_PER_ROW):
+                            if preset_idx_on_page < len(presets_for_page):
+                                preset_data = presets_for_page[preset_idx_on_page]
+                                preset_id = safe_get_from_row(preset_data, "id", f"ERREUR_ID_{preset_idx_on_page}")
+                                preset_name = safe_get_from_row(preset_data, "name", "ERREUR_NOM")
+
+                                # --- PAS DE key= sur gr.Column ---
+                                with gr.Column(scale=0, min_width=200):
+                                    # --- Composants avec key= ---
+                                    image_bytes = safe_get_from_row(preset_data, "preview_image")
+                                    preview_img = None
+                                    if image_bytes:
+                                        try: preview_img = Image.open(BytesIO(image_bytes))
+                                        except Exception: pass
+                                    gr.Image(value=preview_img, height=128, width=128, show_label=True, interactive=False, show_download_button=False, key=f"preset_img_{preset_id}")
+
+                                    gr.Textbox(value=preset_name, show_label=False, interactive=False, key=f"preset_name_display_{preset_id}")
+
+                                    preset_notes = safe_get_from_row(preset_data, 'notes')
+                                    if preset_notes:
+                                        # --- PAS DE key= sur gr.Accordion ---
+                                        with gr.Accordion(translate("voir_notes", translations), open=False):
+                                            # --- MAIS key= sur gr.Markdown ---
+                                            gr.Markdown(preset_notes, key=f"preset_notes_md_{preset_id}")
+
+                                    rating_value = safe_get_from_row(preset_data, "rating", 0)
+                                    rating_comp = gr.Radio(
+                                        choices=[str(r) for r in range(1, 6)], value=str(rating_value) if rating_value > 0 else None,
+                                        label=translate("evaluation", translations), interactive=True, key=f"preset_rating_{preset_id}"
+                                    )
+
+                                    try:
+                                        model_name = safe_get_from_row(preset_data, 'model', '?')
+                                        sampler_key_name = safe_get_from_row(preset_data, 'sampler_key', '?')
+                                        sampler_display_name = translate(sampler_key_name, translations) if sampler_key_name != '?' else '?'
+
+                                        details_md = f"- **Modèle:** {model_name}\n- **Sampler:** {sampler_key_name}"
+                                        # --- PAS DE key= sur gr.Accordion ---
+                                        with gr.Accordion(translate("details_techniques", translations), open=False):
+                                            # --- MAIS key= sur gr.Markdown ---
+                                            gr.Markdown(details_md, key=f"preset_details_md_{preset_id}")
+                                    except Exception: pass
+
+                                    # --- Boutons avec key= ---
+                                    load_btn = gr.Button(translate("charger", translations) + " 💾", size="sm", key=f"preset_load_{preset_id}")
+                                    delete_btn = gr.Button(translate("supprimer", translations) + " 🗑️", variant="stop", size="sm", key=f"preset_delete_{preset_id}")
+
+                                    # --- Liaison des événements (directement ici) ---
+                                    if isinstance(preset_id, int): # Vérifier que l'ID est valide avant de lier
+                                        load_btn.click(
+                                            fn=partial(handle_preset_load_click, preset_id), # Utilise partial pour passer l'ID
+                                            inputs=[], # Pas d'inputs directs depuis l'UI ici
+                                            outputs=gen_ui_outputs # La liste des composants à mettre à jour
+                                        )
+                                        delete_btn.click(
+                                            fn=partial(handle_preset_delete_click, preset_id), # Utilise partial pour l'ID
+                                            inputs=delete_inputs, # Utiliser la liste d'inputs définie plus haut
+                                            outputs=delete_outputs # Utiliser la liste d'outputs définie plus haut
+                                        )                                   
+                                        rating_comp.change(fn=partial(handle_preset_rating_change, preset_id), inputs=[rating_comp], outputs=[])
+                                        # load_btn.click(...) # À ajouter plus tard
+
+                                preset_idx_on_page += 1
+
 
 ############################################################
 ########TAB INPAINTING
@@ -1134,7 +1829,7 @@ with gr.Blocks(**block_kwargs) as interface:
             modeles = lister_fichiers(INPAINT_MODELS_DIR, translations)
             return gr.update(choices=modeles)
 
-     with gr.Tab(translate("Inpainting", translations)):
+    with gr.Tab(translate("Inpainting", translations)):
         validated_image_state = gr.State(value=None)
         with gr.Row():
             with gr.Column():
@@ -1178,8 +1873,9 @@ with gr.Blocks(**block_kwargs) as interface:
                 message_inpainting = gr.Textbox(label=translate("message_inpainting", translations), interactive=False)                
                 
                 texte_bouton_inpaint_initial = translate("charger_modele_pour_commencer", translations)
-                bouton_generate_inpainting = gr.Button(value=texte_bouton_inpaint_initial, interactive=False)
+                bouton_generate_inpainting = gr.Button(value=texte_bouton_inpaint_initial, interactive=False, variant="primary")
                 bouton_stop_inpainting = gr.Button(translate("arreter_inpainting", translations), variant="stop")
+
 
             with gr.Column():
             
@@ -1215,81 +1911,272 @@ with gr.Blocks(**block_kwargs) as interface:
                 else:
                     return None, None
             
-            image_upload_input.upload(
-                fn=process_uploaded_image,
-                inputs=[image_upload_input],
-                outputs=[validated_image_state] # Met à jour SEULEMENT l'état
-            )
-            image_upload_input.change( # Gérer aussi l'effacement
-                fn=process_uploaded_image,
-                inputs=[image_upload_input],
-                outputs=[validated_image_state]
-            )
-            validated_image_state.change(
-                fn=update_image_mask_and_initial_effects,
-                inputs=[validated_image_state, opacity_slider, blur_slider],
-                outputs=[image_mask_input, mask_image_output]
-            )            
-            
-            opacity_slider.change(
-                fn=update_inpainting_mask_effects,
-                inputs=[image_mask_input, opacity_slider, blur_slider],
-                outputs=[mask_image_output],
-            )
-            blur_slider.change(
-                fn=update_inpainting_mask_effects,
-                inputs=[image_mask_input, opacity_slider, blur_slider],
-                outputs=[mask_image_output],
-            )
-            image_mask_input.change( # Déclenché quand on dessine
-                fn=update_inpainting_mask_effects,
-                inputs=[image_mask_input, opacity_slider, blur_slider],
-                outputs=[mask_image_output],
-            )      
-            
-            bouton_stop_inpainting.click(
-                fn=stop_generation_process,
-                outputs=message_inpainting
-            )
 
-            bouton_lister_inpainting.click(
-                fn=mettre_a_jour_listes_inpainting,
-                outputs=modele_inpainting_dropdown
-            )
-
-            bouton_charger_inpainting.click(
-                fn=update_globals_model_inpainting,
-                inputs=[modele_inpainting_dropdown],
-                outputs=[message_chargement_inpainting, bouton_generate_inpainting, bouton_generate_inpainting]
-            )
-            
-            bouton_generate_inpainting.click(
-                fn=generate_inpainted_image,
-                inputs=[
-                    inpainting_prompt,
-                    validated_image_state,
-                    mask_image_output,
-                    num_steps_inpainting_slider,
-                    strength_inpainting_slider,
-                    guidance_inpainting_slider,
-                    traduire_inpainting_checkbox
-                ],
-                outputs=[
-                    inpainting_ressultion_output,          # Image finale
-                    message_chargement_inpainting,         # Message de chargement/HTML
-                    message_inpainting,                    # Message de statut
-                    progress_inp_html_output,              # Barre de progression HTML
-                    bouton_charger_inpainting,             # Bouton Charger (pour état)
-                    bouton_generate_inpainting             # Bouton Générer (pour état)
-                ]
-            )
 
 
 
 ############################################################
 ########TAB MODULES
 ############################################################
-     gestionnaire.creer_tous_les_onglets(translations)
+    gestionnaire.creer_tous_les_onglets(translations)
+
+
+
+
+
+
+    use_image_checkbox.change(fn=lambda use_image: gr.update(visible=use_image), inputs=use_image_checkbox, outputs=image_input)
+    
+    bouton_lister.click(
+        fn=mettre_a_jour_listes,
+        outputs=[modele_dropdown, vae_dropdown, *lora_dropdowns, lora_message]
+    )
+                
+    bouton_charger.click(
+        fn=update_globals_model,
+        inputs=[modele_dropdown, vae_dropdown],
+        outputs=[message_chargement, btn_generate, btn_generate]
+    )
+    sampler_dropdown.change(fn=apply_sampler, inputs=sampler_dropdown, outputs=[message_chargement])
+
+    image_input.change(fn=generate_caption, inputs=image_input, outputs=text_input)
+
+    btn_generate.click(
+        generate_image,
+        inputs=[
+            text_input,
+            style_dropdown,
+            guidance_slider,
+            num_steps_slider,
+            format_dropdown,
+            traduire_checkbox,
+            seed_input,
+            num_images_slider,
+            *lora_checks,
+            *lora_dropdowns,
+            *lora_scales
+        ],
+        outputs=[
+            image_output,
+            seed_output,
+            time_output,
+            html_output,
+            preview_image_output,
+            progress_html_output,
+            bouton_charger,
+            btn_generate,
+            bouton_save_current_preset,
+            last_successful_generation_data,
+            last_successful_preview_image
+        ]
+    )
+    btn_stop.click(stop_generation_process, outputs=time_output)
+    btn_stop_after_gen.click(stop_generation, outputs=time_output)
+    
+
+    bouton_save_current_preset.click(
+        fn=handle_save_preset,
+        inputs=[
+            preset_name_input,
+            preset_notes_input,
+            last_successful_generation_data, # État contenant le JSON
+            last_successful_preview_image,
+            preset_refresh_trigger,
+            preset_search_input    # État contenant l'image PIL
+        ],
+        outputs=[
+            preset_name_input, # Pour vider si succès
+            preset_notes_input, # Pour vider si succès
+            preset_filter_model, # Pour mettre à jour les choix
+            preset_filter_sampler, # Pour mettre à jour les choix
+            preset_filter_lora,
+            preset_refresh_trigger,
+            preset_search_input     # Pour mettre à jour les choix
+        ]
+    )
+  
+
+# Liaisons pour l'onglet Inpainting
+    image_upload_input.upload(
+        fn=process_uploaded_image,
+        inputs=[image_upload_input],
+        outputs=[validated_image_state] # Met à jour SEULEMENT l'état
+    )
+    image_upload_input.change( # Gérer aussi l'effacement
+        fn=process_uploaded_image,
+        inputs=[image_upload_input],
+        outputs=[validated_image_state]
+    )
+    validated_image_state.change(
+        fn=update_image_mask_and_initial_effects,
+        inputs=[validated_image_state, opacity_slider, blur_slider],
+        outputs=[image_mask_input, mask_image_output]
+    )            
+    
+    opacity_slider.change(
+        fn=update_inpainting_mask_effects,
+        inputs=[image_mask_input, opacity_slider, blur_slider],
+        outputs=[mask_image_output],
+    )
+    blur_slider.change(
+        fn=update_inpainting_mask_effects,
+        inputs=[image_mask_input, opacity_slider, blur_slider],
+        outputs=[mask_image_output],
+    )
+    image_mask_input.change( # Déclenché quand on dessine
+        fn=update_inpainting_mask_effects,
+        inputs=[image_mask_input, opacity_slider, blur_slider],
+        outputs=[mask_image_output],
+    )      
+    
+    bouton_stop_inpainting.click(
+        fn=stop_generation_process,
+        outputs=message_inpainting
+    )
+
+    bouton_lister_inpainting.click(
+        fn=mettre_a_jour_listes_inpainting,
+        outputs=modele_inpainting_dropdown
+    )
+
+    bouton_charger_inpainting.click(
+        fn=update_globals_model_inpainting,
+        inputs=[modele_inpainting_dropdown],
+        outputs=[message_chargement_inpainting, bouton_generate_inpainting, bouton_generate_inpainting]
+    )
+    
+    bouton_generate_inpainting.click(
+        fn=generate_inpainted_image,
+        inputs=[
+            inpainting_prompt,
+            validated_image_state,
+            mask_image_output,
+            num_steps_inpainting_slider,
+            strength_inpainting_slider,
+            guidance_inpainting_slider,
+            traduire_inpainting_checkbox
+        ],
+        outputs=[
+            inpainting_ressultion_output,
+            message_chargement_inpainting,
+            message_inpainting,
+            progress_inp_html_output,
+            bouton_charger_inpainting,
+            bouton_generate_inpainting
+        ]
+    )
+
+with interface: # Re-ouvrir le contexte pour ajouter les liaisons
+
+    # --- Inputs communs pour le rendu de page ---
+    render_page_inputs = [
+        current_preset_page_state,
+        preset_search_input,
+        preset_sort_dropdown,
+        preset_filter_model,
+        preset_filter_sampler,
+        preset_filter_lora,
+        preset_refresh_trigger
+    ]
+    pagination_dd_inputs = [
+        current_preset_page_state, # La page actuelle est nécessaire
+        preset_search_input, preset_sort_dropdown, preset_filter_model,
+        preset_filter_sampler, preset_filter_lora
+    ]
+
+    pagination_dd_output = preset_page_dropdown 
+ 
+    def update_pagination_display(page, search, sort, filter_models, filter_samplers, filter_loras):
+        """Met à jour le Dropdown de pagination."""
+        # Recalculer le nombre total de pages
+        all_presets_data = preset_manager.load_presets_for_display(
+            preset_type='gen_image', search_term=search, sort_by=sort,
+            selected_models=filter_models or None, selected_samplers=filter_samplers or None, selected_loras=filter_loras or None
+        )
+        total_presets = len(all_presets_data)
+        total_pages = math.ceil(total_presets / PRESETS_PER_PAGE) if total_presets > 0 else 1
+        current_page = max(1, min(page, total_pages)) # Assurer que la page est valide
+
+
+        # Créer la liste des choix pour le dropdown
+        page_choices = list(range(1, total_pages + 1))
+
+        # Retourner l'update pour le dropdown
+        return gr.update(
+            choices=page_choices,
+            value=current_page,
+            interactive=(total_pages > 1) # Activer seulement si plus d'une page
+        )
+
+
+    def reset_page_and_update_pagination(*args):
+        # Le premier arg est la page actuelle, on l'ignore pour le calcul de pagination
+        pagination_updates = update_pagination_display(1, *args[1:]) # Calculer pagination pour page 1
+        # Retourner l'update pour la page (déclenche @gr.render) + updates pagination
+        return [gr.update(value=1)] + list(pagination_updates)
+    def reset_page_and_update_pagination_dd(*args):
+        # Le premier arg est la page actuelle (ignoré), les suivants sont les filtres
+        pagination_dd_update = update_pagination_display(1, *args[1:]) # Calculer dropdown pour page 1
+        # Retourner update pour l'état page + update pour le dropdown
+        return gr.update(value=1), pagination_dd_update
+
+    # 1. Mettre l'état de la page à 1
+
+    # 2. Appeler explicitement le rendu APRÈS la mise à jour de l'état
+
+
+    preset_search_input.input(
+        fn=reset_page_and_update_pagination_dd,
+        inputs=pagination_dd_inputs, # Prend page actuelle + filtres
+        outputs=[current_preset_page_state, pagination_dd_output] # Met à jour état page ET dropdown
+    )
+
+
+    preset_sort_dropdown.change(
+        fn=reset_page_and_update_pagination_dd,
+        inputs=pagination_dd_inputs,
+        outputs=[current_preset_page_state, pagination_dd_output]
+    )
+    preset_filter_model.change(
+        fn=reset_page_and_update_pagination_dd,
+        inputs=pagination_dd_inputs,
+        outputs=[current_preset_page_state, pagination_dd_output]
+    )
+    preset_filter_sampler.change(
+        fn=reset_page_and_update_pagination_dd,
+        inputs=pagination_dd_inputs,
+        outputs=[current_preset_page_state, pagination_dd_output]
+    )
+    preset_filter_lora.change(
+        fn=reset_page_and_update_pagination_dd,
+        inputs=pagination_dd_inputs,
+        outputs=[current_preset_page_state, pagination_dd_output]
+    )
+
+    # ... (idem pour preset_filter_model.change, preset_filter_sampler.change, preset_filter_lora.change) ...
+
+    # --- Liaison du bouton Refresh manuel ---
+    # Incrémente le trigger (déclenche @gr.render) ET met à jour la pagination
+    def refresh_trigger_and_update_pagination_dd(current_page, trigger, *filter_args):
+        pagination_dd_update = update_pagination_display(current_page, *filter_args) # Utilise page actuelle
+        return gr.update(value=trigger + 1), pagination_dd_update
+
+    # 1. Mettre à jour l'état de la page
+    preset_page_dropdown.change(
+        fn=handle_page_dropdown_change, # Utiliser la fonction nommée
+        inputs=[preset_page_dropdown],
+        outputs=[current_preset_page_state] # Cible l'état
+    )
+
+    def initial_load_update_pagination_dd(*filter_args):
+        pagination_dd_update = update_pagination_display(1, *filter_args) # Page 1 initiale
+        return gr.update(value=1), pagination_dd_update
+
+    interface.load(
+        fn=initial_load_update_pagination_dd,
+        inputs=pagination_dd_inputs[1:], # Juste les filtres initiaux
+        outputs=[current_preset_page_state, pagination_dd_output] # Met à jour état page ET dropdown
+    )
 
 
 interface.launch(inbrowser=str_to_bool(OPEN_BROWSER), pwa=True, share=str_to_bool(SHARE))

@@ -34,5 +34,7 @@
 	"OPEN_BROWSER": "Yes",
 	"GRADIO_THEME": "Default",
 	"SHARE":"No",
-    "LANGUAGE": "fr"
+    "LANGUAGE": "fr",
+	"PRESETS_PER_PAGE": 12,
+	"PRESET_COLS_PER_ROW":4
 }
