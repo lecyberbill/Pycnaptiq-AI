@@ -1020,7 +1020,12 @@ def styles_fusion(style_selection, prompt_text, base_negative_prompt, styles_con
 
     return final_positive_prompt, final_negative_prompt, style_display_names
 
-def create_progress_bar_html(current_step: int, total_steps: int, progress_percent: int, image_fond_name: str = "piste.svg", image_remplissage_name: str = "barre.svg") -> str:
+# Dans Utils/utils.py
+import base64 # Assurez-vous que base64 est importé
+from pathlib import Path # Assurez-vous que Path est importé
+
+# MODIFIER la signature pour ajouter text_info
+def create_progress_bar_html(current_step: int, total_steps: int, progress_percent: int, text_info: str = None, image_fond_name: str = "piste.svg", image_remplissage_name: str = "barre.svg") -> str:
     """
     Génère le code HTML pour une barre de progression personnalisée avec texte et images SVG.
 
@@ -1028,8 +1033,9 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
         current_step (int): L'étape actuelle de la progression.
         total_steps (int): Le nombre total d'étapes.
         progress_percent (int): Le pourcentage de progression.
-        image_path_fond (str): Chemin relatif vers l'image SVG pour la piste.
-        image_path_remplissage (str): Chemin relatif vers l'image SVG pour le remplissage.
+        text_info (str, optional): Texte supplémentaire à afficher (ex: "Image 2/4"). Par défaut None.
+        image_fond_name (str): Nom du fichier SVG pour la piste.
+        image_remplissage_name (str): Nom du fichier SVG pour le remplissage.
 
     Returns:
         str: La chaîne HTML complète pour la barre de progression.
@@ -1037,12 +1043,15 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
     # S'assurer que les chemins sont valides pour l'URL CSS (utiliser des slashes)
     root_dir = Path(__file__).parent.parent
     chemin_dossier_utils = root_dir / "html_util"
+    # Utiliser les arguments corrects pour les noms de fichiers SVG
     chemin_image_fond = chemin_dossier_utils / image_fond_name
     chemin_image_remplissage = chemin_dossier_utils / image_remplissage_name
-    
-        # --- Lire et encoder les SVG en Data URI ---
+
+    # --- Lire et encoder les SVG en Data URI ---
     def svg_to_data_uri(filepath):
         if not filepath.is_file():
+            # Utiliser txt_color ici si vous l'avez importé ou défini dans utils.py
+            # Sinon, utiliser un print standard ou le logger
             print(f"[ERREUR Utils] Fichier SVG non trouvé: {filepath}")
             return "none" # Retourne 'none' pour la propriété CSS background-image
         try:
@@ -1059,10 +1068,7 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
     data_uri_fond = svg_to_data_uri(chemin_image_fond)
     data_uri_remplissage = svg_to_data_uri(chemin_image_remplissage)
 
-    # Définir les styles CSS avec les images SVG locales
-    # Note: On pourrait optimiser en ne générant la partie <style> qu'une seule fois
-    #       ou en la mettant dans un fichier CSS séparé, mais pour l'instant,
-    #       on la garde ici pour la simplicité de l'exemple.
+    # Définir les styles CSS (inchangé)
     css_styles = f"""
     <style>
         .progress-container {{
@@ -1072,9 +1078,8 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
             border-radius: 8px;
             border: 1px solid #555;
             overflow: hidden;
-            /* Le fond du conteneur peut servir de repli ou pour Firefox */
             background-image: url('{data_uri_fond}');
-            background-size: cover; /* ou autre */
+            background-size: cover;
             background-repeat: no-repeat;
             background-position: center center;
         }}
@@ -1085,9 +1090,8 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
             height: 100%;
             position: absolute; top: 0; left: 0;
             background-color: transparent;
-            color: #4CAF50; /* Couleur de repli */
+            color: #4CAF50;
         }}
-        /* Style pour Webkit (Piste/Fond) */
         .custom-progress::-webkit-progress-bar {{
             background-image: url('{data_uri_fond}');
             background-size: cover;
@@ -1095,16 +1099,14 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
             background-position: center center;
             border-radius: 8px;
         }}
-        /* Style pour Webkit (Valeur/Remplissage) */
         .custom-progress::-webkit-progress-value {{
             background-image: url('{data_uri_remplissage}');
-            background-size: cover; /* Ajuste selon ton SVG */
+            background-size: cover;
             background-repeat: no-repeat;
             background-position: left center;
             border-radius: 8px;
             transition: width 0.1s ease;
         }}
-        /* Style pour Firefox (Valeur/Remplissage) */
         .custom-progress::-moz-progress-bar {{
             background-image: url('{data_uri_remplissage}');
             background-size: cover;
@@ -1113,7 +1115,6 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
             border-radius: 8px;
             transition: width 0.1s ease;
         }}
-
         .progress-text-overlay {{
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
@@ -1121,7 +1122,7 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
             font-size: 0.9em;
             color: #fff;
             text-shadow: 0 0 3px #000, 0 0 3px #000;
-            line-height: 25px; /* Correspondre à la hauteur du conteneur */
+            line-height: 25px;
             z-index: 1;
             pointer-events: none;
             font-weight: bold;
@@ -1129,12 +1130,17 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
     </style>
     """
 
-    # Construire l'HTML final
+    # MODIFIER la construction du texte de l'overlay
+    progress_text = f"{current_step}/{total_steps} ({progress_percent}%)"
+    if text_info: # Ajouter text_info s'il est fourni
+        progress_text = f"{text_info} - {progress_text}"
+
+    # Construire l'HTML final (utiliser progress_text)
     progress_html = f'''
         {css_styles}
         <div class="progress-container">
             <progress class="custom-progress" value="{current_step}" max="{total_steps}"></progress>
-            <div class="progress-text-overlay">{current_step}/{total_steps} ({progress_percent}%)</div>
+            <div class="progress-text-overlay">{progress_text}</div>
         </div>
     '''
     return progress_html

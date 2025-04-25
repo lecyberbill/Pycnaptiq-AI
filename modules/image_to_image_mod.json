@@ -57,7 +57,20 @@
             "arreter": "Arrêter",
             "stop_requested": "Demande d'arrêt reçue...",
             "generation_arretee": "Génération arrêtée par l'utilisateur.",
-            "erreur_pas_image_genere": "Erreur interne : Aucune image finale n'a été générée."
+            "erreur_pas_image_genere": "Erreur interne : Aucune image finale n'a été générée.",
+            "mode_single_image": "Image Unique",
+            "mode_batch_folder": "Dossier Batch",
+            "mode_selection_label": "Mode de traitement",
+            "batch_folder_label": "Chemin du dossier d'images",
+            "batch_folder_placeholder": "Entrez le chemin complet du dossier contenant les images...",
+            "erreur_dossier_batch_invalide": "Erreur : Le chemin du dossier batch est invalide ou n'existe pas.",
+            "erreur_aucune_image_dossier": "Erreur : Aucune image compatible trouvée dans le dossier spécifié.",
+            "batch_images_trouvees": "Images trouvées pour le traitement par lot",
+            "batch_processing_image": "Traitement image",
+            "batch_progress_image": "Image",
+            "erreur_fichier_introuvable": "Erreur : Fichier introuvable",
+            "erreur_traitement_image": "Erreur lors du traitement de l'image",
+            "generation_terminee_en": "Génération terminée en"
         },
         "en": {
             "i2i_tab_name": "Image 2 Image",
@@ -113,7 +126,20 @@
             "arreter": "Stop",
             "stop_requested": "Stop request received...",
             "generation_arretee": "Generation stopped by user.",
-            "erreur_pas_image_genere": "Internal error: No final image was generated."
+            "erreur_pas_image_genere": "Internal error: No final image was generated.",
+            "mode_single_image": "Single Image",
+            "mode_batch_folder": "Batch Folder",
+            "mode_selection_label": "Processing Mode",
+            "batch_folder_label": "Image Folder Path",
+            "batch_folder_placeholder": "Enter the full path to the folder containing images...",
+            "erreur_dossier_batch_invalide": "Error: The batch folder path is invalid or does not exist.",
+            "erreur_aucune_image_dossier": "Error: No compatible images found in the specified folder.",
+            "batch_images_trouvees": "Images found for batch processing",
+            "batch_processing_image": "Processing image",
+            "batch_progress_image": "Image",
+            "erreur_fichier_introuvable": "Error: File not found",
+            "erreur_traitement_image": "Error processing image",
+            "generation_terminee_en": "Generation finished in"
         }
     },
     "init_function": "initialize"

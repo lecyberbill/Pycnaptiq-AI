@@ -270,10 +270,6 @@ def style_choice(selected_style_user, STYLES):
     selected_style = next((item for item in STYLES if item["name"] == selected_style_user), None)
     return selected_style
 
-gestionnaire.global_pipe, gestionnaire.global_compel, *message = charger_modele(DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel)
-
-gestionnaire.global_compel = gestionnaire.global_compel
-
 #==========================
 # Fonction GENERATION PROMPT A PARTIR IMAGE
 #==========================
@@ -956,19 +952,84 @@ def stop_generation_process():
 # =========================
 
 
-if DEFAULT_MODEL in modeles_disponibles:
+initial_model_value = None
+initial_vae_value = None
+initial_button_text = translate("charger_modele_pour_commencer", translations)
+initial_button_interactive = False
+initial_message_chargement = translate("aucun_modele_charge", translations)
+message_retour = None 
+model_selectionne = None  
+vae_selctionne = None 
+
+if DEFAULT_MODEL and os.path.basename(DEFAULT_MODEL) in modeles_disponibles:
     print(f"{txt_color('[INFO]','info')}", f"{DEFAULT_MODEL} {translate('va_se_charger', translations)} {MODELS_DIR}")
-    # Use DEFAULT_MODEL and "Défaut VAE" directly
-    gestionnaire.global_pipe, gestionnaire.global_compel, *message = charger_modele(DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel)
-    model_selectionne = DEFAULT_MODEL
-    vae_selctionne = "Défaut VAE"
 
-else:
-    print(f"{txt_color('[INFO]','info')}", f"{DEFAULT_MODEL} {translate('pas_de_modele_dans', translations)} : {MODELS_DIR}")
-    DEFAULT_MODEL = ""
-    model_selectionne = ""
-    vae_selctionne = ""
+    temp_pipe = None # Initialiser à None
+    temp_compel = None
+    message_retour_list = []
+    erreur_chargement = None
 
+    try:
+        # 1. Charger dans des variables temporaires
+        temp_pipe, temp_compel, *message_retour_list = charger_modele(
+            DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR,
+            device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel
+        )
+        message_retour = message_retour_list[0] if message_retour_list else None
+
+    except Exception as e_load:
+        traceback.print_exc()
+        erreur_chargement = e_load
+        message_retour = str(e_load) # Utiliser le message d'erreur
+
+
+
+    # 2. Vérifier le succès basé sur temp_pipe ET l'absence d'erreur
+    if temp_pipe and not erreur_chargement:
+        try:
+            # 3. Affecter les globales SEULEMENT si succès
+            gestionnaire.global_pipe = temp_pipe
+            gestionnaire.global_compel = temp_compel
+            model_selectionne = os.path.basename(DEFAULT_MODEL)
+            vae_selctionne = "Défaut VAE"
+
+            # --- Mettre à jour les variables initiales EN CAS DE SUCCÈS ---
+            initial_model_value = os.path.basename(DEFAULT_MODEL)
+            initial_vae_value = "Défaut VAE"
+            initial_button_text = translate("generer", translations)
+            initial_button_interactive = True
+            # Utiliser le message retourné par charger_modele s'il existe
+            initial_message_chargement = message_retour if message_retour else translate("modele_charge_pret", translations)
+
+            # DEBUG POST-UPDATE
+            # ... (prints comme avant) ...
+
+        except Exception as e_inner:
+            # ... (gestion d'erreur interne comme avant) ...
+            traceback.print_exc()
+            # Réinitialiser explicitement
+            initial_model_value = None
+            initial_vae_value = None
+            initial_button_text = translate("charger_modele_pour_commencer", translations)
+            initial_button_interactive = False
+            initial_message_chargement = f"Erreur interne après chargement: {e_inner}"
+            gestionnaire.global_pipe = None
+            gestionnaire.global_compel = None
+            model_selectionne = None
+            vae_selctionne = None
+
+    else:
+        # --- Le chargement a ÉCHOUÉ (soit temp_pipe est None, soit erreur_chargement existe) ---
+        # Utiliser le message d'erreur ou un message par défaut
+        initial_message_chargement = message_retour if message_retour else translate("erreur_chargement_modele_defaut", translations)
+        gestionnaire.global_pipe = None
+        gestionnaire.global_compel = None
+        # Les autres initial_* gardent leur valeur par défaut
+
+elif DEFAULT_MODEL:
+    # --- Le modèle par défaut n'a pas été trouvé dans le dossier ---
+    gestionnaire.global_pipe = None
+    gestionnaire.global_compel = None
 # =========================
 # Model Loading Functions (update_globals_model, update_globals_model_inpainting) for gradio
 # =========================
@@ -1466,6 +1527,7 @@ def handle_page_dropdown_change(page_selection):
     # Retourner SEULEMENT la valeur sélectionnée pour mettre à jour l'état
     return page_selection
 
+
 ############################################################
 ############################################################
 #####################USER INTERFACE#########################
@@ -1515,7 +1577,7 @@ with gr.Blocks(**block_kwargs) as interface:
                 use_image_checkbox = gr.Checkbox(label=translate("generer_prompt_image", translations), value=False)
                 time_output = gr.Textbox(label=translate("temps_rendu", translations), interactive=False)
                 html_output = gr.Textbox(label=translate("mise_a_jour_html", translations), interactive=False)
-                message_chargement = gr.Textbox(label=translate("statut", translations), value=translate("aucun_modele_charge", translations))       
+                message_chargement = gr.Textbox(label=translate("statut", translations), value=initial_message_chargement)     
                 image_input = gr.Image(label=translate("telechargez_image", translations), type="pil", visible=False)
 
 
@@ -1535,8 +1597,8 @@ with gr.Blocks(**block_kwargs) as interface:
                         preview_image_output = gr.Image(height=170, label=translate("apercu_etapes", translations),interactive=False)
                         seed_output = gr.Textbox(label=translate("seed_utilise", translations))
                         value = DEFAULT_MODEL if DEFAULT_MODEL else None
-                        modele_dropdown = gr.Dropdown(label=translate("selectionner_modele", translations), choices=modeles_disponibles, value=value)
-                        vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=vaes, value=value)
+                        modele_dropdown = gr.Dropdown(label=translate("selectionner_modele", translations), choices=modeles_disponibles, value=initial_model_value, allow_custom_value=True)
+                        vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=vaes, value=initial_vae_value)
                         sampler_dropdown = gr.Dropdown(label=translate("selectionner_sampler", translations), choices=sampler_options)
                         bouton_charger = gr.Button(translate("charger_modele", translations))
                         
@@ -1544,7 +1606,7 @@ with gr.Blocks(**block_kwargs) as interface:
                         
             with gr.Column():
                 texte_bouton_gen_initial = translate("charger_modele_pour_commencer", translations) # Utiliser la même clé ou une clé spécifique
-                btn_generate = gr.Button(value=texte_bouton_gen_initial, interactive=False, variant="primary")
+                btn_generate = gr.Button(value=initial_button_text, interactive=initial_button_interactive, variant="primary")
                 btn_stop = gr.Button(translate("arreter", translations), variant="stop")
                 btn_stop_after_gen = gr.Button(translate("stop_apres_gen", translations), variant="stop")
                 bouton_lister = gr.Button(translate("lister_modeles", translations))
