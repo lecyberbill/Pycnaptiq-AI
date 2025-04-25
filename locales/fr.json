@@ -472,5 +472,22 @@
   "erreur_appel_sauvegarde_preset": "Erreur lors de l'appel à save_gen_image_preset",
   "debug_updates_filtres_recuperees": "Updates des filtres récupérées après sauvegarde preset.",
   "debug_hack_recherche_preset": "Hack: mise à jour recherche preset vers '{}'",
-  "erreur_update_filtres_preset": "Erreur lors de update_filter_choices_after_save"
+  "erreur_update_filtres_preset": "Erreur lors de update_filter_choices_after_save",
+  "erreur_image_invalide_pour_meta": "Image fournie invalide pour l'ajout de métadonnées.",
+  "erreur_metadonnees_invalides": "Format des métadonnées invalide (doit être un dictionnaire).",
+  "metadonnees_png_preparees": "Métadonnées PNG préparées pour l'enregistrement.",
+  "metadonnees_jpeg_preparees": "Métadonnées JPEG (EXIF UserComment) préparées pour l'enregistrement.",
+  "erreur_preparation_metadonnees_jpeg": "Erreur lors de la préparation des métadonnées JPEG",
+  "format_non_supporte_pour_meta": "Format d'image '{format}' non supporté pour l'injection de métadonnées intégrées.",
+  "erreur_serialisation_json_meta": "Erreur lors de la sérialisation JSON des métadonnées",
+  "erreur_inconnue_preparation_meta": "Erreur inconnue lors de la préparation des métadonnées",
+  "erreur_image_invalide_enregistrement": "Tentative d'enregistrement d'un objet qui n'est pas une image PIL.",
+  "injection_exif_jpeg": "Injection des métadonnées EXIF dans le JPEG.",
+  "avertissement_meta_incompatible_jpeg": "Avertissement: Métadonnées fournies mais non compatibles avec le format JPEG (attendu bytes EXIF).",
+  "injection_pnginfo": "Injection des métadonnées PngInfo dans le PNG.",
+  "avertissement_meta_incompatible_png": "Avertissement: Métadonnées fournies mais non compatibles avec le format PNG (attendu PngInfo).",
+  "metadata_non_injectee_webp": "Métadonnées préparées mais non injectées pour le format WEBP (support limité).",
+  "format_enregistrement_inconnu": "Format d'enregistrement '{format}' non géré explicitement pour les métadonnées ou options spécifiques.",
+  "erreur_chemin_invalide": "Erreur lors de la sauvegarde: Chemin invalide ou non accessible",
+  "erreur_io_sauvegarde": "Erreur d'entrée/sortie lors de la sauvegarde de l'image"
 }

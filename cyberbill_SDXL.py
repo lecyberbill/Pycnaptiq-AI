@@ -23,7 +23,7 @@ from core.trannslator import translate_prompt
 from core.Inpaint import apply_mask_effects
 from Utils.model_loader import charger_modele, charger_modele_inpainting, charger_lora, decharge_lora, gerer_lora
 from Utils.utils import enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, GestionModule, styles_fusion, create_progress_bar_html,\
-    telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, check_gpu_availability, decharger_modele, ImageSDXLchecker
+    telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, preparer_metadonnees_image, check_gpu_availability, decharger_modele, ImageSDXLchecker
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Process
 torch.backends.cudnn.deterministic = True
@@ -588,34 +588,60 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             style_info_str = ", ".join(selected_style_display_names) if selected_style_display_names else translate("Aucun_style", translations)
           
             donnees_xmp =  {
-                    "IMAGE": f"{idx+1} {translate('image_sur',translations)} {num_images}",
+                    "Module": "SDXL Image Generation",
                     "Creator": AUTHOR,
-                    "Seed": seed,
-                    "Inference": num_steps,
+                    "Model": os.path.splitext(model_selectionne)[0],
+                    "VAE": os.path.splitext(vae_selctionne)[0] if vae_selctionne else "Défaut VAE",
+                    "Steps": num_steps,
                     "Guidance": guidance_scale,
-                    "original_prompt": prompt_text,
+                    "Sampler": gestionnaire.global_pipe.scheduler.__class__.__name__,
+                    "IMAGE": f"{idx+1} {translate('image_sur',translations)} {num_images}",
+                    "Inference": num_steps,
+                    "Style": style_info_str,
+                    "original_prompt (User)": prompt_text,
                     "Prompt": prompt_en,
                     "Negatif Prompt": negative_prompt_str,
-                    "Style": style_info_str,
-                    "Dimension": selected_format,
-                    "Modèle": os.path.splitext(model_selectionne)[0],
-                    "VAE": os.path.splitext(vae_selctionne)[0] if vae_selctionne else "Défaut VAE",
-                    "Sampler": gestionnaire.global_pipe.scheduler.__class__.__name__,
+                    "Seed": seed,
+                    "Size": selected_format,                   
                     "Loras": lora_info_str,
-                    "Temps de génération": temps_generation_image 
+                    "Generation Time": temps_generation_image 
                 }
-
             filename = f"{date_str}_{heure_str}_{seed}_{width}x{height}_{idx+1}.{IMAGE_FORMAT.lower()}"
             chemin_image = os.path.join(save_dir, filename)
+
+
+            metadata_structure, prep_message = preparer_metadonnees_image(
+                final_image, # L'image PIL générée
+                donnees_xmp,
+                translations, # Utiliser les traductions globales pour les messages de la fonction utilitaire
+                chemin_image # Passer le chemin pour déterminer le format
+            )
+            # Afficher le message de la préparation (succès ou échec)
+            print(txt_color("[INFO]", "info"), prep_message)
+
+
 
             gr.Info(translate("image_sauvegarder", translations) + " " + chemin_image, 3.0)    
             
             # Déléguer la tâche d'enregistrement de l'image au ThreadPoolExecutor
-            image_future = image_executor.submit(enregistrer_image, final_image, chemin_image, translations, IMAGE_FORMAT)
+            image_future = image_executor.submit(
+                enregistrer_image,
+                final_image,
+                chemin_image,
+                translations,
+                IMAGE_FORMAT, # Le format global défini en haut du fichier
+                metadata_to_save=metadata_structure # Passer la structure préparée
+            )
                                    
             is_last_image = (idx == num_images - 1)
             # Déléguer la tâche d'écriture dans le ThreadPoolExecutor
-            html_future = html_executor.submit(enregistrer_etiquettes_image_html, chemin_image, donnees_xmp, translations, is_last_image)
+            html_future = html_executor.submit(
+                enregistrer_etiquettes_image_html,
+                chemin_image,
+                donnees_xmp, # Passer les mêmes données pour cohérence
+                translations,
+                is_last_image=(idx == num_images - 1)
+            )
             
             print(txt_color("[OK] ","ok"),translate("image_sauvegarder", translations), txt_color(f"{filename}","ok"))
             images.append(final_image) # Append each generated image to the list
@@ -880,22 +906,44 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
                 heure_str = datetime.now().strftime("%H_%M_%S")
                 save_dir = os.path.join(SAVE_DIR, date_str)
                 os.makedirs(save_dir, exist_ok=True)
-                filename = f"{date_str}_{heure_str}_inpainting_{image.width}x{image.height}.{IMAGE_FORMAT.lower()}"
+                filename = f"inpainting_{date_str}_{heure_str}_{image.width}x{image.height}.{IMAGE_FORMAT.lower()}"
                 chemin_image = os.path.join(save_dir, filename)
                 donnees_xmp = {
-                    "Module": "Inpainting",
+                    "Module": "SDXL Inpainting",
                     "Creator": AUTHOR,
-                    "Inference": num_steps,
+                    "Model": os.path.splitext(model_selectionne)[0],
+                    "Steps": num_steps,
                     "Guidance": guidance_scale,
                     "Strength": strength,
                     "Prompt": prompt_text,
-                    "Modèle": os.path.splitext(model_selectionne)[0],
-                    "Dimension": f"{image.width}x{image.height}",
-                    "Temps de génération": temps_generation_image
+                    "Size": f"{image.width}x{image.height}",
+                    "Generation Time": temps_generation_image
                 }
 
-                image_future = image_executor.submit(enregistrer_image, inpainted_image, chemin_image, translations, IMAGE_FORMAT)
-                html_future = html_executor.submit(enregistrer_etiquettes_image_html, chemin_image, donnees_xmp, translations, is_last_image=True)
+                metadata_structure, prep_message = preparer_metadonnees_image(
+                    inpainted_image, # L'image PIL générée
+                    donnees_xmp,
+                    translations, # Utiliser les traductions globales
+                    chemin_image # Passer le chemin pour déterminer le format
+                )
+
+                print(txt_color("[INFO]", "info"), prep_message)
+
+                image_future = image_executor.submit(
+                    enregistrer_image,
+                    inpainted_image,
+                    chemin_image,
+                    translations,
+                    IMAGE_FORMAT, # Le format global
+                    metadata_to_save=metadata_structure # Passer la structure préparée
+                )
+                html_future = html_executor.submit(
+                    enregistrer_etiquettes_image_html,
+                    chemin_image,
+                    donnees_xmp, # Passer les mêmes données
+                    translations,
+                    is_last_image=True # Inpainting génère une seule image
+                )
         
                 try:
                     html_message_result = html_future.result(timeout=10)
@@ -1999,7 +2047,11 @@ with gr.Blocks(**block_kwargs) as interface:
         inputs=[modele_dropdown, vae_dropdown],
         outputs=[message_chargement, btn_generate, btn_generate]
     )
-    sampler_dropdown.change(fn=apply_sampler, inputs=sampler_dropdown, outputs=[message_chargement])
+    sampler_dropdown.change(
+        fn=lambda selection: apply_sampler(selection)[0], # Appelle apply_sampler et prend seulement le premier élément retourné (le message)
+        inputs=sampler_dropdown,
+        outputs=[message_chargement]
+    )
 
     image_input.change(fn=generate_caption, inputs=image_input, outputs=text_input)
 

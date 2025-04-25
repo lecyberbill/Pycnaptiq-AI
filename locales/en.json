@@ -469,5 +469,22 @@
     "erreur_appel_sauvegarde_preset": "Error calling save_gen_image_preset",
     "debug_updates_filtres_recuperees": "Filter updates retrieved after preset save.",
     "debug_hack_recherche_preset": "Hack: updating preset search to '{}'",
-    "erreur_update_filtres_preset": "Error during update_filter_choices_after_save"
+    "erreur_update_filtres_preset": "Error during update_filter_choices_after_save",
+    "erreur_image_invalide_pour_meta": "Invalid image provided for adding metadata.",
+    "erreur_metadonnees_invalides": "Invalid metadata format (must be a dictionary).",
+    "metadonnees_png_preparees": "PNG metadata prepared for saving.",
+    "metadonnees_jpeg_preparees": "JPEG metadata (EXIF UserComment) prepared for saving.",
+    "erreur_preparation_metadonnees_jpeg": "Error preparing JPEG metadata",
+    "format_non_supporte_pour_meta": "Image format '{format}' not supported for embedded metadata injection.",
+    "erreur_serialisation_json_meta": "Error during JSON serialization of metadata",
+    "erreur_inconnue_preparation_meta": "Unknown error while preparing metadata",
+    "erreur_image_invalide_enregistrement": "Attempting to save an object that is not a PIL image.",
+    "injection_exif_jpeg": "Injecting EXIF metadata into JPEG.",
+    "avertissement_meta_incompatible_jpeg": "Warning: Metadata provided but not compatible with JPEG format (expected EXIF bytes).",
+    "injection_pnginfo": "Injecting PngInfo metadata into PNG.",
+    "avertissement_meta_incompatible_png": "Warning: Metadata provided but not compatible with PNG format (expected PngInfo).",
+    "metadata_non_injectee_webp": "Metadata prepared but not injected for WEBP format (limited support).",
+    "format_enregistrement_inconnu": "Saving format '{format}' not explicitly handled for metadata or specific options.",
+    "erreur_chemin_invalide": "Error during save: Invalid or inaccessible path",
+    "erreur_io_sauvegarde": "Input/output error while saving the image"
 }

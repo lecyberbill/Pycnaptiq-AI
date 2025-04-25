@@ -13,6 +13,7 @@ from Utils.utils import (
     decharger_modele,
     check_gpu_availability,
     enregistrer_image,
+    preparer_metadonnees_image,
     enregistrer_etiquettes_image_html,
     ImageSDXLchecker,
     styles_fusion,
@@ -760,20 +761,39 @@ class Image2imageSDXLModule:
                         self.global_config["IMAGE_FORMAT"],
                     )
                     xmp_data = {
-                        "Module": "Image to Image SDXL module",
+                        "Module": "Image to Image SDXL",
                         "Creator": self.global_config["AUTHOR"],
-                        "Modèle": self.current_model_name,
+                        "Model": self.current_model_name,
                         "VAE": self.current_vae_name,
-                        "Inference": step,
+                        "Steps": step,
                         "Guidance": guidance,
                         "Styles": ", ".join(style_names_used) if style_names_used else "None",
                         "Prompt": final_prompt_text,
                         "Negative prompt:": final_negative_prompt,
                         "Strength": strength,
-                        "Dimensions": f"{width} x {height}",
-                        "Temps de génération": temps_generation_image,
-                        "Fichier Original": current_filename if is_batch_mode else "N/A"
+                        "Size": f"{width} x {height}",
+                        "Generation Time": temps_generation_image,
+                        "Original File": current_filename if is_batch_mode else "N/A"
                     }
+
+                    metadata_structure, prep_message = preparer_metadonnees_image(
+                        result_image,
+                        xmp_data,
+                        self.global_translations, # Utiliser les traductions globales
+                        chemin_image # Passer le chemin pour déterminer le format
+                    )
+                    # Afficher le message de la préparation (succès ou échec)
+                    print(txt_color("[INFO]", "info"), prep_message)
+
+                    # --- Sauvegarde de l'image avec les métadonnées intégrées ---
+                    enregistrer_image(
+                        result_image,
+                        chemin_image,
+                        self.global_translations, # Traductions pour les messages d'enregistrement
+                        self.global_config["IMAGE_FORMAT"].upper(), # Passer le format déterminé plus haut
+                        metadata_to_save=metadata_structure # Passer la structure préparée
+                    )
+
                     enregistrer_etiquettes_image_html(
                         chemin_image, xmp_data, module_translations, True
                     )

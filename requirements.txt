@@ -17,3 +17,4 @@ compel
 huggingface_hub
 onnxruntime-gpu
 rembg[gpu]
+piexif

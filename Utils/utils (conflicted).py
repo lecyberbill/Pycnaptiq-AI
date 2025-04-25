@@ -144,16 +144,33 @@ def preparer_metadonnees_image(image_pil: Image.Image, metadonnees: dict, transl
                 # Utilisation de dc:description et exif:UserComment pour une meilleure compatibilité
                 # html.escape est crucial pour que le JSON soit valide dans le XML
                 escaped_json_str = html.escape(json_str)
-                xmp_data_string = f"""<?xpacket begin='﻿' id='W'?>
-<x:xmpmeta xmlns:x='adobe:ns:meta/'>
-  <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
-    <rdf:Description xmlns:custom='https://example.org/ns/custom/'>
-      <custom:Parameters><![CDATA[{escaped_json_str}]]></custom:Parameters>
-    </rdf:Description>
-  </rdf:RDF>
+                xmp_data_string = f"""<?xpacket begin='﻿' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 12.81'>
+<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+ <rdf:Description rdf:about=''
+  xmlns:dc='http://purl.org/dc/elements/1.1/'>
+  <dc:description>
+   <rdf:Alt>
+    <rdf:li xml:lang='x-default'>{escaped_json_str}</rdf:li>
+   </rdf:Alt>
+  </dc:description>
+ </rdf:Description>
+ <rdf:Description rdf:about=''
+  xmlns:exif='http://ns.adobe.com/exif/1.0/'>
+  <exif:UserComment>{escaped_json_str}</exif:UserComment>
+ </rdf:Description>
+ <rdf:Description rdf:about=''
+  xmlns:photoshop='http://ns.adobe.com/photoshop/1.0/'>
+  <photoshop:Source>CyberBill_SDXL</photoshop:Source>
+ </rdf:Description>
+ <rdf:Description rdf:about=''
+  xmlns:xmp='http://ns.adobe.com/xap/1.0/'>
+  <xmp:CreatorTool>CyberBill_SDXL</xmp:CreatorTool>
+ </rdf:Description>
+</rdf:RDF>
 </x:xmpmeta>
 <?xpacket end='w'?>"""
-                
+
                 # Encoder la chaîne XMP en bytes UTF-8 pour Pillow
                 metadata_to_save = xmp_data_string.encode('utf-8')
                 # Clé de traduction: "metadonnees_webp_preparees"
@@ -623,11 +640,11 @@ def enregistrer_image(image_pil: Image.Image, chemin_image: str, translations: d
 
         elif format_upper == "WEBP":
             save_params['quality'] = qualite
-            if metadata_to_save and isinstance(metadata_to_save, bytes):
-                save_params['xmp'] = metadata_to_save # Passer les bytes XMP
-                print(txt_color("[INFO]", "info"), translate("injection_xmp_webp", translations))
-            elif metadata_to_save:
-                print(txt_color("[AVERTISSEMENT]", "erreur"), translate("avertissement_meta_incompatible_webp", translations))
+            if metadata_to_save:
+                 print(txt_color("[INFO]", "info"), translate("metadata_non_injectee_webp", translations))
+        else:
+            print(txt_color("[INFO]", "info"), translate("format_enregistrement_inconnu", translations).format(format=format_upper))
+
 
         os.makedirs(os.path.dirname(chemin_image), exist_ok=True)
 
