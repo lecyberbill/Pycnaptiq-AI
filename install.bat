@@ -102,7 +102,7 @@ echo !INFO_VERIFY_CUDA!
 nvcc --version > nul 2>&1
 if errorlevel 9009 (
     echo !WARN_NVCC_NOT_FOUND!
-    echo !INFO_CUDA_DOWNLOAD! https://developer.nvidia.com/cuda-12-6-3-download-archive
+    echo !INFO_CUDA_DOWNLOAD! https://developer.nvidia.com/cuda-downloads
     pause
     exit /b 1
 ) else (
@@ -144,7 +144,7 @@ call :check_error ERROR_UPGRADE_PIP
 echo !OK_UPGRADE_PIP!
 
 echo !INFO_INSTALL_TORCH!
-"%venv_pip_exe%" install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+"%venv_pip_exe%" install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 call :check_error ERROR_INSTALL_TORCH
 echo !OK_INSTALL_TORCH!
 

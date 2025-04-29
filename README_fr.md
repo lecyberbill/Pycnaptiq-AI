@@ -6,7 +6,7 @@ Bien que de nombreux fork sont apparus, j'ai voulu faire un logiciel complet en 
 Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini pour m'aider... étant débutant j'ai beaucoup appri en consevant ce logiciel. Comme un prof à mes côtés, avec quand même de bonnes notions et de la volonté, on peut s'éclater et apporter sa pierre à la communauté, aussi petite soit-elle. 
 
 ## 📌 Prérequis
-- **CUDA 12.6** installé ✅
+- **CUDA 12.8** installé ✅
 - **Carte Nvidia RTX** : Non testé sur d'autres cartes.
 - **8 Go de VRAM recommandés** : Optimisation non disponible pour les petites cartes graphiques.
 
@@ -14,7 +14,7 @@ Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini p
 1. **Téléchargez le projet**  
    - Choisissez le fichier `zip` ou `cyberbill_SDXL.zip` et décompressez-le dans le répertoire de votre choix.
 
-2. **Installez CUDA 12.6** via [ce lien](https://developer.nvidia.com/cuda-12-6-0-download-archive).
+2. **Installez CUDA 12.8** via [ce lien](https://developer.nvidia.com/cuda-downloads).
 
 3. **Lancez le script `install.bat`**  
    - Cela configure l'environnement nécessaire pour le logiciel.
