@@ -1695,7 +1695,7 @@ with gr.Blocks(**block_kwargs) as interface:
             preset_filter_lora,
             preset_refresh_trigger
         ])
-        def render_presets_with_decorator(page, search, sort, filter_models, filter_samplers, filter_loras, editing_id, trigger_val):
+        def render_presets_with_decorator(page, search, sort, filter_models, filter_samplers, filter_loras, trigger_val):
             """
             Décorée par @gr.render. Récupère les presets et crée l'UI dynamiquement.
             Les liaisons d'événements sont faites ici.
