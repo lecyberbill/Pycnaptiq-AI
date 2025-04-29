@@ -72,6 +72,23 @@ Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini p
 4. **Générer des images**
    - Cliquez sur **"Générer"**. Les images sont enregistrées dans le dossier `output` avec un rapport HTML.
 
+### 🚀 Nouveau : Génération par Lots (Batch) (Beta 1.8)
+
+1.  **Créer une Définition de Batch :**
+    *   Allez dans l'onglet **"Générateur de Batch"**.
+    *   Configurez les paramètres (modèle, VAE, prompt, styles, LoRAs, etc.) pour une tâche.
+    *   Utilisez la case **"Traduire Prompt en Anglais"** si besoin.
+    *   Cliquez sur **"Ajouter Tâche au Batch"**. Répétez pour toutes les tâches souhaitées.
+    *   Vérifiez la liste des tâches dans le tableau.
+    *   Cliquez sur **"Générer JSON"**. Le fichier JSON sera automatiquement sauvegardé dans le répertoire spécifié par `SAVE_BATCH_JSON_PATH` dans `config.json` (par défaut : `Output\json_batch_files`) avec un nom comme `batch_001.json`.
+
+2.  **Exécuter le Batch :**
+    *   Retournez à l'onglet principal **"Génération d'Image"**.
+    *   Dépliez l'accordéon **"Exécuteur de Batch"**.
+    *   Cliquez sur la zone de saisie de fichier (ou utilisez l'Explorateur de Fichiers si disponible) pour **charger le fichier JSON généré** (ex: `batch_001.json`) depuis le répertoire de sauvegarde.
+    *   Cliquez sur **"Lancer le Batch"**.
+    *   L'application traitera chaque tâche séquentiellement, affichant la progression et les résultats. Vous pouvez arrêter le processus avec le bouton **"Arrêter le Batch"**.
+
 ## Capture de l'interface
 
 Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
@@ -108,6 +125,7 @@ L'Inpainting, définir une zone de l'image à modifier, ici un visage d'une pero
 Le fichier `config.json`, situé dans le dossier `/config`, permet de personnaliser les paramètres principaux de l'application. Voici une version détaillée :
 
 ```json
+```json
 {
     "AUTHOR": "Cyberbill_SDXL",
     "MODELS_DIR": "models\\checkpoints",
@@ -115,36 +133,37 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
     "INPAINT_MODELS_DIR": "models\\inpainting",
 	"LORAS_DIR": "models\\loras",
 	"SAVE_DIR": "Output",
+    "SAVE_BATCH_JSON_PATH": "Output\\json_batch_files", 
     "IMAGE_FORMAT": "webp",
 	"DEFAULT_MODEL": "your_default_modele.safetensors",
 	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
-    {"dimensions": "704*1408", "orientation": "Portrait"},
-    {"dimensions": "704*1344", "orientation": "Portrait"},
-    {"dimensions": "768*1344", "orientation": "Portrait"},
-    {"dimensions": "768*1280", "orientation": "Portrait"},
-    {"dimensions": "832*1216", "orientation": "Portrait"},
-    {"dimensions": "832*1152", "orientation": "Portrait"},
-    {"dimensions": "896*1152", "orientation": "Portrait"},
-    {"dimensions": "896*1088", "orientation": "Portrait"},
-    {"dimensions": "960*1088", "orientation": "Portrait"},
-    {"dimensions": "960*1024", "orientation": "Portrait"},
-    {"dimensions": "1024*1024", "orientation": "Carré"},
-    {"dimensions": "1024*960", "orientation": "Paysage"},
-    {"dimensions": "1088*960", "orientation": "Paysage"},
-    {"dimensions": "1088*896", "orientation": "Paysage"},
-    {"dimensions": "1408*704", "orientation": "Paysage"},
-    {"dimensions": "1344*704", "orientation": "Paysage"},
-    {"dimensions": "1344*768", "orientation": "Paysage"},
-    {"dimensions": "1280*768", "orientation": "Paysage"},
-    {"dimensions": "1216*832", "orientation": "Paysage"},
-    {"dimensions": "1152*832", "orientation": "Paysage"},
-    {"dimensions": "1152*896", "orientation": "Paysage"}
+        {"dimensions": "704*1408", "orientation": "Portrait"},
+        {"dimensions": "704*1344", "orientation": "Portrait"},
+        {"dimensions": "768*1344", "orientation": "Portrait"},
+        {"dimensions": "768*1280", "orientation": "Portrait"},
+        {"dimensions": "832*1216", "orientation": "Portrait"},
+        {"dimensions": "832*1152", "orientation": "Portrait"},
+        {"dimensions": "896*1152", "orientation": "Portrait"},
+        {"dimensions": "896*1088", "orientation": "Portrait"},
+        {"dimensions": "960*1088", "orientation": "Portrait"},
+        {"dimensions": "960*1024", "orientation": "Portrait"},
+        {"dimensions": "1024*1024", "orientation": "Square"},
+        {"dimensions": "1024*960", "orientation": "Landscape"},
+        {"dimensions": "1088*960", "orientation": "Landscape"},
+        {"dimensions": "1088*896", "orientation": "Landscape"},
+        {"dimensions": "1408*704", "orientation": "Landscape"},
+        {"dimensions": "1344*704", "orientation": "Landscape"},
+        {"dimensions": "1344*768", "orientation": "Landscape"},
+        {"dimensions": "1280*768", "orientation": "Landscape"},
+        {"dimensions": "1216*832", "orientation": "Landscape"},
+        {"dimensions": "1152*832", "orientation": "Landscape"},
+        {"dimensions": "1152*896", "orientation": "Landscape"}
 	],
 	"OPEN_BROWSER": "Yes",
 	"GRADIO_THEME": "Default",
 	"SHARE":"No",
-    "LANGUAGE": "fr",
+    "LANGUAGE": "en",
 	"PRESETS_PER_PAGE": 12,
 	"PRESET_COLS_PER_ROW":4
 }
@@ -158,6 +177,7 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
 - **`INPAINT_MODELS_DIR`** : Chemin vers les modèles dédiés à l'inpainting.
 - **`LORAS_DIR`** : Emplacement pour charger les fichiers LoRA au format `.safetensors`.
 - **`SAVE_DIR`** : Dossier où sont sauvegardées les images générées.
+- **`SAVE_BATCH_JSON_PATH`**: Dossier où sont automatiquement sauvegardés les fichiers JSON de batch générés (Nouveau en Beta 1.8).
 - **`IMAGE_FORMAT`** : Format des fichiers image : `webp`, `jpeg`, ou `png`.
 - **`DEFAULT_MODEL`** : Modèle chargé par défaut au démarrage.
 - **`NEGATIVE_PROMPT`** : Prompt négatif générique appliqué par défaut, utile pour exclure des éléments indésirables dans les résultats générés.
@@ -305,30 +325,30 @@ Ces samplers sont souvent des versions abrégées ou des variantes d'autres samp
 ## ▶️ Modules Supplémentaires
 
 ### 🌟 Aperçu des Modules
+
 L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui s'activent automatiquement lorsqu'ils sont placés dans le répertoire `/modules`. Ces modules enrichissent les fonctionnalités de base et permettent aux utilisateurs de personnaliser leur expérience.
 
 ### 📚 Liste des Modules Disponibles
-1. **Retouche d'image**  
-   - Fournit des outils basiques pour modifier ou améliorer vos créations.
-   - Compatible avec les images générées par l'application ou externes.
 
-2. **Upscaling**  
-   - Améliore la résolution des images grâce à SDXL.
-   - Idéal pour des rendus nets et détaillés.
-
-3. **Amélioration d'image**  
-   - Utilise AuraSR pour optimiser la clarté et les détails de vos images.
-
-4. **Suppression d'arrière-plan**  
-   - Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.
-
-5. **Navigation sur Civitai**  
-   - Permet de parcourir la bibliothèque Civitai pour découvrir de nouveaux modèles et prompts.
-   - Option de copier des prompts intéressants directement depuis l'interface.
-
-6. **Module de test**  
-   - Fournit un squelette de base pour aider les utilisateurs à créer leurs propres modules.
-   - Idéal pour les développeurs souhaitant expérimenter ou personnaliser leurs fonctionnalités.
+1.  **Générateur de Batch** (Nouveau en Beta 1.8)
+    *   Fournit une interface dédiée pour créer et gérer des listes de tâches de génération (batches).
+    *   Génère des fichiers JSON définissant le batch, sauvegardés automatiquement dans un répertoire configuré.
+2.  **Retouche d'image**
+    *   Fournit des outils basiques pour modifier ou améliorer vos créations.
+    *   Compatible avec les images générées par l'application ou externes.
+3.  **Upscaling**
+    *   Améliore la résolution des images grâce à SDXL.
+    *   Idéal pour des rendus nets et détaillés.
+4.  **Amélioration d'image**
+    *   Utilise AuraSR pour optimiser la clarté et les détails de vos images.
+5.  **Suppression d'arrière-plan**
+    *   Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.
+6.  **Navigation sur Civitai**
+    *   Permet de parcourir la bibliothèque Civitai pour découvrir de nouveaux modèles et prompts.
+    *   Option de copier des prompts intéressants directement depuis l'interface.
+7.  **Module de test**
+    *   Fournit un squelette de base pour aider les utilisateurs à créer leurs propres modules.
+    *   Idéal pour les développeurs souhaitant expérimenter ou personnaliser leurs fonctionnalités.
 
 ---
 

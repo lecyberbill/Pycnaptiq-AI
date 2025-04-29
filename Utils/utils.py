@@ -600,7 +600,7 @@ def enregistrer_image(image_pil: Image.Image, chemin_image: str, translations: d
         format_upper = format_image.upper()
 
         if format_upper == "JPG":
-            format_upper = "JPEG"
+            format_upper = "JPEG" 
 
         if format_upper == "JPEG":
             save_params['quality'] = qualite
@@ -660,13 +660,27 @@ class GestionModule:
     Classe pour gérer le chargement et l'initialisation des modules.
     """
 
-    def __init__(self, modules_dir="modules", translations=None, language="fr", global_pipe=None, global_compel=None, config=None):
+    def __init__(
+        self,
+        modules_dir="modules",
+        translations=None,
+        language="fr",
+        global_pipe=None,
+        global_compel=None,
+        config=None,
+        device=None,              # <-- AJOUTÉ
+        torch_dtype=None,          # <-- AJOUTÉ
+        vram_total_gb=None         # <-- AJOUTÉ
+    ):
         """
         Initialise le gestionnaire de modules.
 
         Args:
             modules_dir (str): Le répertoire contenant les modules.
             translations (dict): Le dictionnaire de traductions.
+            device (torch.device, optional): Le device à utiliser (cuda/cpu/mps).
+            torch_dtype (torch.dtype, optional): Le dtype à utiliser (float16/float32).
+            vram_total_gb (float, optional): VRAM disponible en Go.
         """
         self.modules_dir = modules_dir
         self.language = language
@@ -678,6 +692,16 @@ class GestionModule:
         self.global_compel = global_compel
         self.config = config
         self.js_code = ""
+
+        # Ajout pour support device/dtype/VRAM
+        self.device = device
+        self.torch_dtype = torch_dtype
+        self.vram_total_gb = vram_total_gb
+
+        self.current_model_name = None
+        self.current_vae_name = None
+        self.current_sampler_key = None
+        self.loras_charges = {}
         
 
     def verifier_version(self, package_name, min_version):
@@ -908,6 +932,74 @@ class GestionModule:
         """Update the global compel."""
         self.global_compel = new_compel
 
+    def reset_loras_charges(self):
+        """
+        Décharge proprement tous les LoRAs actuellement chargés et réinitialise le suivi local.
+        Respecte le système de traduction pour les messages.
+        """
+        if self.global_pipe is None:
+            print(txt_color("[WARN]", "warning"), translate("warn_reset_lora_sans_pipe", self.translations))
+            gr.Warning(translate("warn_reset_lora_sans_pipe", self.translations), 3.0)
+            return
+
+        if not self.loras_charges:
+            print(txt_color("[INFO]", "info"), translate("info_aucun_lora_a_decharger", self.translations))
+            return
+
+        for adapter_name in list(self.loras_charges.keys()):
+            try:
+                decharge_lora(self.global_pipe, self.translations, adapter_name)
+            except Exception as e:
+                print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_reset_lora', self.translations)} '{adapter_name}': {e}")
+
+        # Après tout déchargé
+        self.loras_charges.clear()
+        print(txt_color("[OK]", "ok"), translate("ok_reset_loras_termine", self.translations))
+    
+    def verifier_et_nettoyer_loras(self):
+        """
+        Vérifie que tous les LoRAs suivis existent bien et sont compatibles.
+        Décharge proprement ceux qui posent problème, sans interrompre le batch.
+        """
+        if self.global_pipe is None:
+            print(txt_color("[WARN]", "warning"), translate("warn_verif_lora_sans_pipe", self.translations))
+            return
+
+        if not self.loras_charges:
+            print(txt_color("[INFO]", "info"), translate("info_aucun_lora_a_verifier", self.translations))
+            return
+
+        loras_a_supprimer = []
+
+        for adapter_name in list(self.loras_charges.keys()):
+            try:
+                # Vérifier si l'adaptateur est toujours actif
+                active_adapters = self.global_pipe.get_active_adapters()
+
+                if adapter_name not in active_adapters:
+                    print(txt_color("[WARN]", "warning"), f"{translate('warn_lora_inactif_detecte', self.translations)} '{adapter_name}'")
+                    loras_a_supprimer.append(adapter_name)
+
+            except Exception as e:
+                print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_verif_lora', self.translations)} '{adapter_name}': {e}")
+                loras_a_supprimer.append(adapter_name)
+
+        # Nettoyage
+        for adapter_name in loras_a_supprimer:
+            try:
+                decharge_lora(self.global_pipe, self.translations, adapter_name)
+            except Exception:
+                # Même si le déchargement échoue, on continue
+                pass
+            if adapter_name in self.loras_charges:
+                del self.loras_charges[adapter_name]
+
+        if loras_a_supprimer:
+            print(txt_color("[OK]", "ok"), f"{translate('ok_loras_invalides_nettoyes', self.translations)}: {len(loras_a_supprimer)}")
+        else:
+            print(txt_color("[OK]", "ok"), translate("ok_aucun_lora_a_nettoyer", self.translations))
+
+
 
     def charger_tous_les_modules(self):
         """Charge tous les modules dans le répertoire spécifié."""
@@ -961,6 +1053,15 @@ class GestionModule:
     def get_js_code(self):
         """Return the javascript code"""
         return self.js_code
+
+    def set_current_model_info(self, model_name, vae_name):
+        """Définit le modèle et VAE actuellement chargés."""
+        self.current_model_name = model_name
+        self.current_vae_name = vae_name
+
+    def set_current_sampler(self, sampler_key):
+        """Définit le sampler actuellement utilisé."""
+        self.current_sampler_key = sampler_key
 
 def decharger_modele(pipe, compel, translations):
     """Libère proprement la mémoire GPU en déplaçant temporairement le modèle sur CPU."""

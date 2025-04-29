@@ -8,7 +8,7 @@ import threading
 import gradio as gr 
 import queue
 
-# Fonction pour convertir les latents en image RGB (reste inchangée)
+
 def latents_to_rgb(latents):
     weights = (
         (60, -60, 25, -70),
@@ -25,7 +25,7 @@ def latents_to_rgb(latents):
     return Image.fromarray(image_array)
 
 # --- MODIFICATION 1 : create_callback_on_step_end ---
-def create_callback_on_step_end(PREVIEW_QUEUE, stop_gen, total_steps: int, translations: dict, progress_queue: queue.Queue):
+def create_callback_on_step_end(PREVIEW_QUEUE, stop_gen, total_steps: int, translations: dict, progress_queue: queue.Queue, preview_frequency: int = 5):
     """
     Crée une fonction de callback pour les aperçus ET la progression.
 
@@ -38,13 +38,12 @@ def create_callback_on_step_end(PREVIEW_QUEUE, stop_gen, total_steps: int, trans
     """
     # Utilise l'objet gr.Progress passé en argument pour suivre la progression
     # Pas besoin de créer un nouveau tracker ici si on utilise track_tqdm=True
-
+    last_preview_step = -preview_frequency
     def callback_on_step_end(pipe, step: int, timestep: float, callback_kwargs: dict):
+        nonlocal last_preview_step
         # 1. Vérifier l'arrêt
         if stop_gen.is_set():
             pipe._interrupt = True # Signaler l'interruption au pipeline
-            # On peut lever une exception ici aussi si nécessaire, mais _interrupt est souvent suffisant
-            # raise InterruptedError("Génération interrompue via callback")
 
         # 2. Mettre à jour la barre de progression
         #    On utilise step+1 car les étapes sont souvent 0-indexées
@@ -56,23 +55,24 @@ def create_callback_on_step_end(PREVIEW_QUEUE, stop_gen, total_steps: int, trans
             pass # Ignorer si la queue est pleine (évite le blocage)       
 
         # 3. Gérer l'aperçu (logique existante)
-        try:
-            # Assurez-vous que latents est bien dans callback_kwargs et a la bonne structure
-            if "latents" in callback_kwargs:
-                latents = callback_kwargs["latents"]
-                # S'assurer qu'on prend le premier latent du batch s'il y en a plusieurs
-                latent_to_preview = latents[0] if latents.ndim == 4 else latents
-                if latent_to_preview.ndim == 3: # S'assurer qu'il a 3 dimensions (C, H, W)
-                    image = latents_to_rgb(latent_to_preview)
-                    if image:
-                        PREVIEW_QUEUE.append(image)
+        if (step - last_preview_step >= preview_frequency or step == total_steps - 1):
+            try:
+                if "latents" in callback_kwargs:
+                    latents = callback_kwargs["latents"]
+                    latent_to_preview = latents[0] if latents.ndim == 4 else latents
+                    if latent_to_preview.ndim == 3:
+                        image = latents_to_rgb(latent_to_preview)
+                        if image:
+                            if PREVIEW_QUEUE is not None:
+                                PREVIEW_QUEUE.append(image)
+                            last_preview_step = step # Mémoriser la dernière étape d'aperçu
+                    else:
+                         print(f"[Callback Warning] {translate('warn_latent_shape_unexpected', translations)}: {latent_to_preview.shape}")
                 else:
-                     print(f"[Callback Warning] Latent shape unexpected for preview: {latent_to_preview.shape}")
-            else:
-                print("[Callback Warning] 'latents' not found in callback_kwargs for preview.")
+                    print(f"[Callback Warning] {translate('warn_latents_not_found', translations)}")
 
-        except Exception as e:
-            print(f"[Callback Error] Erreur lors de la génération de l'aperçu: {e}")
+            except Exception as e:
+                print(f"[Callback Error] {translate('erreur_generation_apercu', translations)}: {e}")
 
         # 4. Retourner les kwargs (important pour le pipeline)
         return callback_kwargs
@@ -81,7 +81,7 @@ def create_callback_on_step_end(PREVIEW_QUEUE, stop_gen, total_steps: int, trans
 
 # --- MODIFICATION 2 : interrupt_diffusers_callback ---
 # Renommée pour plus de clarté et ajout de la progression
-def create_inpainting_callback(stop_gen, total_steps: int, translations: dict, progress_queue: queue.Queue):
+def create_inpainting_callback(stop_gen, total_steps: int, translations: dict, progress_queue: queue.Queue, preview_queue=None):
     """
     Crée une fonction de callback pour l'inpainting gérant l'arrêt ET la progression.
 

@@ -72,6 +72,23 @@ Passionate about image generation and AI, I heavily relied on Gemini to help me.
 4.  **Generate images**
     - Click on **"Generate"**. Images are saved in the `output` folder along with an HTML report.
 
+### 🚀 New: Batch Generation (tab) and batch runner (Beta 1.8)
+
+1.  **Create a Batch Definition:**
+    *   Go to the **"Batch Generator"** tab.
+    *   Configure the parameters (model, VAE, prompt, styles, LoRAs, etc.) for a task.
+    *   Use the "Translate Prompt to English" checkbox if needed.
+    *   Click **"Add Task to Batch"**. Repeat for all desired tasks.
+    *   Review the task list in the table.
+    *   Click **"Generate JSON"**. The JSON file will be automatically saved in the directory specified by `SAVE_BATCH_JSON_PATH` in `config.json` (default: `Output\json_batch_files`) with a name like `batch_001.json`.
+
+2.  **Run the Batch:**
+    *   Go back to the main **"Image Generation"** tab.
+    *   Expand the **"Batch Runner"** accordion.
+    *   Click the file input area (or use the File Explorer if available) to **load the generated JSON file** (e.g., `batch_001.json`) from the save directory.
+    *   Click **"Run Batch"**.
+    *   The application will process each task sequentially, displaying progress and results. You can stop the process using the **"Stop Batch"** button.
+
 ## Interface Capture
 
 Image generator, prompt calculated from the image, adding a LoRA
@@ -113,31 +130,32 @@ The `config.json` file, located in the `/config` folder, allows you to customize
     "INPAINT_MODELS_DIR": "models\\inpainting",
 	"LORAS_DIR": "models\\loras",
 	"SAVE_DIR": "Output",
+    "SAVE_BATCH_JSON_PATH": "Output\\json_batch_files", 
     "IMAGE_FORMAT": "webp",
 	"DEFAULT_MODEL": "your_default_modele.safetensors",
 	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
-    {"dimensions": "704*1408", "orientation": "Portrait"},
-    {"dimensions": "704*1344", "orientation": "Portrait"},
-    {"dimensions": "768*1344", "orientation": "Portrait"},
-    {"dimensions": "768*1280", "orientation": "Portrait"},
-    {"dimensions": "832*1216", "orientation": "Portrait"},
-    {"dimensions": "832*1152", "orientation": "Portrait"},
-    {"dimensions": "896*1152", "orientation": "Portrait"},
-    {"dimensions": "896*1088", "orientation": "Portrait"},
-    {"dimensions": "960*1088", "orientation": "Portrait"},
-    {"dimensions": "960*1024", "orientation": "Portrait"},
-    {"dimensions": "1024*1024", "orientation": "Square"},
-    {"dimensions": "1024*960", "orientation": "Landscape"},
-    {"dimensions": "1088*960", "orientation": "Landscape"},
-    {"dimensions": "1088*896", "orientation": "Landscape"},
-    {"dimensions": "1408*704", "orientation": "Landscape"},
-    {"dimensions": "1344*704", "orientation": "Landscape"},
-    {"dimensions": "1344*768", "orientation": "Landscape"},
-    {"dimensions": "1280*768", "orientation": "Landscape"},
-    {"dimensions": "1216*832", "orientation": "Landscape"},
-    {"dimensions": "1152*832", "orientation": "Landscape"},
-    {"dimensions": "1152*896", "orientation": "Landscape"}
+        {"dimensions": "704*1408", "orientation": "Portrait"},
+        {"dimensions": "704*1344", "orientation": "Portrait"},
+        {"dimensions": "768*1344", "orientation": "Portrait"},
+        {"dimensions": "768*1280", "orientation": "Portrait"},
+        {"dimensions": "832*1216", "orientation": "Portrait"},
+        {"dimensions": "832*1152", "orientation": "Portrait"},
+        {"dimensions": "896*1152", "orientation": "Portrait"},
+        {"dimensions": "896*1088", "orientation": "Portrait"},
+        {"dimensions": "960*1088", "orientation": "Portrait"},
+        {"dimensions": "960*1024", "orientation": "Portrait"},
+        {"dimensions": "1024*1024", "orientation": "Square"},
+        {"dimensions": "1024*960", "orientation": "Landscape"},
+        {"dimensions": "1088*960", "orientation": "Landscape"},
+        {"dimensions": "1088*896", "orientation": "Landscape"},
+        {"dimensions": "1408*704", "orientation": "Landscape"},
+        {"dimensions": "1344*704", "orientation": "Landscape"},
+        {"dimensions": "1344*768", "orientation": "Landscape"},
+        {"dimensions": "1280*768", "orientation": "Landscape"},
+        {"dimensions": "1216*832", "orientation": "Landscape"},
+        {"dimensions": "1152*832", "orientation": "Landscape"},
+        {"dimensions": "1152*896", "orientation": "Landscape"}
 	],
 	"OPEN_BROWSER": "Yes",
 	"GRADIO_THEME": "Default",
@@ -146,7 +164,6 @@ The `config.json` file, located in the `/config` folder, allows you to customize
 	"PRESETS_PER_PAGE": 12,
 	"PRESET_COLS_PER_ROW":4
 }
-
 ```
 
 ### 🛠️ Main Fields:
@@ -157,6 +174,7 @@ The `config.json` file, located in the `/config` folder, allows you to customize
 - **`INPAINT_MODELS_DIR`**: Path to models dedicated to inpainting.
 - **`LORAS_DIR`**: Location to load LoRA files in `.safetensors` format.
 - **`SAVE_DIR`**: Folder where generated images are saved.
+- **`SAVE_BATCH_JSON_PATH`**: Folder where generated batch JSON files are automatically saved (New in Beta 1.8).
 - **`IMAGE_FORMAT`**: Image file format: `webp`, `jpeg`, or `png`.
 - **`DEFAULT_MODEL`**: Model loaded by default at startup.
 - **`NEGATIVE_PROMPT`**: Generic negative prompt applied by default, useful for excluding unwanted elements in generated results.
@@ -304,25 +322,30 @@ These samplers are often abbreviated versions or variants of other samplers, off
 The **cyberbill_SDXL** application offers several complementary modules that activate automatically when placed in the `/modules` directory. These modules enhance the basic functionalities and allow users to customize their experience.
 
 ### 📚 List of Available Modules
-1.  **Image Editing**
+
+1.  **Batch Generator** (New in Beta 1.8)
+    - Provides a dedicated interface to create and manage lists of generation tasks (batches).
+    - Generates JSON files defining the batch, automatically saved to a configured directory.
+
+2.  **Image Editing**
     - Provides basic tools to modify or enhance your creations.
     - Compatible with images generated by the application or external ones.
 
-2.  **Upscaling**
+3.  **Upscaling**
     - Enhances image resolution using SDXL.
     - Ideal for sharp and detailed renderings.
 
-3.  **Image Enhancement**
+4.  **Image Enhancement**
     - Uses AuraSR to optimize the clarity and details of your images.
 
-4.  **Background Removal**
+5.  **Background Removal**
     - Based on RemBG, this module quickly isolates the subject of the image by removing its background.
 
-5.  **Civitai Browser**
+6.  **Civitai Browser**
     - Allows browsing the Civitai library to discover new models and prompts.
     - Option to copy interesting prompts directly from the interface.
 
-6.  **Test Module**
+7.  **Test Module**
     - Provides a basic skeleton to help users create their own modules.
     - Ideal for developers wishing to experiment or customize their features.
 

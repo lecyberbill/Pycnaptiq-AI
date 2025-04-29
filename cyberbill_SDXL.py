@@ -24,6 +24,7 @@ from core.Inpaint import apply_mask_effects
 from Utils.model_loader import charger_modele, charger_modele_inpainting, charger_lora, decharge_lora, gerer_lora
 from Utils.utils import enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, GestionModule, styles_fusion, create_progress_bar_html,\
     telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, preparer_metadonnees_image, check_gpu_availability, decharger_modele, ImageSDXLchecker
+from Utils.sampler_utils import SAMPLER_DEFINITIONS, get_sampler_choices, get_sampler_key_from_display_name, apply_sampler_to_pipe
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Process
 torch.backends.cudnn.deterministic = True
@@ -33,6 +34,9 @@ from io import BytesIO
 from presets.presets_Manager import PresetManager
 import functools
 from functools import partial
+from core.batch_runner import run_batch_from_json
+from core.pipeline_executor import execute_pipeline_task_async
+
 
 print (f"cyberbill_SDXL version {txt_color(version(),'info')}")
 # Load the configuration first
@@ -66,6 +70,7 @@ OPEN_BROWSER= config["OPEN_BROWSER"]
 DEFAULT_MODEL= config["DEFAULT_MODEL"]
 PRESETS_PER_PAGE = config.get("PRESETS_PER_PAGE", 12) # Nombre de presets à afficher par page
 PRESET_COLS_PER_ROW = config.get("PRESET_COLS_PER_ROW", 4)
+SAVE_BATCH_JSON_PATH = config.get("SAVE_BATCH_JSON_PATH", "Output\\json_batch_files")
 
 for style in config["STYLES"]:
         style["name"] = translate(style["key"], translations)
@@ -111,14 +116,21 @@ image_executor = ThreadPoolExecutor(max_workers=10)
 
 # Call the function to check GPU availability
 device, torch_dtype, vram_total_gb = check_gpu_availability(translations)
+gestionnaire = GestionModule(
+    translations=translations,
+    language=DEFAULT_LANGUAGE,
+    config=config,
+    device=device, # <-- Passer
+    torch_dtype=torch_dtype, # <-- Passer
+    vram_total_gb=vram_total_gb # <-- Passer
+    # global_pipe et global_compel sont initialisés à None par défaut
+)
 
 # Initialisation des variables globales
 
 model_selectionne = None
 vae_selctionne = "Défaut VAE"
 loras_charges = {}
-# Créer une instance du gestionnaire de modules
-gestionnaire = GestionModule(translations=translations, language=DEFAULT_LANGUAGE, global_pipe=None, global_compel=None, config=config)
 # Charger tous les modules
 gestionnaire.charger_tous_les_modules()
 
@@ -137,126 +149,17 @@ processing_event = threading.Event()
 # Flag to indicate if an image generation is in progress
 is_generating = False
 
-
+global_selected_sampler_key = "sampler_euler"
 
 # Charger le modèle et le processeur
 caption_model = AutoModelForCausalLM.from_pretrained("MiaoshouAI/Florence-2-base-PromptGen-v2.0", trust_remote_code=True).to(device)
 caption_processor = AutoProcessor.from_pretrained("MiaoshouAI/Florence-2-base-PromptGen-v2.0", trust_remote_code=True)
-
-# Sampler disponibles
-sampler_options = [
-    translate("sampler_euler", translations),
-    translate("sampler_dpmpp_2m", translations),
-    translate("sampler_dpmpp_2s_a", translations),
-    translate("sampler_lms", translations),
-    translate("sampler_ddim", translations),
-    translate("sampler_pndm", translations),
-    translate("sampler_dpm2", translations),
-    translate("sampler_dpm2_a", translations),
-    translate("sampler_dpm_fast", translations),
-    translate("sampler_dpm_adaptive", translations),
-    translate("sampler_heun", translations),
-    translate("sampler_dpmpp_sde", translations),
-    translate("sampler_dpmpp_3m_sde", translations),
-    translate("sampler_dpmpp_2m", translations),
-    translate("sampler_euler_a", translations),
-    translate("sampler_lms", translations),
-    translate("sampler_unipc", translations),
-]
-
-global_selected_sampler_key = "sampler_euler"
 # =========================
 # Définition des fonctions
 # =========================
 
 
 
-# selection des sampler
-def apply_sampler(sampler_selection):
-    """Applique le sampler sélectionné et retourne un message et la clé interne du sampler."""
-    global global_selected_sampler_key
-    info_base = translate('sampler_change', translations)
-    sampler_key = None # Initialiser la clé à None
-    sampler_applied = False
-
-    if gestionnaire.global_pipe is not None:
-        # --- MODIFICATION : Ajouter le retour de la clé interne ---
-        if sampler_selection == translate("sampler_euler", translations):
-            gestionnaire.global_pipe.scheduler = EulerDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_euler"
-        elif sampler_selection == translate("sampler_dpmpp_2m", translations):
-            gestionnaire.global_pipe.scheduler = DPMSolverMultistepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_dpmpp_2m"
-        elif sampler_selection == translate("sampler_dpmpp_2s_a", translations):
-            # Note: Souvent EulerAncestralDiscreteScheduler est utilisé pour DPM++ 2S Ancestral
-            gestionnaire.global_pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_dpmpp_2s_a" # Assurez-vous que cette clé est celle que vous voulez stocker
-        elif sampler_selection == translate("sampler_lms", translations):
-            gestionnaire.global_pipe.scheduler = LMSDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_lms"
-        elif sampler_selection == translate("sampler_ddim", translations):
-            gestionnaire.global_pipe.scheduler = DDIMScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_ddim"
-        elif sampler_selection == translate("sampler_pndm", translations):
-            gestionnaire.global_pipe.scheduler = PNDMScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_pndm"
-        elif sampler_selection == translate("sampler_dpm2", translations):
-            gestionnaire.global_pipe.scheduler = KDPM2DiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_dpm2"
-        elif sampler_selection == translate("sampler_dpm2_a", translations):
-            gestionnaire.global_pipe.scheduler = KDPM2AncestralDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_dpm2_a"
-        elif sampler_selection == translate("sampler_dpm_fast", translations):
-            # Note: Souvent DPMSolverMultistepScheduler est utilisé pour DPM Fast
-            gestionnaire.global_pipe.scheduler = DPMSolverMultistepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_dpm_fast" # Assurez-vous que cette clé est celle que vous voulez stocker
-        elif sampler_selection == translate("sampler_dpm_adaptive", translations):
-            # Note: Souvent DEISMultistepScheduler est utilisé pour DPM Adaptive
-            gestionnaire.global_pipe.scheduler = DEISMultistepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_dpm_adaptive" # Assurez-vous que cette clé est celle que vous voulez stocker
-        elif sampler_selection == translate("sampler_heun", translations):
-            gestionnaire.global_pipe.scheduler = HeunDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_heun"
-        elif sampler_selection == translate("sampler_dpmpp_sde", translations):
-            gestionnaire.global_pipe.scheduler = DPMSolverSDEScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_dpmpp_sde"
-        elif sampler_selection == translate("sampler_dpmpp_3m_sde", translations):
-             # Note: Souvent DPMSolverSinglestepScheduler est utilisé pour DPM++ 3M SDE
-            gestionnaire.global_pipe.scheduler = DPMSolverSinglestepScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_dpmpp_3m_sde" # Assurez-vous que cette clé est celle que vous voulez stocker
-        elif sampler_selection == translate("sampler_euler_a", translations):
-            gestionnaire.global_pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_euler_a"
-        elif sampler_selection == translate("sampler_unipc", translations):
-            # Note: Souvent PNDMScheduler est utilisé pour UniPC, vérifiez la config
-            gestionnaire.global_pipe.scheduler = PNDMScheduler.from_config(gestionnaire.global_pipe.scheduler.config)
-            sampler_key = "sampler_unipc" # Assurez-vous que cette clé est celle que vous voulez stocker
-        else:
-            error_msg = translate('erreur_sampler_inconnu', translations) + " " + sampler_selection
-            print(txt_color("[ERREUR] ", "erreur"), error_msg)
-            gr.Warning(error_msg, 4.0)
-            return error_msg, None # Retourner None pour la clé en cas d'erreur
-
-        if sampler_key:
-            global_selected_sampler_key = sampler_key # Mise à jour de la variable globale
-            sampler_applied = True
-
-        # Si une clé a été trouvée
-        if sampler_applied == True:
-            info = f"{info_base}{sampler_selection}"
-            print(txt_color("[OK] ", "ok"), info)
-            gr.Info(info, 3.0)
-            return info, sampler_key # Retourner le message 
-        else:
-             # Ce cas ne devrait pas arriver si toutes les conditions ci-dessus retournent une clé
-             internal_error_msg = "Erreur interne: Sampler connu mais clé non retournée."
-             print(txt_color("[ERREUR] ", "erreur"), internal_error_msg)
-             return internal_error_msg, None
-
-    else:
-        # Si aucun modèle n'est chargé
-        no_model_msg = translate("charger_modele_avant_sampler", translations)
-        return no_model_msg, None # Retourner None pour la clé
 
 
 def style_choice(selected_style_user, STYLES):
@@ -312,9 +215,9 @@ def update_prompt(image):
 #==========================
 
 def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, *lora_inputs):
-    """Génère des images avec Stable Diffusion."""
-    global lora_charges, model_selectionne, vae_selctionne, is_generating, global_selected_sampler_key
-    
+    """Génère des images avec Stable Diffusion en utilisant execute_pipeline_task_async."""
+    global lora_charges, model_selectionne, vae_selctionne, is_generating, global_selected_sampler_key, PREVIEW_QUEUE # Assurer que PREVIEW_QUEUE est global
+
     lora_checks = lora_inputs[:4]
     lora_dropdowns = lora_inputs[4:8]
     lora_scales = lora_inputs[8:]
@@ -354,13 +257,13 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
 
     try:
-        
+
         if gestionnaire.global_pipe is None:
             print(txt_color("[ERREUR] ","erreur"), translate("erreur_pas_modele", translations))
             gr.Warning(translate("erreur_pas_modele", translations), 4.0)
             final_message = translate("erreur_pas_modele", translations)
             return
-        
+
         if not isinstance(gestionnaire.global_pipe, StableDiffusionXLPipeline):
             error_message = translate("erreur_mauvais_type_modele", translations)
             print(txt_color("[ERREUR] ","erreur"), error_message)
@@ -375,17 +278,17 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         start_time = time.time()
         # Réinitialiser l'état d'arrêt
         stop_event.clear()
-        stop_gen.clear()  
+        stop_gen.clear()
 
-        seeds = [random.randint(1, 10**19 - 1) for _ in range(num_images)] if seed_input == -1 else [seed_input] * num_images        
+        seeds = [random.randint(1, 10**19 - 1) for _ in range(num_images)] if seed_input == -1 else [seed_input] * num_images
         prompt_text = translate_prompt(text, translations) if traduire else text
 
         prompt_en, negative_prompt_str, selected_style_display_names = styles_fusion(
             style_selection,
             prompt_text,
-            NEGATIVE_PROMPT, 
-            STYLES,          
-            translations    
+            NEGATIVE_PROMPT,
+            STYLES,
+            translations
         )
 
         print(txt_color("[INFO] ","info"), f"Prompt Positif Final (string): {prompt_en}")
@@ -394,9 +297,9 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         # --- Utiliser gestionnaire.global_compel pour les prompts positif ET négatif ---
         conditioning, pooled = gestionnaire.global_compel(prompt_en)
         neg_conditioning, neg_pooled = gestionnaire.global_compel(negative_prompt_str)
-        
-        selected_format = selected_format.split(":")[0].strip()
-        width, height = map(int, selected_format.split("*"))
+
+        selected_format_parts = selected_format.split(":")[0].strip() # Utiliser selected_format ici
+        width, height = map(int, selected_format_parts.split("*"))
         images = [] # Initialize a list to store all generated images
         seed_strings = []
         formatted_seeds = ""
@@ -408,310 +311,293 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             gr.Warning(message_lora, 4.0)
             final_message = message_lora
             return
-       
+
 
         # principal loop for genrated images
         for idx, seed in enumerate(seeds):
             depart_time = time.time()
-            PREVIEW_QUEUE.clear()
-            final_image_container = {}
+            PREVIEW_QUEUE.clear() # Vider la queue d'aperçu pour cette image
+            # final_image_container = {} # Remplacé par result_container de l'executor
             html_message_result = translate("generation_en_cours", translations)
 
-            if stop_event.is_set():  # Vérifie si un arrêt est demandé
+            if stop_event.is_set(): # Vérifie l'arrêt global avant de commencer
                 print(txt_color("[INFO] ","info"), translate("arrete_demande_apres", translations), f"{idx} {translate('images', translations)}.")
                 gr.Info(translate("arrete_demande_apres", translations) + f"{idx} {translate('images', translations)}.", 3.0)
-                final_message = translate("generation_arretee", translations) # Message pour le finally
-                break
-                
+                final_message = translate("generation_arretee", translations)
+                break # Sortir de la boucle for
+
             print(txt_color("[INFO] ","info"), f"{translate('generation_image', translations)} {idx+1} {translate('seed_utilise', translations)} {seed}")
             gr.Info(translate('generation_image', translations) + f"{idx+1} {translate('seed_utilise', translations)} {seed}", 3.0)
 
-            
-            progress_update_queue = queue.Queue()
+            # --- NOUVEAU : Appel à execute_pipeline_task_async ---
+            progress_update_queue = queue.Queue() # Queue pour la progression de CETTE image
 
-            callback_combined = create_callback_on_step_end(
-                PREVIEW_QUEUE,
-                stop_gen, 
-                num_steps, 
-                translations,
-                progress_update_queue
+            pipeline_thread, result_container = execute_pipeline_task_async(
+                pipe=gestionnaire.global_pipe,
+                prompt_embeds=conditioning,
+                pooled_prompt_embeds=pooled,
+                negative_prompt_embeds=neg_conditioning,
+                negative_pooled_prompt_embeds=neg_pooled,
+                num_inference_steps=num_steps,
+                guidance_scale=guidance_scale,
+                seed=seed,
+                width=width,
+                height=height,
+                device=device,
+                stop_event=stop_gen, # Utiliser stop_gen pour arrêter CETTE image
+                translations=translations,
+                progress_queue=progress_update_queue,
+                preview_queue=PREVIEW_QUEUE # Passer la queue globale d'aperçu
             )
+            # --- FIN NOUVEAU ---
 
-            def run_pipeline():
-                generator = torch.Generator(device=device).manual_seed(seed)
-                final_image = gestionnaire.global_pipe(
-                    prompt_embeds=conditioning,
-                    pooled_prompt_embeds=pooled,
-                    negative_prompt_embeds=neg_conditioning,         
-                    negative_pooled_prompt_embeds=neg_pooled,       
-                    num_inference_steps=num_steps,
-                    guidance_scale=guidance_scale,
-                    generator=generator,
-                    width=width,
-                    height=height,
-                    callback_on_step_end=callback_combined, 
-                    callback_on_step_end_tensor_inputs=["latents"]
-                )
-                if not stop_gen.is_set():
-                    final_image_container["final"] = final_image.images[0]
-
-            thread = threading.Thread(target=run_pipeline)
-            thread.start()
-            
-            last_index = 0
+            # --- Boucle de mise à jour UI (adaptée) ---
+            last_preview_index = 0
             last_progress_html = ""
-            while thread.is_alive() or last_index < len(PREVIEW_QUEUE) or not progress_update_queue.empty():
-                # Lire la dernière progression de la queue (sans bloquer)
+            last_yielded_preview = None
+            # On boucle tant que le thread tourne OU qu'il reste des éléments dans les queues
+            while pipeline_thread.is_alive() or last_preview_index < len(PREVIEW_QUEUE) or not progress_update_queue.empty():
+
+                # Lire la progression
                 current_step, total_steps = None, num_steps
                 while not progress_update_queue.empty():
                     try:
                         current_step, total_steps = progress_update_queue.get_nowait()
-                    except queue.Empty:
-                        break # Sortir si la queue est vide
-                new_progress_html = last_progress_html 
-
+                    except queue.Empty: break
+                new_progress_html = last_progress_html
                 if current_step is not None:
-                    # Construire l'HTML de la barre de progression
                     progress_percent = int((current_step / total_steps) * 100)
                     new_progress_html = create_progress_bar_html(current_step, total_steps, progress_percent)
-                    last_progress_html = new_progress_html
 
-                # Yield les aperçus s'il y en a de nouveaux
+                # Lire les aperçus
                 preview_img_to_yield = None
-                preview_yielded = False
-                while last_index < len(PREVIEW_QUEUE):
-                    preview_img_to_yield = PREVIEW_QUEUE[last_index]
-                    last_index += 1
+                preview_yielded_in_loop = False
+                while last_preview_index < len(PREVIEW_QUEUE):
+                    preview_img_to_yield = PREVIEW_QUEUE[last_preview_index]
+                    last_preview_index += 1
+                    last_yielded_preview = preview_img_to_yield
                     # Yield avec l'aperçu et la dernière progression connue
                     yield (
                         images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
-                        preview_img_to_yield, last_progress_html,
+                        preview_img_to_yield, new_progress_html, # Utiliser new_progress_html
                         bouton_charger_update_off, btn_generate_update_off,
-                        gr.update(interactive=False),
+                        gr.update(interactive=False), # Save preset button
                         output_gen_data_json,
                         output_preview_image
                     )
-                    preview_yielded = True
-                # Si aucune preview n'a été yield mais que la barre de progression a changé, yield la progression
-                if not preview_yielded and new_progress_html != last_progress_html:
+                    preview_yielded_in_loop = True
+                
+                if not preview_yielded_in_loop and new_progress_html != last_progress_html:
                      yield (
                          images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
-                         None, new_progress_html,
+                         last_yielded_preview, # <--- Utiliser le dernier aperçu au lieu de None
+                         new_progress_html, # Yield la nouvelle progression
                          bouton_charger_update_off, btn_generate_update_off,
-                         gr.update(interactive=False),
+                         gr.update(interactive=False), # Save preset button
                          output_gen_data_json,
                          output_preview_image
-                     )            
-                
+                     )
+
+
+                last_progress_html = new_progress_html # Mettre à jour la dernière progression connue
+
+                # Vérifier si l'arrêt global a été demandé pendant la boucle
+                if stop_event.is_set():
+                    stop_gen.set() # Signaler au thread de s'arrêter via son propre event
+                    print(txt_color("[INFO]", "info"), translate("arret_global_detecte", translations))
+                    break # Sortir de la boucle while
+
                 time.sleep(0.05)
+            # --- Fin Boucle de mise à jour UI ---
 
-            thread.join() # Attendre la fin du thread (ou son interruption)
-            PREVIEW_QUEUE.clear()
+            pipeline_thread.join() # Attendre la fin effective du thread
+            PREVIEW_QUEUE.clear() # Vider la queue d'aperçu après la fin
+
+            # --- Gérer le résultat après la fin du thread ---
+            final_status = result_container.get("status")
+            final_image = result_container.get("final")
+            error_details = result_container.get("error")
+
+            # Déterminer la barre de progression finale
             final_progress_html = ""
-            if not stop_gen.is_set():
-                 final_progress_html = final_progress_html = create_progress_bar_html(num_steps, num_steps, 100)
+            if final_status == "success":
+                final_progress_html = create_progress_bar_html(num_steps, num_steps, 100)
+            elif final_status == "error":
+                final_progress_html = f'<p style="color: red;">{translate("erreur_lors_generation", translations)}</p>'
+            # Si stopped, on laisse vide ou on met un message spécifique
 
-            
-            if stop_gen.is_set():
+            # Vérifier si l'arrêt a été demandé (global ou spécifique à l'image)
+            if stop_event.is_set() or stop_gen.is_set() or final_status == "stopped":
                 print(txt_color("[INFO]", "info"), translate("generation_arretee_pas_sauvegarde", translations))
                 gr.Info(translate("generation_arretee_pas_sauvegarde", translations), 3.0)
                 final_message = translate("generation_arretee", translations)
+                # Yield un état intermédiaire avant de sortir de la boucle for
                 yield (
                     images, " ".join(seed_strings), translate("generation_arretee", translations),
                     translate("generation_arretee_pas_sauvegarde", translations), None, final_progress_html,
                     bouton_charger_update_off, btn_generate_update_off,
-                    gr.update(interactive=False) 
+                    gr.update(interactive=False) # Save preset button
                 )
-                break # Important: sortir de la boucle for
+                break # Sortir de la boucle for des images
 
-            # --- Si la génération n'a PAS été arrêtée ---
-            final_image = final_image_container.get("final", None)
+            # Gérer l'erreur du pipeline
+            elif final_status == "error":
+                error_msg = str(error_details) if error_details else "Unknown pipeline error"
+                print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_pipeline', translations)}: {error_msg}")
+                gr.Warning(f"{translate('erreur_pipeline', translations)}: {error_msg}", 4.0)
+                yield (
+                    images, " ".join(seed_strings), translate("erreur_pipeline", translations),
+                    error_msg, None, final_progress_html,
+                    bouton_charger_update_off, btn_generate_update_off,
+                    gr.update(interactive=False) # Save preset button
+                )
+                continue # Passer à l'image suivante
 
-
-
-            if final_image is None:
+            # Gérer le cas où aucune image n'est retournée malgré le succès
+            elif final_image is None:
                 print(txt_color("[ERREUR] ", "erreur"), translate("erreur_pas_image_genere", translations))
                 gr.Warning(translate("erreur_pas_image_genere", translations), 4.0)
-                # Yield l'état d'erreur (boutons toujours off) avant de continuer
                 yield (
                     images, " ".join(seed_strings), translate("erreur_pas_image_genere", translations),
                     translate("erreur_pas_image_genere", translations), None, final_progress_html,
                     bouton_charger_update_off, btn_generate_update_off,
-                    gr.update(interactive=False) 
+                    gr.update(interactive=False) # Save preset button
                 )
-                continue # Passer à l'itération suivante
+                continue # Passer à l'image suivante
 
+            # --- Si la génération a réussi et une image est présente ---
+            # Préparation des données pour le preset
             current_data_for_preset = {
-                "model": model_selectionne, 
-                "vae": vae_selctionne,
-                "original_prompt": prompt_text,     
-                "prompt": prompt_en,
-                "negative_prompt": negative_prompt_str,
-                "styles": json.dumps(selected_style_display_names if selected_style_display_names else []),
-                "guidance_scale": guidance_scale,
-                "num_steps": num_steps,
-                "sampler_key": global_selected_sampler_key,
-                "seed": seed, # Utiliser le seed actuel de la boucle
-                "width": width,
-                "height": height,
-                # Construire la liste des LoRAs actifs
-                "loras": json.dumps([
-                    {"name": lora_dropdowns[i], "weight": lora_scales[i]}
-                    for i, check in enumerate(lora_checks) if check and lora_dropdowns[i] != translate("aucun_lora_disponible", translations)
-                ]),
-                "rating": 0,
-                "notes": "" # Champ pour les notes, initialement vide
+                 "model": model_selectionne,
+                 "vae": vae_selctionne,
+                 "original_prompt": prompt_text,
+                 "prompt": prompt_en,
+                 "negative_prompt": negative_prompt_str,
+                 "styles": json.dumps(selected_style_display_names if selected_style_display_names else []),
+                 "guidance_scale": guidance_scale,
+                 "num_steps": num_steps,
+                 "sampler_key": global_selected_sampler_key,
+                 "seed": seed,
+                 "width": width,
+                 "height": height,
+                 "loras": json.dumps([
+                     {"name": lora_dropdowns[i], "weight": lora_scales[i]}
+                     for i, check in enumerate(lora_checks) if check and lora_dropdowns[i] != translate("aucun_lora_disponible", translations)
+                 ]),
+                 "rating": 0,
+                 "notes": ""
             }
-
             preview_image_for_preset = final_image.copy()
-            
             output_gen_data_json = json.dumps(current_data_for_preset)
             output_preview_image = preview_image_for_preset
-            print(txt_color("[DEBUG]", "info"), "Variables globales mises à jour.")
-            
-            temps_generation_image = f"{(time.time() - depart_time):.2f} sec"            
-            
 
+            # Calcul du temps, sauvegarde, métadonnées
+            temps_generation_image = f"{(time.time() - depart_time):.2f} sec"
             date_str = datetime.now().strftime("%Y_%m_%d")
             heure_str = datetime.now().strftime("%H_%M_%S")
             save_dir = os.path.join(SAVE_DIR, date_str)
             os.makedirs(save_dir, exist_ok=True)
-
-            lora_info = []
-            for i, (check, dropdown, scale) in enumerate(zip(lora_checks, lora_dropdowns, lora_scales)):
-                if check:
-                    lora_name = dropdown
-                    if lora_name != translate("aucun_lora_disponible", translations):
-                        lora_info.append(f"{lora_name} ({scale:.2f})")
-
-            lora_info_str = ", ".join(lora_info) if lora_info else translate("aucun_lora", translations)
-            style_info_str = ", ".join(selected_style_display_names) if selected_style_display_names else translate("Aucun_style", translations)
-          
-            donnees_xmp =  {
-                    "Module": "SDXL Image Generation",
-                    "Creator": AUTHOR,
-                    "Model": os.path.splitext(model_selectionne)[0],
-                    "VAE": os.path.splitext(vae_selctionne)[0] if vae_selctionne else "Défaut VAE",
-                    "Steps": num_steps,
-                    "Guidance": guidance_scale,
-                    "Sampler": gestionnaire.global_pipe.scheduler.__class__.__name__,
-                    "IMAGE": f"{idx+1} {translate('image_sur',translations)} {num_images}",
-                    "Inference": num_steps,
-                    "Style": style_info_str,
-                    "original_prompt (User)": prompt_text,
-                    "Prompt": prompt_en,
-                    "Negatif Prompt": negative_prompt_str,
-                    "Seed": seed,
-                    "Size": selected_format,                   
-                    "Loras": lora_info_str,
-                    "Generation Time": temps_generation_image 
-                }
             filename = f"{date_str}_{heure_str}_{seed}_{width}x{height}_{idx+1}.{IMAGE_FORMAT.lower()}"
             chemin_image = os.path.join(save_dir, filename)
 
+            lora_info = [f"{lora_dropdowns[i]} ({lora_scales[i]:.2f})" for i, check in enumerate(lora_checks) if check and lora_dropdowns[i] != translate("aucun_lora_disponible", translations)]
+            lora_info_str = ", ".join(lora_info) if lora_info else translate("aucun_lora", translations)
+            style_info_str = ", ".join(selected_style_display_names) if selected_style_display_names else translate("Aucun_style", translations)
+
+            donnees_xmp = {
+                 "Module": "SDXL Image Generation", "Creator": AUTHOR,
+                 "Model": os.path.splitext(model_selectionne)[0],
+                 "VAE": os.path.splitext(vae_selctionne)[0] if vae_selctionne else "Défaut VAE",
+                 "Steps": num_steps, "Guidance": guidance_scale,
+                 "Sampler": gestionnaire.global_pipe.scheduler.__class__.__name__,
+                 "IMAGE": f"{idx+1} {translate('image_sur',translations)} {num_images}",
+                 "Inference": num_steps, "Style": style_info_str,
+                 "original_prompt (User)": prompt_text, "Prompt": prompt_en,
+                 "Negatif Prompt": negative_prompt_str, "Seed": seed,
+                 "Size": selected_format_parts, # Utiliser selected_format_parts ici
+                 "Loras": lora_info_str,
+                 "Generation Time": temps_generation_image
+             }
 
             metadata_structure, prep_message = preparer_metadonnees_image(
-                final_image, # L'image PIL générée
-                donnees_xmp,
-                translations, # Utiliser les traductions globales pour les messages de la fonction utilitaire
-                chemin_image # Passer le chemin pour déterminer le format
+                final_image, donnees_xmp, translations, chemin_image
             )
-            # Afficher le message de la préparation (succès ou échec)
             print(txt_color("[INFO]", "info"), prep_message)
 
+            gr.Info(translate("image_sauvegarder", translations) + " " + chemin_image, 3.0)
+            image_future = image_executor.submit(enregistrer_image, final_image, chemin_image, translations, IMAGE_FORMAT, metadata_to_save=metadata_structure)
+            html_future = html_executor.submit(enregistrer_etiquettes_image_html, chemin_image, donnees_xmp, translations, is_last_image=(idx == num_images - 1))
 
-
-            gr.Info(translate("image_sauvegarder", translations) + " " + chemin_image, 3.0)    
-            
-            # Déléguer la tâche d'enregistrement de l'image au ThreadPoolExecutor
-            image_future = image_executor.submit(
-                enregistrer_image,
-                final_image,
-                chemin_image,
-                translations,
-                IMAGE_FORMAT, # Le format global défini en haut du fichier
-                metadata_to_save=metadata_structure # Passer la structure préparée
-            )
-                                   
-            is_last_image = (idx == num_images - 1)
-            # Déléguer la tâche d'écriture dans le ThreadPoolExecutor
-            html_future = html_executor.submit(
-                enregistrer_etiquettes_image_html,
-                chemin_image,
-                donnees_xmp, # Passer les mêmes données pour cohérence
-                translations,
-                is_last_image=(idx == num_images - 1)
-            )
-            
             print(txt_color("[OK] ","ok"),translate("image_sauvegarder", translations), txt_color(f"{filename}","ok"))
-            images.append(final_image) # Append each generated image to the list
+            images.append(final_image)
             torch.cuda.empty_cache()
 
-            # Append the seed value as a string to the list, formatted as [seed]
             seed_strings.append(f"[{seed}]")
-            # join the string with a space
             formatted_seeds = " ".join(seed_strings)
-            # Attendre et récupérer le résultat HTML (ou gérer l'erreur)
+
+            # Attendre le résultat HTML
             try:
-                html_message_result = html_future.result(timeout=10) # Ajout d'un timeout
+                html_message_result = html_future.result(timeout=10)
             except Exception as html_err:
                  print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_lors_generation_html', translations)}: {html_err}")
                  html_message_result = translate("erreur_lors_generation_html", translations)
-                       
+
+            # Yield final pour cette image réussie
             yield (
                 images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}",
-                html_message_result, final_image, final_progress_html,
+                html_message_result, final_image, final_progress_html, # Utiliser final_progress_html
                 bouton_charger_update_off, btn_generate_update_off,
-                gr.update(interactive=False),
+                gr.update(interactive=False), # Save preset button
                 output_gen_data_json,
                 output_preview_image
             )
-                    
-        # --- Fin de la boucle ---
+        # --- Fin de la boucle for des images ---
 
-        print(txt_color("[DEBUG]", "info"), f"État après yield itération {idx}:")
-        print(f"  Données: {'OK' if output_gen_data_json else 'None'}")
-        print(f"  Image: {'OK' if output_gen_data_json else 'None'}")
-
+        # --- Après la boucle (gestion message final, état bouton preset) ---
         final_images = images
         final_seeds = formatted_seeds
-        final_html_msg = html_message_result 
-        final_preview_img = None  
-        final_progress_html = "" 
-        
-        if not final_message:
+        final_html_msg = html_message_result
+        final_preview_img = None # Plus d'aperçu à la fin
+        final_progress_html = "" # Effacer la barre de progression
+
+        if not final_message: # Si aucun message d'erreur/arrêt n'a été défini
             elapsed_time = f"{(time.time() - start_time):.2f} sec"
             final_message = translate('temps_total_generation', translations) + " : " + elapsed_time
             print(txt_color("[INFO] ","info"), final_message)
             gr.Info(final_message, 3.0)
 
-        if not stop_event.is_set() and not stop_gen.is_set() and final_images: 
-             final_save_button_state = gr.update(interactive=True) 
+        # Activer le bouton de sauvegarde seulement si la génération n'a pas été arrêtée et qu'au moins une image a été générée
+        final_save_button_state = gr.update(interactive=False)
+        if not stop_event.is_set() and not stop_gen.is_set() and final_images:
+             final_save_button_state = gr.update(interactive=True)
 
     except Exception as e:
-        # Gérer les erreurs inattendues
-        is_generating = False # Mettre à jour le flag en cas d'erreur
+        # --- Gestion des erreurs inattendues ---
+        is_generating = False
         print(txt_color("[ERREUR] ","erreur"), f"{translate('erreur_lors_generation', translations)} : {e}")
-        traceback.print_exc() # Imprime la trace complète de l'erreur
+        traceback.print_exc()
         final_message = f"{translate('erreur_lors_generation', translations)} : {str(e)}"
-        # Préparer les valeurs pour le yield dans finally en cas d'erreur
         final_images = []
         final_seeds = ""
-        final_html_msg = f"<p style='color: red;'>{final_message}</p>" 
+        final_html_msg = f"<p style='color: red;'>{final_message}</p>"
         final_preview_img = None
         final_progress_html = ""
         final_save_button_state = gr.update(interactive=False)
+        output_gen_data_json = None # Réinitialiser en cas d'erreur
+        output_preview_image = None
 
     finally:
-        is_generating = False # Assurer que le flag est remis à False
+        # --- Bloc finally ---
+        is_generating = False
         yield (
             final_images, final_seeds, final_message, final_html_msg,
             final_preview_img, final_progress_html,
             bouton_charger_update_on, btn_generate_update_on,
-            final_save_button_state,
-            output_gen_data_json,
-            output_preview_image
+            final_save_button_state, # Utiliser l'état calculé
+            output_gen_data_json, # Passer les données finales (ou None si erreur)
+            output_preview_image # Passer l'image finale (ou None si erreur)
         )
+
 
 #==========================
 # Fonction INPAINTED IMAGE
@@ -1078,12 +964,25 @@ elif DEFAULT_MODEL:
     # --- Le modèle par défaut n'a pas été trouvé dans le dossier ---
     gestionnaire.global_pipe = None
     gestionnaire.global_compel = None
+
+if gestionnaire.global_pipe: # Vérifier si le chargement initial (via DEFAULT_MODEL) a réussi
+    print(txt_color("[INFO]", "info"), "Mise à jour de l'état initial du gestionnaire après chargement réussi.")
+    # Utiliser les variables globales qui ont été mises à jour lors du chargement réussi
+    gestionnaire.set_current_model_info(model_selectionne, vae_selctionne)
+    # Assurez-vous que global_selected_sampler_key est défini avec une valeur par défaut avant ce point
+    gestionnaire.set_current_sampler(global_selected_sampler_key)
+else:
+    print(txt_color("[WARN]", "warning"), "Aucun modèle initial chargé, l'état du gestionnaire reste vide.")
+    # Assurer que l'état est None si aucun modèle n'est chargé
+    gestionnaire.set_current_model_info(None, None)
+    gestionnaire.set_current_sampler(None)
 # =========================
 # Model Loading Functions (update_globals_model, update_globals_model_inpainting) for gradio
 # =========================
 
 def update_globals_model(nom_fichier, nom_vae):
     global  model_selectionne, vae_selctionne, loras_charges
+    gestionnaire.set_current_model_info(nom_fichier, nom_vae)
     returned_values = charger_modele(nom_fichier, nom_vae, translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel, gradio_mode=True)
     if len(returned_values) >= 3:
         gestionnaire.global_pipe = returned_values[0]
@@ -1092,6 +991,8 @@ def update_globals_model(nom_fichier, nom_vae):
     else:
          # Gérer le cas où charger_modele ne retourne pas assez de valeurs
          print(txt_color("[ERREUR]", "erreur"), "Retour inattendu de charger_modele")
+         gestionnaire.set_current_model_info(None, None)
+         gestionnaire.set_current_sampler(None)
          gestionnaire.global_pipe = None
          gestionnaire.global_compel = None
          message = "Erreur interne lors du chargement."
@@ -1170,22 +1071,6 @@ def update_inpainting_mask_effects(image_and_mask, opacity, blur_radius):
     processed_mask = apply_mask_effects(image_and_mask, translations, opacity, blur_radius)
     return processed_mask
 
-
-# mettre à jour seulement les effets ---
-# def update_inpainting_mask_effects(resized_original, resized_mask, opacity, blur_radius):
-#     """Applique seulement les effets d'opacité/flou sur le masque déjà redimensionné."""
-#     if resized_original and resized_mask:
-#         # Recréer le dictionnaire attendu par apply_mask_effects
-#         temp_dict_for_effects = {
-#             "background": resized_original, 
-#             "layers": [resized_mask],       
-#             "composite": None
-#         }
-#         processed_mask = apply_mask_effects(temp_dict_for_effects, translations, opacity, blur_radius)
-#         return processed_mask
-#     else:
-#         # Si les images stockées ne sont pas valides
-#         return None
 
 # --- Fonction pour mettre à jour ImageMask ET calculer le masque initial ---
 def update_image_mask_and_initial_effects(validated_image, opacity, blur_radius):
@@ -1373,15 +1258,12 @@ def handle_save_preset(preset_name, preset_notes, current_gen_data_json, preview
             else:
                 temp_search_value = current_search_str + " " # Ajouter un espace
             search_update_hack = gr.update(value=temp_search_value)
-            # Retourner updates pour vider les champs + les updates des filtres
             return gr.update(value=""), gr.update(value=""), update_model, update_sampler, update_lora, gr.update(value=current_trigger + 1), search_update_hack
         except Exception as filter_err:
             print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_update_filtres_preset', translations)}: {filter_err}")
-            # Retourner quand même les updates pour vider les champs + updates vides pour filtres
             return gr.update(value=""), gr.update(value=""), *filter_updates_on_error, gr.update(value=current_trigger + 1), search_update_hack
     else:
         gr.Warning(message, 4.0)
-        # Échec: Laisser les champs + pas d'update filtre
         return gr.update(), gr.update(), *filter_updates_on_error, trigger_update_on_error, search_update_on_error
 
 def handle_preset_load_click(preset_id):
@@ -1401,32 +1283,26 @@ def handle_preset_load_click(preset_id):
         return [gr.update()] * (7 + 3 * num_lora_slots + 1)
 
     try:
-        # --- Extraire les données du preset avec des valeurs par défaut ---
         original_prompt_value = preset_data.get('original_prompt', preset_data.get('prompt', ''))
         if original_prompt_value is None:
-            # Fallback pour les anciens presets qui n'ont que le prompt fusionné
             original_prompt_value = preset_data.get('prompt', '')
         # Le prompt négatif n'est pas directement dans l'UI, on le charge pas ici
         styles_data = preset_data.get('styles', [])
-        # Les styles sont stockés comme une liste de noms d'affichage (déjà traduits lors de la sauvegarde)
         loaded_style_names = []
         if isinstance(styles_data, str):
-            # Si c'est une chaîne, essayer de la décoder
             try:
                 loaded_style_names = json.loads(styles_data)
-                # Assurer que le résultat est bien une liste après décodage
                 if not isinstance(loaded_style_names, list):
-                    loaded_style_names = [] # Réinitialiser si le type est incorrect
+                    loaded_style_names = []
             except json.JSONDecodeError:
-                loaded_style_names = [] # Réinitialiser en cas d'erreur de décodage
+                loaded_style_names = [] 
         elif isinstance(styles_data, list):
-            # Si c'est déjà une liste, l'utiliser directement
             loaded_style_names = styles_data
         else:
             # Gérer les autres types inattendus
             loaded_style_names = []
         model_name = preset_data.get('model', None)
-        vae_name = preset_data.get('vae', None)
+        vae_name_from_preset = preset_data.get('vae', "Défaut VAE")
         guidance = preset_data.get('guidance_scale', 7.0)
         steps = preset_data.get('num_steps', 30)
         sampler_key = preset_data.get('sampler_key', 'sampler_euler')
@@ -1437,24 +1313,29 @@ def handle_preset_load_click(preset_id):
         loras_data = preset_data.get('loras', []) # Récupérer la donnée (peut être str ou list)
         loaded_loras = [] 
 
+         # --- Validation Modèle ---
         available_models = lister_fichiers(MODELS_DIR, translations, gradio_mode=True)
-        available_vaes = lister_fichiers(VAE_DIR, translations, gradio_mode=True)
-
         model_update = gr.update() # Par défaut, ne rien changer
         if model_name and model_name in available_models:
             model_update = gr.update(value=model_name)
-
         elif model_name:
             print(f"[WARN Preset Load] Modèle '{model_name}' du preset non trouvé dans les options actuelles.")
 
-        vae_update = gr.update() # Par défaut, ne rien changer
-        if vae_name and vae_name in available_vaes:
-            vae_update = gr.update(value=vae_name)
-            # Appeler la fonction pour charger le VAE en backend si nécessaire
-            # Note: Similaire au modèle, dépend si le dropdown déclenche le chargement.
-            # Sinon, il faudrait appeler une fonction comme handle_vae_change(vae_name)
-        elif vae_name:
-            gr.Warning(translate("erreur_vae_preset_introuvable", translations).format(vae_name))
+         # --- Validation VAE ---
+        available_vae_files  = lister_fichiers(VAE_DIR, translations, gradio_mode=True)
+        vae_value_for_ui = "Défaut VAE"
+
+        if vae_name_from_preset == "Défaut VAE":
+            vae_value_for_ui = "Défaut VAE"
+        elif vae_name_from_preset in available_vae_files:
+            vae_value_for_ui = vae_name_from_preset
+        else:
+            gr.Warning(translate("erreur_vae_preset_introuvable", translations).format(vae_name_from_preset))
+            vae_value_for_ui = "Défaut VAE"
+
+        vae_update = gr.update()
+
+         # --- Validation LORAS---
         if isinstance(loras_data, str):
             # Si c'est une chaîne, essayer de la décoder
             try:
@@ -1517,15 +1398,22 @@ def handle_preset_load_click(preset_id):
                     # Laisser le slot désactivé
 
         # --- Préparer l'update du Sampler et appliquer au backend ---
-        sampler_update_msg, _ = apply_sampler(sampler_display) # Appelle la fonction existante pour mettre à jour le pipe
+        sampler_update_msg, success = apply_sampler_to_pipe(gestionnaire.global_pipe, sampler_key, translations)
         # Vérifier si le sampler chargé est valide
-        if sampler_display not in sampler_options:
-             default_sampler_display = translate('sampler_euler', translations)
-             apply_sampler(default_sampler_display) # Appliquer le défaut
-             sampler_update = gr.update(value=default_sampler_display)
-             sampler_update_msg = translate("sampler_preset_invalide_defaut", translations).format(sampler_display) # Nouvelle clé
+        if success:
+            global global_selected_sampler_key # Mettre à jour la globale
+            global_selected_sampler_key = sampler_key
+            sampler_update = gr.update(value=sampler_display) # Mettre à jour le dropdown UI
+            gr.Info(sampler_update_msg, 2.0) # Afficher le succès
         else:
-             sampler_update = gr.update(value=sampler_display)
+            # Gérer l'échec (ex: sampler du preset non valide/compatible)
+            gr.Warning(sampler_update_msg)
+            # Appliquer un sampler par défaut et mettre à jour l'UI
+            default_sampler_key = "sampler_euler"
+            default_sampler_display = translate(default_sampler_key, translations)
+            apply_sampler_to_pipe(gestionnaire.global_pipe, default_sampler_key, translations) # Appliquer le défaut
+            global_selected_sampler_key = default_sampler_key # Mettre à jour la globale avec le défaut
+            sampler_update = gr.update(value=default_sampler_display) 
              # Le sampler a déjà été appliqué par apply_sampler() ci-dessus
 
         # --- Préparer l'update des Styles ---
@@ -1550,7 +1438,7 @@ def handle_preset_load_click(preset_id):
             *lora_check_updates,                     # lora_checks (4)
             *lora_dd_updates,                        # lora_dropdowns (4)
             *lora_scale_updates,                     # lora_scales (4)
-            gr.update(value=translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}'))) # message_chargement
+            gr.update(value=translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}')))# message_chargement
         ]
         print(f"[INFO] Preset '{preset_data.get('name', f'ID: {preset_id}')}' chargé dans l'UI.")
         gr.Info(translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}')), 2.0)
@@ -1647,9 +1535,16 @@ with gr.Blocks(**block_kwargs) as interface:
                         value = DEFAULT_MODEL if DEFAULT_MODEL else None
                         modele_dropdown = gr.Dropdown(label=translate("selectionner_modele", translations), choices=modeles_disponibles, value=initial_model_value, allow_custom_value=True)
                         vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=vaes, value=initial_vae_value)
-                        sampler_dropdown = gr.Dropdown(label=translate("selectionner_sampler", translations), choices=sampler_options)
+                        sampler_display_choices = get_sampler_choices(translations) # Obtenir les choix depuis l'utilitaire
+                        default_sampler_display = translate(global_selected_sampler_key, translations) # Traduire la clé par défaut
+
+                        sampler_dropdown = gr.Dropdown(
+                            label=translate("selectionner_sampler", translations),
+                            choices=sampler_display_choices,
+                            value=default_sampler_display # Utiliser le nom traduit par défaut
+                        )                        
                         bouton_charger = gr.Button(translate("charger_modele", translations))
-                        
+                                                
 
                         
             with gr.Column():
@@ -1658,6 +1553,18 @@ with gr.Blocks(**block_kwargs) as interface:
                 btn_stop = gr.Button(translate("arreter", translations), variant="stop")
                 btn_stop_after_gen = gr.Button(translate("stop_apres_gen", translations), variant="stop")
                 bouton_lister = gr.Button(translate("lister_modeles", translations))
+                with gr.Accordion(translate("batch_runner_accordion_title", translations), open=False): # Nouvelle clé de traduction
+                    gr.Markdown(f"#### {translate('batch_runner_title', translations)}") # Titre interne
+                    batch_json_file_input = gr.File(
+                        label=translate("upload_batch_json", translations),
+                        file_types=[".json"],
+                        file_count="single"
+                    )
+                    batch_run_button = gr.Button(translate("run_batch_button", translations), variant="primary")
+                    batch_status_output = gr.Textbox(label=translate("batch_status", translations), interactive=False)
+                    batch_progress_output = gr.HTML()
+                    batch_gallery_output = gr.Gallery(label=translate("batch_generated_images", translations), height="auto", interactive=False) # Ajustez height si besoin
+                    batch_stop_button = gr.Button(translate("stop_batch_button", translations), variant="stop", interactive=False)                
                 with gr.Accordion(translate("sauvegarder_preset_section", translations), open=False): # Nouvelle clé de traduction pour le titre
                     preset_name_input = gr.Textbox(
                         label=translate("nom_preset", translations),
@@ -1724,9 +1631,13 @@ with gr.Blocks(**block_kwargs) as interface:
         def get_filter_options():
             filter_data = preset_manager.get_distinct_preset_filters()
             models = filter_data.get('models', [])
-            samplers = filter_data.get('samplers', [])
-            loras = filter_data.get('loras', [])# Peut nécessiter un traitement spécial si stocké en JSON
-            sampler_display_names = [translate(s_key, translations) for s_key in samplers if translate(s_key, translations) in sampler_options]
+            sampler_keys_in_presets = filter_data.get('samplers', [])
+            loras = filter_data.get('loras', []) # Peut nécessiter un traitement spécial si stocké en JSON
+            sampler_display_names = [translate(s_key, translations) for s_key in sampler_keys_in_presets]
+            sampler_display_names = list(set(sampler_display_names))
+            sampler_display_names.sort()
+            # --- FIN CORRECTION ---
+
             return models, sampler_display_names, loras
 
         initial_models, initial_samplers, initial_loras = get_filter_options()
@@ -2047,11 +1958,6 @@ with gr.Blocks(**block_kwargs) as interface:
         inputs=[modele_dropdown, vae_dropdown],
         outputs=[message_chargement, btn_generate, btn_generate]
     )
-    sampler_dropdown.change(
-        fn=lambda selection: apply_sampler(selection)[0], # Appelle apply_sampler et prend seulement le premier élément retourné (le message)
-        inputs=sampler_dropdown,
-        outputs=[message_chargement]
-    )
 
     image_input.change(fn=generate_caption, inputs=image_input, outputs=text_input)
 
@@ -2108,7 +2014,80 @@ with gr.Blocks(**block_kwargs) as interface:
             preset_search_input     # Pour mettre à jour les choix
         ]
     )
-  
+    # --- Connexions pour le Batch Runner ---
+    batch_runner_inputs = [
+        batch_json_file_input,      # Correspond à json_file_obj
+        gr.State(config),           # Correspond à config
+        gr.State(translations),     # Correspond à translations
+        gr.State(device),           # Correspond à device
+        # Composants UI (dans l'ordre attendu par run_batch_from_json)
+        batch_status_output,        # Correspond à ui_status_output
+        batch_progress_output,      # Correspond à ui_progress_output
+        batch_gallery_output,       # Correspond à ui_gallery_output
+        batch_run_button,           # Correspond à ui_run_button
+        batch_stop_button           # Correspond à ui_stop_button
+    ]
+
+    # Liste des outputs (correspond aux composants UI à mettre à jour)
+    batch_runner_outputs = [
+        batch_status_output,
+        batch_progress_output,
+        batch_gallery_output,
+        batch_run_button,
+        batch_stop_button
+    ]
+
+    def batch_runner_wrapper(*args, progress=gr.Progress(track_tqdm=True)):
+        """Fonction wrapper qui appelle run_batch_from_json avec yield from."""
+        # gestionnaire et stop_event sont accessibles depuis la portée englobante
+        yield from run_batch_from_json(
+            gestionnaire,
+            stop_event,
+            *args,
+            progress=progress
+        )
+
+    batch_run_button.click(
+        # Utiliser la fonction wrapper nommée au lieu de la lambda
+        fn=batch_runner_wrapper, # <--- MODIFIÉ
+        inputs=batch_runner_inputs,
+        outputs=batch_runner_outputs
+    )
+
+    # La connexion du bouton Stop du batch reste inchangée
+    batch_stop_button.click(
+        fn=stop_generation, # La fonction globale d'arrêt existante
+        inputs=None,
+        outputs=None # L'arrêt est géré par l'événement stop_event
+    )
+    # 
+
+
+
+    def handle_sampler_change(selected_display_name):
+        """Gère le changement de sampler dans l'UI principale."""
+        global global_selected_sampler_key # Accéder à la variable globale
+
+        sampler_key = get_sampler_key_from_display_name(selected_display_name, translations)
+        if sampler_key:
+            message, success = apply_sampler_to_pipe(gestionnaire.global_pipe, sampler_key, translations)
+            if success:
+                global_selected_sampler_key = sampler_key # Mettre à jour la clé globale si succès
+                gestionnaire.set_current_sampler(sampler_key)
+                gr.Info(message, 3.0) # Afficher l'info Gradio ici
+            else:
+                gr.Warning(message, 4.0) # Afficher l'avertissement Gradio ici
+            return message # Retourner le message pour le Textbox de statut
+        else:
+            error_msg = f"{translate('erreur_sampler_inconnu', translations)}: {selected_display_name}"
+            gr.Warning(error_msg, 4.0)
+            return error_msg
+
+    sampler_dropdown.change(
+        fn=handle_sampler_change,
+        inputs=sampler_dropdown,
+        outputs=[message_chargement] # Mettre à jour le Textbox de statut
+    )
 
 # Liaisons pour l'onglet Inpainting
     image_upload_input.upload(
