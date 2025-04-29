@@ -92,29 +92,50 @@ Passionate about image generation and AI, I heavily relied on Gemini to help me.
 ## Interface Capture
 
 Image generator, prompt calculated from the image, adding a LoRA
+
 ![Capture d'écran 2025-04-24 073557](https://github.com/user-attachments/assets/b3455d1c-308c-4907-8aa6-970d0b92ce7b)
 
+
+Batch runner since Beta version 1.8 :
+
+![image](https://github.com/user-attachments/assets/fc718e44-be0d-42c7-9361-699fa2d21b89)
+
+
+Batch generator since Beta version 1.8 :
+
+![image](https://github.com/user-attachments/assets/80956917-47e0-4875-8fb0-e4fe8fe7e8a6)
+
+
 Presets since Beta version 1.7, it is possible to save presets,
+
 ![Capture d'écran 2025-04-24 074037](https://github.com/user-attachments/assets/cb6dea51-7c86-4c52-9ad4-584573fc91f8)
 once the image is produced, give it a name and a rating (optional), and save your creation's data to keep track of it.
 
 Inpainting, define an area of the image to modify, here an 80-year-old person's face instead of a young woman's
+
 ![image](https://github.com/user-attachments/assets/d60b8d1b-8e77-4988-abe7-3f81ca0f4a34)
 
 [MODULE] Image enhancement with AuraSR (https://github.com/fal-ai/aura-sr)
+
 ![image](https://github.com/user-attachments/assets/4f188555-de5b-47ca-ae07-e24083894eef)
 
 [MODULE] Civitai browser
+
 ![image](https://github.com/user-attachments/assets/506ab5fa-eacd-4f9b-be93-2c35b157cbc6)
 
 [MODULE] Image Editing
+
 ![image](https://github.com/user-attachments/assets/2e31935f-8f0d-445d-a123-9784033f7042)
 
 [MODULE] Image to Image (here prompt and style selected)
+
 ![image](https://github.com/user-attachments/assets/a3493385-5b48-40eb-82e8-75932d540253)
 
 [MODULE] Remove Background based on RemBG https://github.com/danielgatis/rembg
+
 ![iamge](https://github.com/user-attachments/assets/15717a23-9828-4e14-8a78-465110b22f76)
+
+
 
 ## ▶️ Advanced Configuration
 

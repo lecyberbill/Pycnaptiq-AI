@@ -95,6 +95,13 @@ Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
 ![Capture d'écran 2025-04-24 073557](https://github.com/user-attachments/assets/b3455d1c-308c-4907-8aa6-970d0b92ce7b)
 
 
+Batch runner depuis la version Béta 1.8:
+![image](https://github.com/user-attachments/assets/77f89696-a934-4a34-8d48-f5dccd525cad)
+
+Batch editor, pour créer vos fichiers de batch depuis la version Béta 1.8:
+![image](https://github.com/user-attachments/assets/4c44404c-61e0-43ce-bd9d-3dbbfbca23a0)
+
+
 Presets depuis la version Béta 1.7, il est possible d'enregistrer des presets,
 ![Capture d'écran 2025-04-24 074037](https://github.com/user-attachments/assets/cb6dea51-7c86-4c52-9ad4-584573fc91f8)
 une fois l'image produite donner un nom et une note (facultatif), et enregistré les données de votre création pour en garder une trace
