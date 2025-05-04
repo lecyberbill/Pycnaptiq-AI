@@ -1,10 +1,10 @@
 {
     "name": "RemBG",
-    "version": "1.0.0",
+
     "description": "Rembg remove images background (https://github.com/danielgatis/rembg?tab=readme-ov-file)",
     "tab_name": "Remove images background",
     "init_function": "initialize",
-    "dependencies": ["onnxruntime-gpu","rembg[gpu]"],
+    "dependencies": [],
     "language": {
         "fr": {
             "aura_sr_tab": "RemBG",

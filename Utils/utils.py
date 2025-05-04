@@ -25,7 +25,6 @@ from packaging import version as pkg_version
 from importlib_metadata import PackageNotFoundError
 import base64
 
-
 init()
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -665,22 +664,11 @@ class GestionModule:
         modules_dir="modules",
         translations=None,
         language="fr",
-        global_pipe=None,
-        global_compel=None,
         config=None,
-        device=None,              # <-- AJOUTÉ
-        torch_dtype=None,          # <-- AJOUTÉ
-        vram_total_gb=None         # <-- AJOUTÉ
+        model_manager_instance=None
     ):
         """
         Initialise le gestionnaire de modules.
-
-        Args:
-            modules_dir (str): Le répertoire contenant les modules.
-            translations (dict): Le dictionnaire de traductions.
-            device (torch.device, optional): Le device à utiliser (cuda/cpu/mps).
-            torch_dtype (torch.dtype, optional): Le dtype à utiliser (float16/float32).
-            vram_total_gb (float, optional): VRAM disponible en Go.
         """
         self.modules_dir = modules_dir
         self.language = language
@@ -688,20 +676,9 @@ class GestionModule:
         self.modules = {}
         self.tabs = {}
         self.modules_names = []
-        self.global_pipe = global_pipe
-        self.global_compel = global_compel
         self.config = config
         self.js_code = ""
-
-        # Ajout pour support device/dtype/VRAM
-        self.device = device
-        self.torch_dtype = torch_dtype
-        self.vram_total_gb = vram_total_gb
-
-        self.current_model_name = None
-        self.current_vae_name = None
-        self.current_sampler_key = None
-        self.loras_charges = {}
+        self.model_manager = model_manager_instance
         
 
     def verifier_version(self, package_name, min_version):
@@ -910,12 +887,12 @@ class GestionModule:
             if hasattr(module, init_func_name):
                 init_func = getattr(module, init_func_name)
                 # Correctly pass only three arguments
-                instance = init_func(self.translations, self, self.config, *args, **kwargs)
+                instance = init_func(self.translations, self.model_manager, self, self.config, *args, **kwargs)
                 module.instance = instance
                 print(txt_color("[OK] ", "ok"), translate("module_initialized", self.translations).format(module_name))
                 # Collect JavaScript code if the module has it
                 if hasattr(module.instance, "get_module_js"):
-                    self.js_code += module.instance.get_module_js() 
+                    self.js_code += module.instance.get_module_js()
                 return instance
             else:
                 print(txt_color("[ERREUR] ", "erreur"), translate("module_no_init_function", self.translations).format(module_name, init_func_name))
@@ -923,82 +900,6 @@ class GestionModule:
         except Exception as e:
             print(txt_color("[ERREUR] ", "erreur"), translate("module_init_error", self.translations).format(module_name, e))
             return None
-
-    def update_global_pipe(self, new_pipe):
-        """Update the global pipe."""
-        self.global_pipe = new_pipe
-
-    def update_global_compel(self, new_compel):
-        """Update the global compel."""
-        self.global_compel = new_compel
-
-    def reset_loras_charges(self):
-        """
-        Décharge proprement tous les LoRAs actuellement chargés et réinitialise le suivi local.
-        Respecte le système de traduction pour les messages.
-        """
-        if self.global_pipe is None:
-            print(txt_color("[WARN]", "warning"), translate("warn_reset_lora_sans_pipe", self.translations))
-            gr.Warning(translate("warn_reset_lora_sans_pipe", self.translations), 3.0)
-            return
-
-        if not self.loras_charges:
-            print(txt_color("[INFO]", "info"), translate("info_aucun_lora_a_decharger", self.translations))
-            return
-
-        for adapter_name in list(self.loras_charges.keys()):
-            try:
-                decharge_lora(self.global_pipe, self.translations, adapter_name)
-            except Exception as e:
-                print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_reset_lora', self.translations)} '{adapter_name}': {e}")
-
-        # Après tout déchargé
-        self.loras_charges.clear()
-        print(txt_color("[OK]", "ok"), translate("ok_reset_loras_termine", self.translations))
-    
-    def verifier_et_nettoyer_loras(self):
-        """
-        Vérifie que tous les LoRAs suivis existent bien et sont compatibles.
-        Décharge proprement ceux qui posent problème, sans interrompre le batch.
-        """
-        if self.global_pipe is None:
-            print(txt_color("[WARN]", "warning"), translate("warn_verif_lora_sans_pipe", self.translations))
-            return
-
-        if not self.loras_charges:
-            print(txt_color("[INFO]", "info"), translate("info_aucun_lora_a_verifier", self.translations))
-            return
-
-        loras_a_supprimer = []
-
-        for adapter_name in list(self.loras_charges.keys()):
-            try:
-                # Vérifier si l'adaptateur est toujours actif
-                active_adapters = self.global_pipe.get_active_adapters()
-
-                if adapter_name not in active_adapters:
-                    print(txt_color("[WARN]", "warning"), f"{translate('warn_lora_inactif_detecte', self.translations)} '{adapter_name}'")
-                    loras_a_supprimer.append(adapter_name)
-
-            except Exception as e:
-                print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_verif_lora', self.translations)} '{adapter_name}': {e}")
-                loras_a_supprimer.append(adapter_name)
-
-        # Nettoyage
-        for adapter_name in loras_a_supprimer:
-            try:
-                decharge_lora(self.global_pipe, self.translations, adapter_name)
-            except Exception:
-                # Même si le déchargement échoue, on continue
-                pass
-            if adapter_name in self.loras_charges:
-                del self.loras_charges[adapter_name]
-
-        if loras_a_supprimer:
-            print(txt_color("[OK]", "ok"), f"{translate('ok_loras_invalides_nettoyes', self.translations)}: {len(loras_a_supprimer)}")
-        else:
-            print(txt_color("[OK]", "ok"), translate("ok_aucun_lora_a_nettoyer", self.translations))
-
 
 
     def charger_tous_les_modules(self):
@@ -1034,11 +935,13 @@ class GestionModule:
                 print(txt_color("[OK] ", "ok"), translate("tab_created_for_module", self.translations).format(tab_name, module_name))
                 return tab
             else:
+                # Ne pas traiter comme une erreur si create_tab n'existe pas
                 print(txt_color("[ERREUR] ", "erreur"), translate("module_no_create_tab", self.translations).format(module_name))
                 return None
         except Exception as e:
-            print(txt_color("[ERREUR] ", "erreur"), translate("tab_creation_error", self.translations).format(module_name, e))
-            return None
+            print(txt_color("[ERREUR]", "erreur"), f"Erreur inattendue lors de la création de l'onglet pour {module_name}: {e}")
+            traceback.print_exc() # Imprimer la trace pour le débogage
+            return None             
 
     def creer_tous_les_onglets(self, translations):
         """Crée tous les onglets Gradio pour les modules chargés."""
@@ -1053,73 +956,6 @@ class GestionModule:
     def get_js_code(self):
         """Return the javascript code"""
         return self.js_code
-
-    def set_current_model_info(self, model_name, vae_name):
-        """Définit le modèle et VAE actuellement chargés."""
-        self.current_model_name = model_name
-        self.current_vae_name = vae_name
-
-    def set_current_sampler(self, sampler_key):
-        """Définit le sampler actuellement utilisé."""
-        self.current_sampler_key = sampler_key
-
-def decharger_modele(pipe, compel, translations):
-    """Libère proprement la mémoire GPU en déplaçant temporairement le modèle sur CPU."""
-
-    if pipe is not None:
-        try:
-            print(txt_color("[INFO] ", "info"), translate("dechargement_modele", translations))
-            try:
-                pipe.to("cpu")
-                print(txt_color("[INFO] ", "info"), translate("modele_deplace_cpu", translations))
-            except Exception as e:
-                print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_deplacement_cpu', translations)}: {e}")
-            torch.cuda.synchronize()
-
-            # Désactiver les optimisations mémoire
-            if hasattr(pipe, 'disable_vae_slicing'):
-                pipe.disable_vae_slicing()
-            if hasattr(pipe, 'disable_vae_tiling'):
-                pipe.disable_vae_tiling()
-            if hasattr(pipe, 'disable_attention_slicing'):
-                pipe.disable_attention_slicing()
-
-            # Supprimer proprement chaque composant
-            if hasattr(pipe, 'vae'):
-                del pipe.vae
-            if hasattr(pipe, 'text_encoder'):
-                del pipe.text_encoder
-            if hasattr(pipe, 'text_encoder_2'):
-                del pipe.text_encoder_2
-            if hasattr(pipe, 'tokenizer'):
-                del pipe.tokenizer
-            if hasattr(pipe, 'tokenizer_2'):
-                del pipe.tokenizer_2
-            if hasattr(pipe, 'unet'):
-                del pipe.unet
-            if hasattr(pipe, 'scheduler'):
-                del pipe.scheduler
-
-            del pipe
-            pipe = None #ajout de la suppression de pipe
-
-            if compel is not None:
-                del compel
-                compel = None #ajout de la suppression de compel
-
-            # Nettoyage de la mémoire GPU et RAM
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
-            torch.cuda.synchronize()
-            gc.collect()
-
-            print(txt_color("[OK] ", "ok"), translate("modele_precedent_decharge", translations))
-        except Exception as e:
-            print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_dechargement_modele', translations)}: {e}")
-        finally:
-            pass
-    else:
-        pass
 
 
 # In the check_gpu_availability function
@@ -1137,10 +973,13 @@ def check_gpu_availability(translations):
             - vram_total_gb (float): The total VRAM in GB (or 0 if no GPU is available).
     """
     if torch.cuda.is_available():
-        gpu_id = 0  # GPU ID (adjust if needed)
-        vram_total = torch.cuda.get_device_properties(gpu_id).total_memory  # in bytes
-        vram_total_gb = vram_total / (1024 ** 3)  # Convert to GB
-
+        gpu_device = torch.device(f'cuda:{torch.cuda.current_device()}')
+        cpu_device = torch.device('cpu')
+        try:
+            vram_total_gb = torch.cuda.get_device_properties(gpu_device).total_memory / (1024 ** 3)
+        except Exception as e:
+            print(txt_color("[ERREUR]", "erreur"), f"Impossible de lire la mémoire GPU via check_gpu_availability: {e}")
+            vram_total_gb = 0 # Fallback
         print(translate("vram_detecte", translations), f"{txt_color(f'{vram_total_gb:.2f} Go', 'info')}")
 
         # Enable expandable_segments if VRAM < 10 GB
@@ -1152,7 +991,7 @@ def check_gpu_availability(translations):
             os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True max_split_size_mb:256"
             print(translate("pytroch_active", translations))
 
-        device = "cuda"
+        device = gpu_device # Retourner le device local
         torch_dtype = torch.float16
     else:
         print(txt_color(translate("cuda_dispo", translations), "erreur"))
@@ -1160,7 +999,7 @@ def check_gpu_availability(translations):
         torch_dtype = torch.float32
         vram_total_gb = 0
 
-    print(txt_color(f'{translate("utilistation_device", translations)} : {device} + dtype {torch_dtype}', 'info'))
+    print(txt_color(f'{translate("utilistation_device", translations)} : {str(device)} + dtype {torch_dtype}', 'info'))
     return device, torch_dtype, vram_total_gb
 
 class ImageSDXLchecker:

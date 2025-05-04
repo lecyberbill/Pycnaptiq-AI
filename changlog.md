@@ -1,3 +1,63 @@
+## Beta 1.8.5 🐥Crazy Happy Chick🐥
+
+*Date: 2025-05-02*
+
+### ✨ New Features
+
+*   **New Module: Image Enhancement (`ImageEnhancement_mod.py`)**
+    *   Added a dedicated tab replacing previous Upscaling (SDXL) and Enhancement (AuraSR) functionalities.
+    *   **Colorization:** Integrated ModelScope's `damo/cv_ddcolor_image-colorization` model to colorize black and white images.
+    *   **Upscale (4x):** Integrated Diffusers' `CompVis/ldm-super-resolution-4x-openimages` model for 4x image upscaling.
+    *   **Restoration:** Integrated the OneRestore model (`onerestore_real.tar` + `embedder_model.tar`) for automatic image degradation detection and restoration (e.g., fixing blur, noise). Models are included in `modules/ImageEnhancement_models/`.
+    *   **Auto Retouch:** Added a simple automatic retouching option using PIL enhancements (Contrast, Sharpness, Saturation).
+*   **Model Management:** Enhancement models are loaded on demand and unloaded after use to save VRAM, including automatic unloading of the main generation model if loaded.
+*   **Helper Functions:** Created `ImageEnhancement_helper.py` for loading OneRestore checkpoints.
+
+### 🔧 Changes
+
+*   **Auto Retouch Enhancement:** Added saturation adjustment to the existing "Auto Retouch" feature within the Image Enhancement module.
+*   **Dependencies:** Updated and pinned requirements in `requirements.txt` for better stability and reproducibility. Switched `diffusers` from a Git commit to the stable PyPI version (`0.33.1`) to support future features (like SANA). Corrected `opencv-python-headless` version. Removed unnecessary `futures` package.
+*   **Module Cleanup:** Removed obsolete AuraSR enhancement and SDXL Upscaling modules/features, now superseded by the new Image Enhancement module.
+*   **Code Quality:** Minor internal code adjustments and cleanup in various modules.
+
+### ➕ Added Features
+
+*   **XMP Metadata:** Images are now saved with XMP metadata, enriching PNG, JPEG, and WEBP files with comprehensive information about their generation. For example:
+    *   **PNG:** Metadata is stored using `pnginfo`.
+    *   **JPEG:** Metadata is stored in `exif.UserComment`.
+    *   **WEBP:** Metadata is stored in `xmp` format.
+* **Image to Image Batch Mode:** Image to Image module now allows you to select a folder containing multiple images for processing in batch mode.
+
+---
+
+### ✨ Nouvelles Fonctionnalités (French)
+
+*   **Nouveau Module : Amélioration d'Image (`ImageEnhancement_mod.py`)**
+    *   Ajout d'un onglet dédié remplaçant les fonctionnalités précédentes d'Upscaling (SDXL) et d'Amélioration (AuraSR).
+    *   **Colorisation :** Intégration du modèle ModelScope `damo/cv_ddcolor_image-colorization` pour coloriser les images en noir et blanc.
+    *   **Upscale (4x) :** Intégration du modèle Diffusers `CompVis/ldm-super-resolution-4x-openimages` pour l'agrandissement d'image 4x.
+    *   **Restauration :** Intégration du modèle OneRestore (`onerestore_real.tar` + `embedder_model.tar`) pour la détection automatique de la dégradation et la restauration d'image (ex: correction du flou, bruit). Modèles inclus dans `modules/ImageEnhancement_models/`.
+    *   **Retouche Auto :** Ajout d'une option de retouche automatique simple utilisant les améliorations PIL (Contraste, Netteté, Saturation).
+*   **Gestion des Modèles :** Les modèles d'amélioration sont chargés à la demande et déchargés après utilisation pour économiser la VRAM, incluant le déchargement automatique du modèle de génération principal s'il est chargé.
+*   **Fonctions Utilitaires :** Création de `ImageEnhancement_helper.py` pour le chargement des checkpoints OneRestore.
+
+### 🔧 Changements (French)
+
+*   **Amélioration Retouche Auto :** Ajout de l'ajustement de la saturation à la fonctionnalité "Retouche Auto" existante dans le module d'Amélioration d'Image.
+*   **Dépendances :** Mise à jour et épinglage des dépendances dans `requirements.txt` pour une meilleure stabilité et reproductibilité. Remplacement de `diffusers` d'un commit Git vers la version stable PyPI (`0.33.1`) pour supporter les fonctionnalités futures (comme SANA). Correction de la version de `opencv-python-headless`. Suppression du paquet `futures` inutile.
+*   **Nettoyage Modules :** Suppression des modules/fonctionnalités obsolètes d'amélioration AuraSR et d'Upscaling SDXL, désormais remplacés par le nouveau module d'Amélioration d'Image.
+*   **Qualité du Code :** Ajustements mineurs du code interne et nettoyage dans divers modules.
+
+### ➕ Fonctionnalités Ajoutées
+
+*   **Métadonnées XMP :** Les images sont désormais sauvegardées avec des métadonnées XMP, enrichissant les fichiers PNG, JPEG et WEBP avec des informations complètes sur leur génération. Par exemple :
+    *   **PNG :** Les métadonnées sont stockées en utilisant `pnginfo`.
+    *   **JPEG :** Les métadonnées sont stockées dans `exif.UserComment`.
+    *   **WEBP :** Les métadonnées sont stockées au format `xmp`.
+*   **Mode Batch Image to Image :** Le module Image to Image vous permet maintenant de sélectionner un dossier contenant plusieurs images pour un traitement en mode batch.
+---
+
+
 ## Beta 1.8 🚀
 
 *Date: 2025-04-29*

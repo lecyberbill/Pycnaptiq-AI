@@ -19,11 +19,11 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, AutoProcessor
 from core.version import version
 from Utils.callback_diffuser import latents_to_rgb, create_callback_on_step_end, create_inpainting_callback
+from Utils.model_manager import ModelManager
 from core.trannslator import translate_prompt
 from core.Inpaint import apply_mask_effects
-from Utils.model_loader import charger_modele, charger_modele_inpainting, charger_lora, decharge_lora, gerer_lora
-from Utils.utils import enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, GestionModule, styles_fusion, create_progress_bar_html,\
-    telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, preparer_metadonnees_image, check_gpu_availability, decharger_modele, ImageSDXLchecker
+from Utils.utils import GestionModule, enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, styles_fusion, create_progress_bar_html,\
+    telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, preparer_metadonnees_image, check_gpu_availability, ImageSDXLchecker
 from Utils.sampler_utils import SAMPLER_DEFINITIONS, get_sampler_choices, get_sampler_key_from_display_name, apply_sampler_to_pipe
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Process
@@ -77,18 +77,19 @@ for style in config["STYLES"]:
 STYLES=config["STYLES"]
 PREVIEW_QUEUE = []
 
+# --- Initialisation du ModelManager ---
+device, torch_dtype, vram_total_gb = check_gpu_availability(translations)
+model_manager = ModelManager(config, translations, device, torch_dtype, vram_total_gb)
 
-# Check if photo_editing_mod is loaded
-#photo_editing_loaded = "photo_editing" in gestionnaire.get_loaded_modules()
-#initialisation des modèles
+# --- Utiliser ModelManager pour lister les fichiers ---
+modeles_disponibles = model_manager.list_models(model_type="standard")
+vaes = model_manager.list_vaes() # Inclut "Auto"
+modeles_impaint = model_manager.list_models(model_type="inpainting")
 
-modeles_disponibles = lister_fichiers(MODELS_DIR, translations)
-vaes = ["Défaut VAE"] + lister_fichiers(VAE_DIR, translations)
-modeles_impaint = lister_fichiers(INPAINT_MODELS_DIR, translations)
-
-if not modeles_impaint:
+if not modeles_impaint or modeles_impaint[0] == translate("aucun_modele_trouve", translations):
     modeles_impaint = [translate("aucun_modele_trouve", translations)]
     
+gestionnaire = GestionModule(translations=translations, config=config, model_manager_instance=model_manager)
 
 
 if modeles_disponibles and modeles_disponibles[0] == translate("aucun_modele_trouve", translations):
@@ -112,19 +113,7 @@ if IMAGE_FORMAT not in ["PNG", "JPG", "WEBP"]:
  # Créer un pool de threads pour l'écriture asynchrone
 
 html_executor = ThreadPoolExecutor(max_workers=5)
-image_executor = ThreadPoolExecutor(max_workers=10)
-
-# Call the function to check GPU availability
-device, torch_dtype, vram_total_gb = check_gpu_availability(translations)
-gestionnaire = GestionModule(
-    translations=translations,
-    language=DEFAULT_LANGUAGE,
-    config=config,
-    device=device, # <-- Passer
-    torch_dtype=torch_dtype, # <-- Passer
-    vram_total_gb=vram_total_gb # <-- Passer
-    # global_pipe et global_compel sont initialisés à None par défaut
-)
+image_executor = ThreadPoolExecutor(max_workers=10) 
 
 # Initialisation des variables globales
 
@@ -258,13 +247,13 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
     try:
 
-        if gestionnaire.global_pipe is None:
+        if model_manager.get_current_pipe() is None:
             print(txt_color("[ERREUR] ","erreur"), translate("erreur_pas_modele", translations))
             gr.Warning(translate("erreur_pas_modele", translations), 4.0)
             final_message = translate("erreur_pas_modele", translations)
             return
 
-        if not isinstance(gestionnaire.global_pipe, StableDiffusionXLPipeline):
+        if model_manager.current_model_type != 'standard': # <-- Vérifier le type via ModelManager
             error_message = translate("erreur_mauvais_type_modele", translations)
             print(txt_color("[ERREUR] ","erreur"), error_message)
             gr.Warning(error_message, 4.0)
@@ -294,9 +283,10 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         print(txt_color("[INFO] ","info"), f"Prompt Positif Final (string): {prompt_en}")
         print(txt_color("[INFO] ","info"), f"Prompt Négatif Final (string): {negative_prompt_str}")
 
-        # --- Utiliser gestionnaire.global_compel pour les prompts positif ET négatif ---
-        conditioning, pooled = gestionnaire.global_compel(prompt_en)
-        neg_conditioning, neg_pooled = gestionnaire.global_compel(negative_prompt_str)
+        # --- Utiliser compel pour les prompts positif ET négatif ---
+        compel = model_manager.get_current_compel()      
+        conditioning, pooled = compel(prompt_en)
+        neg_conditioning, neg_pooled = compel(negative_prompt_str)
 
         selected_format_parts = selected_format.split(":")[0].strip() # Utiliser selected_format ici
         width, height = map(int, selected_format_parts.split("*"))
@@ -306,12 +296,19 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         current_data_for_preset = None
         preview_image_for_preset = None
 
-        message_lora = gerer_lora(gestionnaire.global_pipe, loras_charges, lora_checks, lora_dropdowns, lora_scales, LORAS_DIR, translations)
-        if message_lora:
-            gr.Warning(message_lora, 4.0)
+        lora_ui_config = {
+            'lora_checks': lora_checks,
+            'lora_dropdowns': lora_dropdowns,
+            'lora_scales': lora_scales
+        }
+        message_lora = model_manager.apply_loras(lora_ui_config, gradio_mode=True)
+        erreur_keyword = translate("erreur", translations).lower()
+        if message_lora and erreur_keyword in message_lora.lower():
+            gr.Warning(message_lora, duration=4.0)
             final_message = message_lora
             return
-
+        elif message_lora: # Si message mais pas erreur (ex: succès)
+            print(txt_color("[INFO]", "info"), f"Message LoRA: {message_lora}")
 
         # principal loop for genrated images
         for idx, seed in enumerate(seeds):
@@ -331,9 +328,9 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
             # --- NOUVEAU : Appel à execute_pipeline_task_async ---
             progress_update_queue = queue.Queue() # Queue pour la progression de CETTE image
-
+            pipe = model_manager.get_current_pipe() 
             pipeline_thread, result_container = execute_pipeline_task_async(
-                pipe=gestionnaire.global_pipe,
+                pipe=pipe,
                 prompt_embeds=conditioning,
                 pooled_prompt_embeds=pooled,
                 negative_prompt_embeds=neg_conditioning,
@@ -468,8 +465,8 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             # --- Si la génération a réussi et une image est présente ---
             # Préparation des données pour le preset
             current_data_for_preset = {
-                 "model": model_selectionne,
-                 "vae": vae_selctionne,
+                 "model": model_manager.current_model_name,  
+                 "vae": model_manager.current_vae_name,  
                  "original_prompt": prompt_text,
                  "prompt": prompt_en,
                  "negative_prompt": negative_prompt_str,
@@ -480,10 +477,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                  "seed": seed,
                  "width": width,
                  "height": height,
-                 "loras": json.dumps([
-                     {"name": lora_dropdowns[i], "weight": lora_scales[i]}
-                     for i, check in enumerate(lora_checks) if check and lora_dropdowns[i] != translate("aucun_lora_disponible", translations)
-                 ]),
+                 "loras": json.dumps([{"name": name, "weight": weight} for name, weight in model_manager.loaded_loras.items()]),
                  "rating": 0,
                  "notes": ""
             }
@@ -501,15 +495,15 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             chemin_image = os.path.join(save_dir, filename)
 
             lora_info = [f"{lora_dropdowns[i]} ({lora_scales[i]:.2f})" for i, check in enumerate(lora_checks) if check and lora_dropdowns[i] != translate("aucun_lora_disponible", translations)]
-            lora_info_str = ", ".join(lora_info) if lora_info else translate("aucun_lora", translations)
+            lora_info_str = ", ".join([f"{name}({weight:.2f})" for name, weight in model_manager.loaded_loras.items()]) if model_manager.loaded_loras else translate("aucun_lora", translations)
             style_info_str = ", ".join(selected_style_display_names) if selected_style_display_names else translate("Aucun_style", translations)
 
             donnees_xmp = {
                  "Module": "SDXL Image Generation", "Creator": AUTHOR,
-                 "Model": os.path.splitext(model_selectionne)[0],
-                 "VAE": os.path.splitext(vae_selctionne)[0] if vae_selctionne else "Défaut VAE",
+                 "Model": os.path.splitext(model_manager.current_model_name)[0] if model_manager.current_model_name else "N/A", # <-- Utiliser ModelManager
+                 "VAE": model_manager.current_vae_name, # <-- Utiliser ModelManager
                  "Steps": num_steps, "Guidance": guidance_scale,
-                 "Sampler": gestionnaire.global_pipe.scheduler.__class__.__name__,
+                 "Sampler": pipe.scheduler.__class__.__name__,
                  "IMAGE": f"{idx+1} {translate('image_sur',translations)} {num_images}",
                  "Inference": num_steps, "Style": style_info_str,
                  "original_prompt (User)": prompt_text, "Prompt": prompt_en,
@@ -631,14 +625,14 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
     try:
         start_time = time.time()
         stop_gen.clear()
-        if gestionnaire.global_pipe is None:
+        if model_manager.get_current_pipe() is None:
             msg = translate("erreur_pas_modele_inpainting", translations)
             print(txt_color("[ERREUR] ", "erreur"), msg)
             gr.Warning(msg, 4.0)
             final_msg_status_result = msg
             return
-
-        if not isinstance(gestionnaire.global_pipe, StableDiffusionXLInpaintPipeline):
+        pipe = model_manager.get_current_pipe() 
+        if not isinstance(pipe, StableDiffusionXLInpaintPipeline):
             error_message = translate("erreur_mauvais_type_modele_inpainting", translations)
             print(txt_color("[ERREUR] ", "erreur"), error_message)
             gr.Warning(error_message, 4.0)
@@ -677,11 +671,12 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
 
         # Translate the prompt if requested
         prompt_text = translate_prompt(text, translations) if traduire else text
-        conditioning, pooled = gestionnaire.global_compel(prompt_text)
+        compel = model_manager.get_current_compel() # <-- Obtenir Compel
+        conditioning, pooled = compel(prompt_text)
         
-        active_adapters = gestionnaire.global_pipe.get_active_adapters()
+        active_adapters = pipe.get_active_adapters()
         for adapter_name in active_adapters:
-            gestionnaire.global_pipe.set_adapters(adapter_name, 0)
+            active_adapters.global_pipe.set_adapters(adapter_name, 0)
         
         image_rgb = image.convert("RGB")
         mask_rgb = mask
@@ -702,7 +697,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
             print(txt_color("[INFO] ", "info"), translate("debut_inpainting", translations))
             gr.Info(translate("debut_inpainting", translations), 3.0)
             try: # Ajouter try/except
-                inpainted_image_result = gestionnaire.global_pipe(
+                inpainted_image_result = pipe(
                     pooled_prompt_embeds=pooled,
                     prompt_embeds=conditioning,
                     image=image_rgb,
@@ -720,7 +715,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
                  print(txt_color("[INFO]", "info"), translate("inpainting_interrompu_interne", translations))
             except Exception as e:
                  # Ne pas imprimer l'erreur si c'est juste une interruption signalée par _interrupt
-                 if not (hasattr(gestionnaire.global_pipe, '_interrupt') and gestionnaire.global_pipe._interrupt):
+                 if not (hasattr(pipe, '_interrupt') and pipe._interrupt):
                      print(txt_color("[ERREUR]", "erreur"), f"Erreur dans run_pipeline (inpainting): {e}")
                      final_image_container["error"] = e
 
@@ -754,8 +749,8 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
         elif "error" in final_image_container:
              final_progress_html = f'<p style="color: red;">{translate("erreur_lors_inpainting", translations)}</p>'
         
-        if hasattr(gestionnaire.global_pipe, '_interrupt'):
-            gestionnaire.global_pipe._interrupt = False
+        if hasattr(pipe, '_interrupt'):
+            pipe._interrupt = False
         
         if "error" in final_image_container:
              error_message = f"{translate('erreur_lors_inpainting', translations)}: {final_image_container['error']}"
@@ -797,7 +792,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
                 donnees_xmp = {
                     "Module": "SDXL Inpainting",
                     "Creator": AUTHOR,
-                    "Model": os.path.splitext(model_selectionne)[0],
+                    "Model": os.path.splitext(model_manager.current_model_name)[0] if model_manager.current_model_name else "N/A", # <-- Utiliser ModelManager
                     "Steps": num_steps,
                     "Guidance": guidance_scale,
                     "Strength": strength,
@@ -859,8 +854,8 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
         final_msg_load_result = str(e)
 
     finally:
-        if hasattr(gestionnaire.global_pipe, '_interrupt'):
-            gestionnaire.global_pipe._interrupt = False
+        if 'pipe' in locals() and hasattr(pipe, '_interrupt'):
+            pipe._interrupt = False
         yield final_image_result, final_msg_load_result, final_msg_status_result, final_progress_result, btn_load_inp_on, btn_gen_inp_on
 
 
@@ -886,7 +881,7 @@ def stop_generation_process():
 # =========================
 
 
-initial_model_value = None
+initial_model_value = modeles_disponibles[0] if modeles_disponibles and modeles_disponibles[0] != translate("aucun_modele_trouve", translations) else None
 initial_vae_value = None
 initial_button_text = translate("charger_modele_pour_commencer", translations)
 initial_button_interactive = False
@@ -898,34 +893,30 @@ vae_selctionne = None
 if DEFAULT_MODEL and os.path.basename(DEFAULT_MODEL) in modeles_disponibles:
     print(f"{txt_color('[INFO]','info')}", f"{DEFAULT_MODEL} {translate('va_se_charger', translations)} {MODELS_DIR}")
 
-    temp_pipe = None # Initialiser à None
-    temp_compel = None
-    message_retour_list = []
     erreur_chargement = None
 
     try:
         # 1. Charger dans des variables temporaires
-        temp_pipe, temp_compel, *message_retour_list = charger_modele(
-            DEFAULT_MODEL, "Défaut VAE", translations, MODELS_DIR, VAE_DIR,
-            device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel
+        success, message_retour = model_manager.load_model(
+            model_name=os.path.basename(DEFAULT_MODEL),
+            vae_name="Défaut VAE", # Ou lire depuis config si besoin
+            model_type="standard",
+            gradio_mode=False # Pas d'UI Gradio ici
         )
-        message_retour = message_retour_list[0] if message_retour_list else None
+
 
     except Exception as e_load:
         traceback.print_exc()
         erreur_chargement = e_load
-        message_retour = str(e_load) # Utiliser le message d'erreur
 
 
 
     # 2. Vérifier le succès basé sur temp_pipe ET l'absence d'erreur
-    if temp_pipe and not erreur_chargement:
+    if success and not erreur_chargement:
         try:
             # 3. Affecter les globales SEULEMENT si succès
-            gestionnaire.global_pipe = temp_pipe
-            gestionnaire.global_compel = temp_compel
-            model_selectionne = os.path.basename(DEFAULT_MODEL)
-            vae_selctionne = "Défaut VAE"
+            model_selectionne = model_manager.current_model_name
+            vae_selctionne = model_manager.current_vae_name
 
             # --- Mettre à jour les variables initiales EN CAS DE SUCCÈS ---
             initial_model_value = os.path.basename(DEFAULT_MODEL)
@@ -947,8 +938,6 @@ if DEFAULT_MODEL and os.path.basename(DEFAULT_MODEL) in modeles_disponibles:
             initial_button_text = translate("charger_modele_pour_commencer", translations)
             initial_button_interactive = False
             initial_message_chargement = f"Erreur interne après chargement: {e_inner}"
-            gestionnaire.global_pipe = None
-            gestionnaire.global_compel = None
             model_selectionne = None
             vae_selctionne = None
 
@@ -956,49 +945,36 @@ if DEFAULT_MODEL and os.path.basename(DEFAULT_MODEL) in modeles_disponibles:
         # --- Le chargement a ÉCHOUÉ (soit temp_pipe est None, soit erreur_chargement existe) ---
         # Utiliser le message d'erreur ou un message par défaut
         initial_message_chargement = message_retour if message_retour else translate("erreur_chargement_modele_defaut", translations)
-        gestionnaire.global_pipe = None
-        gestionnaire.global_compel = None
         # Les autres initial_* gardent leur valeur par défaut
 
 elif DEFAULT_MODEL:
-    # --- Le modèle par défaut n'a pas été trouvé dans le dossier ---
-    gestionnaire.global_pipe = None
-    gestionnaire.global_compel = None
+    pass
 
-if gestionnaire.global_pipe: # Vérifier si le chargement initial (via DEFAULT_MODEL) a réussi
-    print(txt_color("[INFO]", "info"), "Mise à jour de l'état initial du gestionnaire après chargement réussi.")
-    # Utiliser les variables globales qui ont été mises à jour lors du chargement réussi
-    gestionnaire.set_current_model_info(model_selectionne, vae_selctionne)
-    # Assurez-vous que global_selected_sampler_key est défini avec une valeur par défaut avant ce point
-    gestionnaire.set_current_sampler(global_selected_sampler_key)
-else:
-    print(txt_color("[WARN]", "warning"), "Aucun modèle initial chargé, l'état du gestionnaire reste vide.")
-    # Assurer que l'état est None si aucun modèle n'est chargé
-    gestionnaire.set_current_model_info(None, None)
-    gestionnaire.set_current_sampler(None)
 # =========================
 # Model Loading Functions (update_globals_model, update_globals_model_inpainting) for gradio
 # =========================
 
 def update_globals_model(nom_fichier, nom_vae):
     global  model_selectionne, vae_selctionne, loras_charges
-    gestionnaire.set_current_model_info(nom_fichier, nom_vae)
-    returned_values = charger_modele(nom_fichier, nom_vae, translations, MODELS_DIR, VAE_DIR, device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel, gradio_mode=True)
-    if len(returned_values) >= 3:
-        gestionnaire.global_pipe = returned_values[0]
-        gestionnaire.global_compel = returned_values[1]
-        message = returned_values[2] # Ou *message si plus de 3 valeurs
-    else:
-         # Gérer le cas où charger_modele ne retourne pas assez de valeurs
-         print(txt_color("[ERREUR]", "erreur"), "Retour inattendu de charger_modele")
-         gestionnaire.set_current_model_info(None, None)
-         gestionnaire.set_current_sampler(None)
-         gestionnaire.global_pipe = None
-         gestionnaire.global_compel = None
-         message = "Erreur interne lors du chargement."
+    try:
+        # --- Utiliser ModelManager pour charger ---
+        success, message = model_manager.load_model(
+            model_name=nom_fichier,
+            vae_name=nom_vae,
+            model_type="standard",
+            gradio_mode=True
+        )
+    except Exception as e:
+        # Gérer les erreurs inattendues pendant l'appel à load_model
+        print(txt_color("[ERREUR]", "erreur"), f"Erreur inattendue lors de l'appel à model_manager.load_model: {e}")
+        traceback.print_exc()
+        success = False
+        message = f"Erreur interne: {e}"
+        # Assurer que le manager est propre en cas d'erreur grave
+        model_manager.unload_model()
 
 
-    if gestionnaire.global_pipe is not None:
+    if success:
         # Chargement réussi
         model_selectionne = nom_fichier
         vae_selctionne = nom_vae
@@ -1008,10 +984,6 @@ def update_globals_model(nom_fichier, nom_vae):
 
     else:
         # Chargement échoué
-        model_selectionne = None
-        vae_selctionne = None
-        gestionnaire.update_global_pipe(None)
-        gestionnaire.update_global_compel(None)
         etat_interactif = False
         texte_bouton = translate("charger_modele_pour_commencer", translations) # Texte désactivé
         selected_sampler_key_state.value = None
@@ -1023,20 +995,32 @@ def update_globals_model(nom_fichier, nom_vae):
 
 def update_globals_model_inpainting(nom_fichier):
     global model_selectionne
-    gestionnaire.global_pipe, gestionnaire.global_compel, message = charger_modele_inpainting(nom_fichier, translations, INPAINT_MODELS_DIR, device, torch_dtype, vram_total_gb, gestionnaire.global_pipe, gestionnaire.global_compel)
+        # Chargement réussi
+    model_selectionne = nom_fichier
+    try:
+        # --- Utiliser ModelManager pour charger ---
+        success, message = model_manager.load_model(
+            model_name=nom_fichier,
+            vae_name="Auto", # Inpainting utilise souvent le VAE intégré
+            model_type="inpainting",
+            gradio_mode=True
+        )
+    except Exception as e:
+        print(txt_color("[ERREUR]", "erreur"), f"Erreur inattendue lors de l'appel à model_manager.load_model (inpainting): {e}")
+        traceback.print_exc()
+        success = False
+        message = f"Erreur interne: {e}"
+        model_manager.unload_model()
 
-    if gestionnaire.global_pipe is not None:
+    if success:
         # Chargement réussi
         model_selectionne = nom_fichier
         etat_interactif = True
-        texte_bouton = translate("generer_inpainting", translations) # Texte normal
+        texte_bouton = translate("generer_inpainting", translations) 
     else:
         # Chargement échoué
         model_selectionne = None
-        gestionnaire.update_global_pipe(None)
-        gestionnaire.update_global_compel(None)
-        etat_interactif = False
-        texte_bouton = translate("charger_modele_inpaint_pour_commencer", translations) # Texte désactivé
+        etat_interactif = False # Texte désactivé
 
     update_interactif = gr.update(interactive=etat_interactif)
     update_texte = gr.update(value=texte_bouton)
@@ -1314,8 +1298,8 @@ def handle_preset_load_click(preset_id):
         loaded_loras = [] 
 
          # --- Validation Modèle ---
-        available_models = lister_fichiers(MODELS_DIR, translations, gradio_mode=True)
-        model_update = gr.update() # Par défaut, ne rien changer
+        available_models = model_manager.list_models(model_type="standard", gradio_mode=True) # <-- Utiliser ModelManager
+        model_update = gr.update()
         if model_name and model_name in available_models:
             model_update = gr.update(value=model_name)
         elif model_name:
@@ -1323,7 +1307,7 @@ def handle_preset_load_click(preset_id):
 
          # --- Validation VAE ---
         available_vae_files  = lister_fichiers(VAE_DIR, translations, gradio_mode=True)
-        vae_value_for_ui = "Défaut VAE"
+        vae_value_for_ui = "Auto"
 
         if vae_name_from_preset == "Défaut VAE":
             vae_value_for_ui = "Défaut VAE"
@@ -1378,7 +1362,7 @@ def handle_preset_load_click(preset_id):
         lora_scale_updates = [gr.update(value=0) for _ in range(num_lora_slots)]
 
         # Obtenir la liste actuelle des LoRAs disponibles
-        available_loras = lister_fichiers(LORAS_DIR, translations, gradio_mode=True)
+        available_loras = model_manager.list_loras(gradio_mode=True)
         has_available_loras = bool(available_loras) and translate("aucun_modele_trouve", translations) not in available_loras and translate("repertoire_not_found", translations) not in available_loras
         lora_choices = available_loras if has_available_loras else [translate("aucun_lora_disponible", translations)]
 
@@ -1394,11 +1378,12 @@ def handle_preset_load_click(preset_id):
                     lora_dd_updates[i] = gr.update(choices=lora_choices, value=lora_name, interactive=True)
                     lora_scale_updates[i] = gr.update(value=lora_weight)
                 else:
-                    print(f"[WARN] LoRA '{lora_name}' du preset non trouvé. Ignoré pour le slot {i+1}.")
+                    warn_msg = f"LoRA '{lora_name}' du preset non trouvé. Ignoré pour le slot {i+1}."
+                    print(txt_color("[WARN]", "warning"), warn_msg)
                     # Laisser le slot désactivé
 
         # --- Préparer l'update du Sampler et appliquer au backend ---
-        sampler_update_msg, success = apply_sampler_to_pipe(gestionnaire.global_pipe, sampler_key, translations)
+        sampler_update_msg, success = apply_sampler_to_pipe(model_manager.get_current_pipe(), sampler_key, translations)
         # Vérifier si le sampler chargé est valide
         if success:
             global global_selected_sampler_key # Mettre à jour la globale
@@ -1411,7 +1396,7 @@ def handle_preset_load_click(preset_id):
             # Appliquer un sampler par défaut et mettre à jour l'UI
             default_sampler_key = "sampler_euler"
             default_sampler_display = translate(default_sampler_key, translations)
-            apply_sampler_to_pipe(gestionnaire.global_pipe, default_sampler_key, translations) # Appliquer le défaut
+            apply_sampler_to_pipe(model_manager.get_current_pipe(), default_sampler_key, translations)  # Appliquer le défaut
             global_selected_sampler_key = default_sampler_key # Mettre à jour la globale avec le défaut
             sampler_update = gr.update(value=default_sampler_display) 
              # Le sampler a déjà été appliqué par apply_sampler() ci-dessus
@@ -1599,9 +1584,9 @@ with gr.Blocks(**block_kwargs) as interface:
                                     lora_scales.append(lora_scale_slider)
 
                                     # Add the change event here
-                                    lora_check.change(
-                                        fn=lambda check: gr.update(interactive=check),
-                                        inputs=[lora_check],
+                                    lora_checks[i-1].change( # Utiliser l'index correct
+                                        fn=lambda check, current_choices: gr.update(interactive=check and bool(current_choices) and current_choices[0] != translate("aucun_lora_disponible", translations)),
+                                        inputs=[lora_checks[i-1], lora_dropdowns[i-1]], # Ajouter les choix actuels comme input
                                         outputs=[lora_dropdown]
                                     )
                     lora_message = gr.Textbox(label=translate("message_lora", translations), value="")
@@ -1609,9 +1594,9 @@ with gr.Blocks(**block_kwargs) as interface:
                 def mettre_a_jour_listes():
                     modeles = lister_fichiers(MODELS_DIR, translations, gradio_mode=True)
                     vaes = ["Défaut VAE"] + lister_fichiers(VAE_DIR, translations, gradio_mode=True)
-                    loras = lister_fichiers(LORAS_DIR, translations, gradio_mode=True)
+                    loras = model_manager.list_loras(gradio_mode=True)
 
-                    has_loras = bool(loras) and translate("aucun_modele_trouve",translations) not in loras and translate("repertoire_not_found",translations) not in loras
+                    has_loras = bool(loras) and loras[0] != translate("aucun_modele_trouve", translations) and loras[0] != translate("repertoire_not_found", translations)
                     lora_choices = loras if has_loras else ["Aucun LORA disponible"]
                     lora_updates = [gr.update(choices=lora_choices, interactive=has_loras, value=None) for _ in range(4)] # we set the value to None
                     return (
@@ -2017,7 +2002,7 @@ with gr.Blocks(**block_kwargs) as interface:
     # --- Connexions pour le Batch Runner ---
     batch_runner_inputs = [
         batch_json_file_input,      # Correspond à json_file_obj
-        gr.State(config),           # Correspond à config
+        gr.State(config),           # Correspond à config <-- CORRECTED
         gr.State(translations),     # Correspond à translations
         gr.State(device),           # Correspond à device
         # Composants UI (dans l'ordre attendu par run_batch_from_json)
@@ -2041,7 +2026,7 @@ with gr.Blocks(**block_kwargs) as interface:
         """Fonction wrapper qui appelle run_batch_from_json avec yield from."""
         # gestionnaire et stop_event sont accessibles depuis la portée englobante
         yield from run_batch_from_json(
-            gestionnaire,
+            model_manager,
             stop_event,
             *args,
             progress=progress
@@ -2069,19 +2054,21 @@ with gr.Blocks(**block_kwargs) as interface:
         global global_selected_sampler_key # Accéder à la variable globale
 
         sampler_key = get_sampler_key_from_display_name(selected_display_name, translations)
-        if sampler_key:
-            message, success = apply_sampler_to_pipe(gestionnaire.global_pipe, sampler_key, translations)
+        if sampler_key and model_manager.get_current_pipe() is not None:
+            message, success = apply_sampler_to_pipe(model_manager.get_current_pipe(), sampler_key, translations)
             if success:
                 global_selected_sampler_key = sampler_key # Mettre à jour la clé globale si succès
-                gestionnaire.set_current_sampler(sampler_key)
                 gr.Info(message, 3.0) # Afficher l'info Gradio ici
             else:
                 gr.Warning(message, 4.0) # Afficher l'avertissement Gradio ici
             return message # Retourner le message pour le Textbox de statut
         else:
-            error_msg = f"{translate('erreur_sampler_inconnu', translations)}: {selected_display_name}"
-            gr.Warning(error_msg, 4.0)
-            return error_msg
+            if model_manager.get_current_pipe() is None:
+                error_msg = translate("erreur_pas_modele_pour_sampler", translations)
+                gr.Warning(error_msg, 4.0)
+        error_msg = f"{translate('erreur_sampler_inconnu', translations)}: {selected_display_name}"
+        gr.Warning(error_msg, 4.0)
+        return error_msg
 
     sampler_dropdown.change(
         fn=handle_sampler_change,

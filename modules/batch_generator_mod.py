@@ -10,7 +10,8 @@ import re
 from Utils.utils import txt_color, translate, lister_fichiers
 from Utils.sampler_utils import get_sampler_choices, get_sampler_key_from_display_name
 from core.trannslator import translate_prompt
-
+from Utils.model_manager import ModelManager
+from Utils.utils import GestionModule
 # --- Chargement des métadonnées ---
 module_json_path = os.path.join(os.path.dirname(__file__), "batch_generator_mod.json")
 try:
@@ -21,18 +22,19 @@ except FileNotFoundError:
     module_data = {"name": "Batch Generator (Erreur JSON)"}
 
 # --- Fonction d'initialisation ---
-def initialize(global_translations, gestionnaire, global_config=None):
+def initialize(global_translations, model_manager_instance: ModelManager, gestionnaire_instance: GestionModule, global_config=None):
     """Initialise le module Générateur de Batch."""
     print(txt_color("[OK] ", "ok"), f"Initialisation du module: {module_data.get('name', 'Batch Generator')}")
-    return BatchGeneratorModule(global_translations, gestionnaire, global_config)
+    return BatchGeneratorModule(global_translations, model_manager_instance, gestionnaire_instance, global_config)
 
 # --- Classe principale du module ---
 class BatchGeneratorModule:
-    def __init__(self, global_translations, gestionnaire, global_config=None):
+    def __init__(self, global_translations, model_manager_instance: ModelManager, gestionnaire_instance: GestionModule, global_config=None):
         """Initialise la classe BatchGeneratorModule."""
         self.global_translations = global_translations
-        self.gestionnaire = gestionnaire
-        self.global_config = global_config if global_config else {}
+        self.model_manager = model_manager_instance
+        self.gestionnaire = gestionnaire_instance
+        self.global_config = global_config
         self.module_translations = {}
 
         self.models_dir = self.global_config.get("MODELS_DIR", "models")

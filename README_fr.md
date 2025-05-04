@@ -1,7 +1,8 @@
 # cyberbill générateur d'image 🚀
 
 Ce développement a été très inspiré de l'excellent logiciel Fooocus https://github.com/lllyasviel/Fooocus dont la dernière version date d'août 2024.
-Bien que de nombreux fork sont apparus, j'ai voulu faire un logiciel complet en partant de zéro ou presque, puisque je puise dans les bibliothèques Gradio, Diffusers, huggingface, compel, onnxruntime, rembg etc. c'est donc un assemblage cohérent de diverses sources, et le travail de nombreuses équipes que je remercie chaleureusement.
+Bien que de nombreux forks soient apparus, j'ai voulu faire un logiciel complet en partant de zéro ou presque, en puisant dans des bibliothèques comme Gradio, Diffusers, Hugging Face (Transformers, Compel), ONNX Runtime, Rembg, etc. Il intègre également des modèles et techniques spécifiques pour l'amélioration d'image, tels que ModelScope pour la colorisation, Diffusers LDM pour l'upscaling, et OneRestore pour la restauration d'image. C'est donc un assemblage cohérent de diverses sources, et le travail de nombreuses équipes que je remercie chaleureusement.
+
 
 Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini pour m'aider... étant débutant j'ai beaucoup appri en consevant ce logiciel. Comme un prof à mes côtés, avec quand même de bonnes notions et de la volonté, on peut s'éclater et apporter sa pierre à la communauté, aussi petite soit-elle. 
 
@@ -94,6 +95,7 @@ Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini p
 Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
 ![Capture d'écran 2025-04-24 073557](https://github.com/user-attachments/assets/b3455d1c-308c-4907-8aa6-970d0b92ce7b)
 
+[MODULE] Amélioration d'Image (Nouveau en Beta 1.8.5) - Colorisation, Upscale 4x, Restauration, Retouche Auto
 
 Batch runner depuis la version Béta 1.8:
 ![image](https://github.com/user-attachments/assets/77f89696-a934-4a34-8d48-f5dccd525cad)
@@ -109,8 +111,6 @@ une fois l'image produite donner un nom et une note (facultatif), et enregistré
 L'Inpainting, définir une zone de l'image à modifier, ici un visage d'une peronne de 80 ans à la place d'une jeune femme
 ![image](https://github.com/user-attachments/assets/d60b8d1b-8e77-4988-abe7-3f81ca0f4a34)
 
-[MODULE] Amélioration d'image avec AuraSR (https://github.com/fal-ai/aura-sr)
-![image](https://github.com/user-attachments/assets/4f188555-de5b-47ca-ae07-e24083894eef)
 
 [MODULE] Cicitai browser 
 ![image](https://github.com/user-attachments/assets/506ab5fa-eacd-4f9b-be93-2c35b157cbc6)
@@ -343,37 +343,36 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
 2.  **Retouche d'image**
     *   Fournit des outils basiques pour modifier ou améliorer vos créations.
     *   Compatible avec les images générées par l'application ou externes.
-3.  **Upscaling**
-    *   Améliore la résolution des images grâce à SDXL.
-    *   Idéal pour des rendus nets et détaillés.
-4.  **Amélioration d'image**
-    *   Utilise AuraSR pour optimiser la clarté et les détails de vos images.
-5.  **Suppression d'arrière-plan**
+    *   Compatible avec les images générées par l'application ou externes.    
+3.  **Amélioration d'Image** (Nouveau en Beta 1.8.5)
+    *   Offre plusieurs outils dans un onglet dédié :
+        *   **Colorisation :** Ajoute de la couleur aux images en noir et blanc via ModelScope.
+        *   **Retouche Auto :** Applique des améliorations simples de contraste, netteté et saturation.
+    *   Les modèles sont chargés à la demande pour économiser la VRAM.
+4.  **Suppression d'arrière-plan (RemBG)**
+    *   Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.    
+5. **Image to Image**
+    * Permet de transformer une image existante en utilisant un prompt et des styles.
+    * Supporte le traitement d'une seule image ou d'un dossier contenant plusieurs images (batch processing).
+    * Permet de parcourir un dossier à la recherche d'images à traiter.
+6.  **Suppression d'arrière-plan (RemBG)**
     *   Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.
-6.  **Navigation sur Civitai**
+7.  **Navigation sur Civitai**
     *   Permet de parcourir la bibliothèque Civitai pour découvrir de nouveaux modèles et prompts.
-    *   Option de copier des prompts intéressants directement depuis l'interface.
-7.  **Module de test**
-    *   Fournit un squelette de base pour aider les utilisateurs à créer leurs propres modules.
-    *   Idéal pour les développeurs souhaitant expérimenter ou personnaliser leurs fonctionnalités.
 
 ---
 
 ### 🛠️ Activation des Modules
-- **Placement automatique** : Placez le module désiré dans le dossier `/modules`. L'application détecte automatiquement sa présence et l'active.
+- **Placement automatique** : Placez le module désiré dans le dossier `/modules`. L'application détecte automatiquement sa présence et l'active (un redémarrage est nécessaire).
 - **Interface utilisateur** : Les modules activés seront accessibles depuis le menu principal ou des onglets spécifiques. Relancer l'application pour une prise en compte
 
 ---
 
-### 🌈 Configuration des Modules
-Certains modules proposent des options de configuration avancées :
-- **Module d'upscaling** :  
-  - Ajustez la résolution cible directement dans les paramètres de l'application.
-  
-- **Suppression d'arrière-plan** :  
-  
-- **Retouche d'image** :  
-  - Permet d'importer des images externes et d'appliquer des filtres rapidement.
+### 🌈 Notes sur les Modules
+
+*   **Gestion des Modèles :** Les modules comme Amélioration d'Image chargent leurs modèles spécifiques (Colorisation, Upscale, Restauration) uniquement lorsque nécessaire et les déchargent ensuite pour préserver la VRAM. Cela peut impliquer le déchargement temporaire du modèle de génération SDXL principal.
+*   **Dépendances :** Assurez-vous que `install.bat` a été exécuté correctement pour installer les paquets nécessaires comme `modelscope`, `diffusers`, `rembg`, etc.
+*   **Configuration :** La plupart des paramètres des modules sont gérés dans leurs onglets respectifs dans l'interface. Consultez `config.json` pour les paramètres globaux comme les chemins de sauvegarde.
 
 ---
 
@@ -389,3 +388,12 @@ Le module de test inclus fournit un cadre pratique pour développer vos propres 
    - Ajoutez des instructions claires dans le dossier du module pour guider les utilisateurs.
 
 ---
+
+
+### ⚙️ Ajouts de métadonnées
+
+L'application enregistre les images générées avec des métadonnées complètes pour une gestion et un suivi facilités :
+
+* **Métadonnées XMP** : Intégrées directement dans le fichier image, elles incluent des informations clés telles que le module utilisé, l'auteur, le modèle, le VAE, les paramètres de génération (étapes, guidage, styles, prompt, etc.), la taille de l'image, le temps de génération et le fichier d'origine (en mode batch).
+* **Rapport HTML** : Un fichier HTML est créé pour chaque image, présentant ces mêmes métadonnées de manière lisible et conviviale.
+* **Nom de fichier** : Le nom du fichier image est construit de manière descriptive, incluant des éléments comme le module utilisé, le nom du fichier d'origine (si batch), les styles appliqués, la date et l'heure de génération, et les dimensions de l'image.

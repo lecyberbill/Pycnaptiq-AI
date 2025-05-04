@@ -4,7 +4,9 @@ import json
 import time
 from datetime import datetime
 # Importez les fonctions nécessaires de utils
-from Utils.utils import txt_color, translate, GestionModule, decharger_modele, enregistrer_image
+from Utils.utils import txt_color, translate, GestionModule, enregistrer_image
+from Utils.model_manager import ModelManager
+
 # Obtenir le chemin du fichier JSON du module
 module_json_path = os.path.join(os.path.dirname(__file__), "RemBG_mod.json")
 
@@ -21,18 +23,19 @@ import gc # Importer gc
 
 # --- MODIFICATION : Signature de initialize ---
 # Elle reçoit global_translations, gestionnaire, et global_config
-def initialize(global_translations, gestionnaire, global_config=None):
+def initialize(global_translations, model_manager_instance, gestionnaire, global_config=None):
     """Initialise le module RemBG."""
     print(txt_color("[OK] ", "ok"), module_data["name"])
     # Passer les arguments corrects à __init__
-    return RemBGModule(global_translations, gestionnaire, global_config)
+    return RemBGModule(global_translations, model_manager_instance, gestionnaire, global_config)
 
 class RemBGModule:
     # --- MODIFICATION : Signature de __init__ ---
-    def __init__(self, global_translations, gestionnaire, global_config=None):
+    def __init__(self, global_translations, model_manager_instance, gestionnaire, global_config=None):
         """Initialise la classe RemBGModule."""
         self.global_translations = global_translations
         self.gestionnaire = gestionnaire # Stocker l'instance du gestionnaire
+        self.model_manager = model_manager_instance
         self.global_config = global_config # Stocker la configuration globale
 
         if self.global_config is None:
@@ -118,10 +121,10 @@ class RemBGModule:
         Removes the background from an image using rembg.
         """
         # --- MODIFICATION : Utiliser le gestionnaire pour décharger ---
-        if self.gestionnaire.global_pipe is not None:
+        if self.model_manager.get_current_pipe() is not None:
             print(txt_color("[INFO]", "info"), translate("dechargement_modele_principal_avant_rembg", self.global_translations)) # Nouvelle clé
             # Appeler decharger_modele avec les objets du gestionnaire
-            decharger_modele(self.gestionnaire.global_pipe, self.gestionnaire.global_compel, self.global_translations)
+            self.model_manager.unload_model(gradio_mode=False)
             # Mettre à jour les références dans le gestionnaire après déchargement
             self.gestionnaire.update_global_pipe(None)
             self.gestionnaire.update_global_compel(None)

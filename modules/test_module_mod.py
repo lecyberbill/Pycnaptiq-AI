@@ -7,7 +7,7 @@ from datetime import datetime
 # English: Import necessary functions/classes from utils
 # Adapte cette liste selon les besoins réels du module
 # English: Adapt this list according to the actual needs of the module
-from Utils.utils import txt_color, translate, GestionModule, decharger_modele, enregistrer_image
+from Utils.utils import txt_color, translate, GestionModule, enregistrer_image
 
 # Importe Gradio et d'autres bibliothèques nécessaires au module
 # English: Import Gradio and other libraries necessary for the module
@@ -31,20 +31,20 @@ except FileNotFoundError:
 # English: Initialization function (called by GestionModule) ---
 # Elle reçoit les traductions globales, l'instance du gestionnaire, et la config globale
 # English: It receives global translations, the manager instance, and the global config
-def initialize(global_translations, gestionnaire, global_config=None):
+def initialize(global_translations, model_manager_instance, gestionnaire, global_config=None):
     """Initialise le module de test."""
     # English: Initializes the test module.
     print(txt_color("[OK] ", "ok"), f"Initialisation du module: {module_data.get('name', 'Test Module')}")
     # Crée et retourne une instance de la classe principale du module
     # English: Creates and returns an instance of the main module class
-    return TestModule(global_translations, gestionnaire, global_config)
+    return TestModule(global_translations, model_manager_instance, gestionnaire, global_config)
 
 # --- Classe principale du module ---
 # English: Main module class ---
 class TestModule:
     # Le constructeur reçoit les arguments de la fonction initialize
     # English: The constructor receives arguments from the initialize function
-    def __init__(self, global_translations, gestionnaire, global_config=None):
+    def __init__(self, global_translations, model_manager_instance, gestionnaire, global_config=None):
         """Initialise la classe TestModule."""
         # English: Initializes the TestModule class.
         self.global_translations = global_translations # Traductions globales / English: Global translations

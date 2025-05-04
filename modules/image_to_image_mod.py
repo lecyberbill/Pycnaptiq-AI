@@ -6,12 +6,8 @@ import threading
 # AJOUT: glob pour lister les fichiers plus facilement
 import glob
 from Utils.utils import (
-    txt_color,
+    txt_color, # Garder txt_color
     translate,
-    GestionModule,
-    lister_fichiers,
-    decharger_modele,
-    check_gpu_availability,
     enregistrer_image,
     preparer_metadonnees_image,
     enregistrer_etiquettes_image_html,
@@ -20,6 +16,7 @@ from Utils.utils import (
     create_progress_bar_html,
 )
 from Utils.callback_diffuser import create_inpainting_callback
+from Utils.model_manager import ModelManager # <-- AJOUT
 from core.trannslator import translate_prompt
 from datetime import datetime
 
@@ -44,34 +41,23 @@ import gc
 import traceback # Import traceback for detailed error logging
 
 
-def initialize(global_translations, gestionnaire, global_config=None):
+def initialize(global_translations, model_manager_instance: ModelManager, gestionnaire_instance, global_config=None): # <-- Accepter ModelManager
     """Initialise le module test."""
     print(txt_color("[OK] ", "ok"), module_data["name"])
-    return Image2imageSDXLModule(global_translations, gestionnaire, global_config)
+    return Image2imageSDXLModule(global_translations, model_manager_instance, gestionnaire_instance, global_config)  # <-- Passer ModelManager
 
 
 class Image2imageSDXLModule:
-    def __init__(self, global_translations, gestionnaire, global_config=None):
+    def __init__(self, global_translations, model_manager_instance: ModelManager, gestionnaire_instance, global_config=None): # <-- Accepter ModelManager
         """Initialise la classe Image2imageSDXLModule."""
         self.global_config = global_config
         self.global_translations = global_translations
+        self.model_manager = model_manager_instance # <-- Stocker ModelManager
         self.Image2ImageModel_path = global_config["MODELS_DIR"]
         self.vae_dir = global_config.get("VAE_DIR", "models/vae")
-        self.liste_vaes = ["Auto"] + lister_fichiers(
-            self.vae_dir, self.global_translations, ext=".safetensors", gradio_mode=False
-        )
-        self.liste_modeles = lister_fichiers(
-            self.Image2ImageModel_path, self.global_translations
-        )
-        self.device, self.torch_dtype, self.vram_total_gb = check_gpu_availability(
-            self.global_translations
-        )
-        self.gestionnaire = gestionnaire
-        # Load styles from styles.json
-        self.styles_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "config", "styles.json"
-        )
+        self.liste_vaes = ["Auto"] + self.model_manager.list_vaes()
         self.styles = self.load_styles()
+        self.gestionnaire = gestionnaire_instance
         self.default_negative_prompt = self.global_config.get("NEGATIVE_PROMPT", "")
         self.current_model_name = None
         self.current_vae_name = "Auto"
@@ -81,16 +67,18 @@ class Image2imageSDXLModule:
         self.module_translations = {} # Initialize module_translations
 
 
-    def stop_generation(self):
+    def stop_generation(self, module_translations):
         """Active l'événement pour arrêter la génération en cours."""
         self.stop_event.set()
         print(
             txt_color("[INFO]", "info"),
-            translate("stop_requested", self.global_translations),
+            translate("stop_requested", module_translations),
         )
 
     def load_styles(self):
         """Loads styles from styles.json."""
+        self.styles_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "config", "styles.json")
         try:
             with open(self.styles_path, "r", encoding="utf-8") as f:
                 styles_data = json.load(f)
@@ -162,8 +150,8 @@ class Image2imageSDXLModule:
                 with gr.Column():
                     self.modele_i2i_dropdown = gr.Dropdown(
                         label=translate("selectionner_modele", self.module_translations),
-                        choices=self.liste_modeles,
-                        value=self.liste_modeles[0] if self.liste_modeles else None,
+                        choices=self.model_manager.list_models(model_type="standard"),
+                        value=self.model_manager.list_models(model_type="standard")[0] if self.model_manager.list_models(model_type="standard") else None,
                     )
                     self.vae_dropdown = gr.Dropdown(
                         label=translate("selectionner_vae", self.module_translations),
@@ -272,10 +260,10 @@ class Image2imageSDXLModule:
             )
 
             self.bouton_charger_i2i.click(
-                fn=lambda nom_f, nom_v: self.charger_modele_i2i_gradio(
-                    nom_f, nom_v, self.module_translations
-                ),
+                # --- MODIFICATION: Appeler model_manager.load_model ---
+                fn=self.charger_modele_i2i_via_manager, # Nouvelle fonction wrapper
                 inputs=[self.modele_i2i_dropdown, self.vae_dropdown],
+                # --- FIN MODIFICATION ---
                 outputs=[
                     self.message_chargement_i2i,
                     self.bouton_i2i_gen,
@@ -312,163 +300,43 @@ class Image2imageSDXLModule:
 
     def mettre_a_jour_listes(self):
         """Met à jour la liste des modèles et des VAEs disponibles."""
-        self.liste_modeles = lister_fichiers(
+        self.liste_modeles = self.model_manager.list_models( # <-- Utiliser ModelManager
             self.Image2ImageModel_path, self.global_translations, gradio_mode=True
         )
-        self.liste_vaes = ["Auto"] + lister_fichiers(
+        self.liste_vaes = ["Auto"] + self.model_manager.list_vaes( # <-- Utiliser ModelManager
             self.vae_dir, self.global_translations, ext=".safetensors", gradio_mode=True
         )
         return gr.update(choices=self.liste_modeles), gr.update(choices=self.liste_vaes)
 
-    def charger_modele_i2i(self, nom_fichier, nom_vae, Image2ImageModel_path, module_translations):
-        """
-        Charge un modèle d'image_to_image à partir d'un fichier et le stocke dans self.global_pipe.
+    # --- SUPPRESSION des méthodes charger_modele_i2i et charger_modele_i2i_gradio ---
 
-        Args:
-            nom_fichier (str): Le nom du fichier contenant le modèle à charger.
-            Image2ImageModel_path(str): Le chemin du dossier contenant le modèle à charger.
-            nom_vae (str): Le nom du fichier VAE à charger, ou "Auto" pour utiliser celui du modèle.
-            module_translations (dict): Le dictionnaire de traductions du module.
-
-        Returns:
-            tuple: A tuple containing:
-                - self.global_pipe (StableDiffusionUpscalePipeline or None): The loaded pipeline or None if an error occurred.
-                - message (str): A message to display in Gradio.
-        """
-
-        self.module_translations = module_translations
-
-        try:
-            if not nom_fichier or nom_fichier == translate("aucun_modele", self.module_translations):
-                print(txt_color("[ERREUR] ", "erreur"), translate("aucun_modele_selectionne", self.module_translations))
-                gr.Warning(translate("aucun_modele_selectionne", self.module_translations), 4.0)
-                return None, translate("aucun_modele_selectionne", self.module_translations)
-            
-            chemin_modele = os.path.join(Image2ImageModel_path, nom_fichier)
-            
-            if not os.path.exists(chemin_modele):
-                print(txt_color("[ERREUR] ", "erreur"), f"{translate('modele_non_trouve', self.module_translations)}: {chemin_modele}")
-                gr.Warning(translate("modele_non_trouve", self.module_translations) + f": {chemin_modele}", 4.0)
-                return None, translate("modele_non_trouve", self.module_translations)
-
-            
-            # Décharger l'ancien modèle avant de charger le nouveau
-            if self.gestionnaire.global_pipe is not None:
-                self.decharger_modele(self.gestionnaire.global_pipe, self.gestionnaire.global_compel, self.global_translations)
-            else:
-                print(txt_color("[INFO] ", "info"), translate("aucun_modele_a_decharger", self.module_translations))
-
-            self.gestionnaire.global_pipe = None
-            self.gestionnaire.global_compel = None
-            gc.collect()
-            torch.cuda.empty_cache()
-
-            print(txt_color("[INFO] ", "info"), f"{translate('chargement_modele', self.module_translations)} : {nom_fichier}")
-            gr.Info(translate("chargement_modele", self.module_translations) + f" : {nom_fichier}", 3.0)
-            self.gestionnaire.global_pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
-                chemin_modele,
-                torch_dtype=self.torch_dtype,
-                use_safetensors=True,
-            ).to(self.device)
-
-            vae_message = ""
-            if nom_vae and nom_vae != "Auto":
-                chemin_vae = os.path.join(self.vae_dir, nom_vae)
-                if os.path.exists(chemin_vae):
-                    print(txt_color("[INFO] ", "info"), f"{translate('chargement_vae', self.module_translations)}: {nom_vae}") # Needs translation key
-                    try:
-                        vae = AutoencoderKL.from_single_file(
-                            chemin_vae,
-                            torch_dtype=self.torch_dtype # Use same dtype
-                        ).to(self.device)
-                        # Move VAE to device before assigning
-                        self.current_vae_name = nom_vae
-                        vae_message = f" + VAE: {nom_vae}"
-                        print(txt_color("[OK] ", "ok"), f"{translate('vae_charge', self.module_translations)}: {nom_vae}") # Needs translation key
-                    except Exception as e_vae:
-                        print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_chargement_vae', self.module_translations)}: {nom_vae} - {e_vae}") # Needs translation key
-                        gr.Warning(f"{translate('erreur_chargement_vae', self.module_translations)}: {nom_vae} - {e_vae}", 4.0)
-                        # Continue without the external VAE, using the embedded one
-                        self.current_vae_name = "Auto (Erreur)"
-                        vae_message = f" + VAE: {translate('erreur_chargement_vae_court', self.module_translations)}" # Needs translation key
-                else:
-                    print(txt_color("[ERREUR] ", "erreur"), f"{translate('vae_non_trouve', self.module_translations)}: {chemin_vae}") # Needs translation key
-                    gr.Warning(f"{translate('vae_non_trouve', self.module_translations)}: {chemin_vae}", 4.0)
-                    self.current_vae_name = "Auto (Non trouvé)"
-                    vae_message = f" + VAE: {translate('vae_non_trouve_court', self.module_translations)}" # Needs translation key
-            else:
-                # Using embedded VAE
-                self.current_vae_name = "Auto"
-                print(txt_color("[INFO] ", "info"), translate("utilisation_vae_integre", self.module_translations)) # Needs translation key
-                vae_message = f" + VAE: Auto"
-
-            try:
-                self.gestionnaire.global_pipe.enable_xformers_memory_efficient_attention()
-            except ImportError:
-                 print(txt_color("[INFO] ", "info"), "xformers not available. Skipping memory efficient attention.")
-            except Exception as e_optim:
-                 print(txt_color("[AVERTISSEMENT] ", "erreur"), f"Could not enable xformers: {e_optim}")
-
-            self.gestionnaire.global_pipe.enable_vae_slicing()
-            self.gestionnaire.global_pipe.enable_vae_tiling()
-            self.gestionnaire.global_pipe.enable_attention_slicing()
-            self.gestionnaire.global_pipe.enable_model_cpu_offload()
-
-
-            self.gestionnaire.global_compel = Compel(
-            tokenizer=[self.gestionnaire.global_pipe.tokenizer, self.gestionnaire.global_pipe.tokenizer_2],
-            text_encoder=[self.gestionnaire.global_pipe.text_encoder, self.gestionnaire.global_pipe.text_encoder_2],
-            returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
-            requires_pooled=[False, True],
-            device=self.device
-            )    
-
-            self.current_model_name = os.path.splitext(nom_fichier)[0]
-            final_message = f"{translate('modele_charge', self.module_translations)}: {nom_fichier}{vae_message}"
-
-            print(txt_color("[OK] ", "ok"), final_message)
-            gr.Info(final_message, 3.0)
-            return self.gestionnaire.global_pipe, final_message
-
-        except Exception as e:
-            # Clean up pipe if loading failed partially
-            if 'pipe' in locals() and pipe is not None: del pipe
-            if 'loaded_vae' in locals() and loaded_vae is not None: del loaded_vae
-            self.gestionnaire.global_pipe = None
-            self.gestionnaire.global_compel = None
-            gc.collect()
-            torch.cuda.empty_cache()
-            error_msg = f"{translate('erreur_chargement_modele', self.module_translations)}: {e}"
-            print(txt_color("[ERREUR] ", "erreur"), error_msg)
-            # Use raise gr.Error for better UI feedback
-            raise gr.Error(error_msg)
-
-
-    def charger_modele_i2i_gradio(self, nom_fichier, nom_vae, module_translations):
+    # --- NOUVELLE méthode wrapper pour appeler ModelManager ---
+    def charger_modele_i2i_via_manager(self, nom_fichier, nom_vae):
         """
         Charge un modèle d'image_to_image et VAE, retourne un message pour Gradio
         et met à jour l'état interactif ET le texte du bouton de génération.
         """
-        self.module_translations = module_translations
+        # Utiliser self.module_translations qui est déjà défini
         try:
-            # Utilise la méthode interne charger_modele_i2i
-            _, message = self.charger_modele_i2i(
-                nom_fichier, nom_vae, self.Image2ImageModel_path, self.module_translations
+            # Appeler la méthode load_model du ModelManager
+            success, message = self.model_manager.load_model(
+                model_name=nom_fichier,
+                vae_name=nom_vae,
+                model_type="img2img", # Spécifier le type
+                gradio_mode=True
             )
         except gr.Error as gr_e: # Intercepter l'erreur Gradio levée par charger_modele_i2i
             message = str(gr_e)
-            # Assurer que global_pipe est None en cas d'erreur Gradio
-            self.gestionnaire.update_global_pipe(None)
-            self.gestionnaire.update_global_compel(None)
+            success = False # Marquer comme échec
+            # Le ModelManager devrait gérer son état interne en cas d'erreur
         except Exception as e: # Autres exceptions inattendues
             message = f"{translate('erreur_inattendue_chargement', self.module_translations)}: {e}" # Nouvelle clé
             print(txt_color("[ERREUR]", "erreur"), message)
             traceback.print_exc()
-            self.gestionnaire.update_global_pipe(None)
-            self.gestionnaire.update_global_compel(None)
+            success = False # Marquer comme échec
+            # Le ModelManager devrait gérer son état interne en cas d'erreur
 
-
-        if self.gestionnaire.global_pipe is not None:
+        if success: # Vérifier le succès retourné par le ModelManager
             etat_interactif = True
             texte_bouton = translate("image_to_image_gen", self.module_translations)
         else:
@@ -479,6 +347,9 @@ class Image2imageSDXLModule:
 
         update_interactif = gr.update(interactive=etat_interactif)
         update_texte = gr.update(value=texte_bouton)
+        # Mettre à jour les noms courants après chargement réussi
+        self.current_model_name = self.model_manager.current_model_name
+        self.current_vae_name = self.model_manager.current_vae_name
 
         return message, update_interactif, update_texte
 
@@ -516,7 +387,9 @@ class Image2imageSDXLModule:
 
 
         # --- Vérifications initiales ---
-        if self.gestionnaire.global_pipe is None or self.gestionnaire.global_compel is None:
+        pipe = self.model_manager.get_current_pipe() # <-- Obtenir pipe
+        compel = self.model_manager.get_current_compel() # <-- Obtenir compel
+        if pipe is None or compel is None:
             msg = translate("erreur_pas_modele_i2i", module_translations)
             print(txt_color("[ERREUR] ", "erreur"), msg)
             gr.Warning(msg, 4.0)
@@ -524,7 +397,15 @@ class Image2imageSDXLModule:
             yield [], "", gr.update(interactive=True), gr.update(interactive=False), None
             return
 
-        input_images_paths = []
+        # Vérifier le type de modèle chargé
+        if self.model_manager.current_model_type != "img2img":
+            msg = translate("erreur_mauvais_type_modele_i2i", module_translations) # Nouvelle clé
+            print(txt_color("[ERREUR]", "erreur"), msg)
+            gr.Warning(msg, 4.0)
+            yield [], "", gr.update(interactive=True), gr.update(interactive=False), None
+            return
+
+        input_images_paths = [] # Liste pour stocker les chemins (batch) ou l'image PIL (single)
         if is_batch_mode:
             if not batch_folder or not os.path.isdir(batch_folder):
                 msg = translate("erreur_dossier_batch_invalide", module_translations)
@@ -591,8 +472,8 @@ class Image2imageSDXLModule:
                 raise ValueError(msg)
 
             # Utiliser Compel avec le prompt final (fait une seule fois)
-            conditioning, pooled = self.gestionnaire.global_compel(final_prompt_text)
-            neg_conditioning, neg_pooled = self.gestionnaire.global_compel(
+            conditioning, pooled = compel(final_prompt_text) # <-- Utiliser compel
+            neg_conditioning, neg_pooled = compel( # <-- Utiliser compel
                 final_negative_prompt
             )
             # --- Fin Traitement Prompt ---
@@ -653,7 +534,7 @@ class Image2imageSDXLModule:
                     image_resized = image_checker.redimensionner_image()
 
                     actual_steps = max(1, int(step * strength))
-                    generator = torch.Generator(device=self.device).manual_seed(
+                    generator = torch.Generator(device=self.model_manager.device).manual_seed(
                         int(time.time()) + idx
                     )
 
@@ -664,7 +545,7 @@ class Image2imageSDXLModule:
                     # --- Thread pour l'inférence ---
                     def run_pipeline_inner(img_in):
                         try:
-                            result = self.gestionnaire.global_pipe(
+                            result = pipe( # <-- Utiliser pipe
                                 pooled_prompt_embeds=pooled,
                                 prompt_embeds=conditioning,
                                 negative_prompt_embeds=neg_conditioning,
@@ -762,8 +643,8 @@ class Image2imageSDXLModule:
                     )
                     xmp_data = {
                         "Module": "Image to Image SDXL",
-                        "Creator": self.global_config["AUTHOR"],
-                        "Model": self.current_model_name,
+                        "Creator": self.global_config.get("AUTHOR", "CyberBill"), # Utiliser .get avec fallback
+                        "Model": self.model_manager.current_model_name, # <-- Utiliser ModelManager
                         "VAE": self.current_vae_name,
                         "Steps": step,
                         "Guidance": guidance,
@@ -836,71 +717,9 @@ class Image2imageSDXLModule:
         finally:
             # Réactiver les boutons et vider l'aperçu à la fin
             final_preview_clear = gr.update(value=None)
-            yield generated_images_gallery, final_message, gr.update(interactive=True), gr.update(interactive=False), final_preview_clear
-            if hasattr(self.gestionnaire.global_pipe, '_interrupt'):
-                self.gestionnaire.global_pipe._interrupt = False
+            yield generated_images_gallery, final_message, gr.update(interactive=True), gr.update(interactive=False), final_preview_clear # <-- Utiliser pipe
+            if hasattr(pipe, '_interrupt'):
+                pipe._interrupt = False
             gc.collect()
             torch.cuda.empty_cache()
     # --- FIN MODIFICATION ---
-
-
-
-    def decharger_modele(self, pipe, compel, translations):
-        """Libère proprement la mémoire GPU en déplaçant temporairement le modèle sur CPU."""
-        try:
-            if pipe is not None:
-                print(
-                    txt_color("[INFO] ", "info"),
-                    translate("dechargement_modele", translations),
-                )
-                pipe.to("cpu")
-                print(
-                    txt_color("[INFO] ", "info"),
-                    translate("modele_deplace_cpu", translations),
-                )
-                torch.cuda.synchronize()
-
-                # Supprimer les composants explicitement
-                attrs_to_delete = ['vae', 'text_encoder', 'text_encoder_2', 'tokenizer', 'tokenizer_2', 'unet', 'scheduler', 'feature_extractor']
-                for attr in attrs_to_delete:
-                    if hasattr(pipe, attr):
-                        delattr(pipe, attr)
-
-                del pipe
-                if compel is not None:
-                    del compel
-
-                # Mettre à jour les références globales via le gestionnaire
-                self.gestionnaire.update_global_pipe(None)
-                self.gestionnaire.update_global_compel(None)
-                self.current_model_name = None
-                self.current_vae_name = "Auto"
-
-                gc.collect()
-                torch.cuda.empty_cache()
-                torch.cuda.ipc_collect()
-                torch.cuda.synchronize()
-
-                print(
-                    txt_color("[OK] ", "ok"),
-                    translate("modele_precedent_decharge", translations),
-                )
-            else:
-                print(
-                    txt_color("[INFO] ", "info"),
-                    translate("aucun_modele_a_decharger", translations),
-                )
-
-        except Exception as e:
-            print(
-                txt_color("[ERREUR] ", "erreur"),
-                f"{translate('erreur_dechargement_modele', translations)}: {e}",
-            )
-            # Assurer le nettoyage même en cas d'erreur
-            self.gestionnaire.update_global_pipe(None)
-            self.gestionnaire.update_global_compel(None)
-            self.current_model_name = None
-            self.current_vae_name = "Auto"
-            gc.collect()
-            torch.cuda.empty_cache()
-

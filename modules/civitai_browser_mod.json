@@ -4,7 +4,7 @@
     "description": "Browse images and prompts from Civitai.com",
     "tab_name": "civitai_browser",
     "init_function": "initialize",
-    "dependencies": ["pandas"],
+    "dependencies": [],
     "language": {
         "fr": {
             "civitai_browser": "Navigateur Civitai",
