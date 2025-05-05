@@ -97,7 +97,11 @@ Image generator, prompt calculated from the image, adding a LoRA
 ![Capture d'écran 2025-04-24 073557](https://github.com/user-attachments/assets/b3455d1c-308c-4907-8aa6-970d0b92ce7b)
 
 
-*(UI elements might slightly differ in Beta 1.8.5, new Image Enhancement tab added)*
+New Image Enhancement tab added in Beta 1.8.6
+![image](https://github.com/user-attachments/assets/edc0eae6-a2c2-4dd6-a767-96b691624010)
+
+New Sana Sprint tab added in Beta 1.8.6 
+![image](https://github.com/user-attachments/assets/aa41bd18-a2e1-45ef-b981-947c05e3d0f7)
 
 
 Batch runner since Beta version 1.8 :
