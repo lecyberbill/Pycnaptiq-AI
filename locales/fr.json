@@ -532,5 +532,18 @@
   "metadonnees_webp_preparees": "[INFO] WebP XMP metadata prepared.",
   "erreur_preparation_metadonnees_webp": "Error preparing WebP XMP metadata",
   "injection_xmp_webp": "[INFO] Injecting WebP XMP metadata.",
-  "avertissement_meta_incompatible_webp": "Warning: Metadata provided is incompatible with WebP XMP format."
+  "avertissement_meta_incompatible_webp": "Warning: Metadata provided is incompatible with WebP XMP format.",
+  "deplacement_modele_device" :  "Modèle déplacé vers l'appareil",
+  "utilisation_vae_integre": "Using integrated VAE",
+  "generer_en": "generé en",
+  "batch_complete": "Batch terminé ! {num_images} images calculées en {time}.",
+  "caption_model_already_loaded": "Le modèle de génération de prompt est déjà chargé.",
+  "loading_caption_model": "Chargement du modèle de génération de prompt '{}'...",
+  "caption_model_loaded": "Modèle de génération de prompt '{}' chargé.",
+  "error_loading_caption_model": "Erreur lors du chargement du modèle de génération de prompt '{}': {}",
+  "caption_model_not_initialized": "Le modèle de génération de prompt n'a pas été initialisé correctement.",
+  "invalid_image_type_for_caption": "Type d'image invalide reçu pour la génération de prompt : {}",
+  "error_generating_caption": "Erreur lors de la génération du prompt à partir de l'image : {}",
+  "prompt_calculé": "Prompt calculé :",
+  "initializing_image_prompter": "Initialisation du module Image Prompter..."
 }

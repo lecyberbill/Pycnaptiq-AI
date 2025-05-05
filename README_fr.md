@@ -359,6 +359,10 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
     *   Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.
 7.  **Navigation sur Civitai**
     *   Permet de parcourir la bibliothèque Civitai pour découvrir de nouveaux modèles et prompts.
+8.  **Sana Sprint** (Nouveau en Beta 1.8.6)
+    *   Onglet dédié pour la génération rapide avec le modèle Sana Sprint.
+    *   Inclut la génération de prompt depuis une image.
+    *   Optimisé pour la vitesse (étapes et taille fixes).
 
 ---
 
@@ -369,7 +373,7 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
 ---
 
 ### 🌈 Notes sur les Modules
-
+*   **Cache des Modèles Hugging Face :** Les modèles téléchargés depuis Hugging Face (ex: pour la colorisation, l'upscaling, la traduction, le prompt depuis image) sont généralement stockés dans le cache local de Hugging Face. Sur Windows, ce dossier se trouve souvent dans `C:\Users\VOTRE_NOM_UTILISATEUR\.cache\huggingface`. La gestion de ce cache (taille, nettoyage) se fait via les outils ou variables d'environnement de Hugging Face/Transformers.
 *   **Gestion des Modèles :** Les modules comme Amélioration d'Image chargent leurs modèles spécifiques (Colorisation, Upscale, Restauration) uniquement lorsque nécessaire et les déchargent ensuite pour préserver la VRAM. Cela peut impliquer le déchargement temporaire du modèle de génération SDXL principal.
 *   **Dépendances :** Assurez-vous que `install.bat` a été exécuté correctement pour installer les paquets nécessaires comme `modelscope`, `diffusers`, `rembg`, etc.
 *   **Configuration :** La plupart des paramètres des modules sont gérés dans leurs onglets respectifs dans l'interface. Consultez `config.json` pour les paramètres globaux comme les chemins de sauvegarde.

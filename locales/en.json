@@ -526,6 +526,17 @@
     "erreur_verif_lora": "Error during LoRA verification",
     "ok_loras_invalides_nettoyes": "Invalid LoRAs successfully cleaned",
     "ok_aucun_lora_a_nettoyer": "All LoRAs are valid, no cleaning needed.",
-    "metadonnees_webp_preparees": "[INFO] WebP XMP metadata prepared.",
-    "erreur_preparation_metadonnees_webp": "Error preparing WebP XMP metadata"
+    "deplacement_modele_device" : "Moving model to device",
+    "utilisation_vae_integre": "Using integrated VAE",
+    "generer_en": "generated in",
+    "batch_complete": "Batch processing completed! {num_images} images processed in {time}.",
+    "caption_model_already_loaded": "Caption generation model is already loaded.",
+    "loading_caption_model": "Loading caption generation model '{}'...",
+    "caption_model_loaded": "Caption generation model '{}' loaded.",
+    "error_loading_caption_model": "Error loading caption generation model '{}': {}",
+    "caption_model_not_initialized": "Caption generation model has not been initialized correctly.",
+    "invalid_image_type_for_caption": "Invalid image type received for caption generation: {}",
+    "error_generating_caption": "Error generating prompt from image: {}",
+    "prompt_calculé": "Calculated prompt:",
+    "initializing_image_prompter": "Initializing Image Prompter module..."
 }

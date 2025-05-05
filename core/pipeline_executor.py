@@ -4,41 +4,49 @@ import queue
 import time
 import traceback
 
+# --- Définir les fallbacks AVANT le try ---
+def _dummy_callback(*a, **kw): pass
+
+def translate(key, t_dict, default=None): return t_dict.get(key, default or key)
+def txt_color(text, _): return text
+
+def create_callback_on_step_end(*args, **kwargs):
+    print("[ERREUR] create_callback_on_step_end non importé ou échec import!")
+    return _dummy_callback
+
+def create_inpainting_callback(*args, **kwargs):
+    print("[ERREUR] create_inpainting_callback non importé ou échec import!")
+    return _dummy_callback
+
+# --- MODIFICATION: Importer les deux types de callbacks ---
 try:
-    # --- CORRECTION DE L'IMPORT/ALIAS ---
-    # Importer la fonction qui gère les aperçus
-    from Utils.callback_diffuser import create_callback_on_step_end as create_progress_callback
-    # --- FIN CORRECTION ---
+    from Utils.callback_diffuser import create_callback_on_step_end, create_inpainting_callback # Importer et écraser les fallbacks si succès
     from Utils.utils import translate, txt_color
 except ImportError as e:
     # --- Utilisation de print standard ici car translate n'est peut-être pas dispo ---
     print(f"[ERREUR pipeline_executor] Impossible d'importer les dépendances Utils: {e}")
-    # Fallbacks basiques
-    def translate(key, t_dict, default=None): return t_dict.get(key, default or key)
-    def txt_color(text, _): return text
-    def create_progress_callback(*args, **kwargs):
-        print("[ERREUR] create_progress_callback non importé!")
-        # Retourner une fonction factice qui ne fait rien
-        def dummy_callback(*a, **kw): pass
-        return dummy_callback
 
 def execute_pipeline_task_async(
     pipe,
-    prompt_embeds,
-    pooled_prompt_embeds,
-    negative_prompt_embeds,
-    negative_pooled_prompt_embeds,
+    # --- Arguments sans défauts en premier ---
     num_inference_steps,
     guidance_scale,
     seed,
     width,
     height,
     device,
-    stop_event, 
-    translations, 
-    progress_queue, 
+    stop_event, # Garder stop_event ici
+    translations, # Garder translations ici
+    progress_queue, # Garder progress_queue ici
+    # --- Arguments avec défauts ensuite ---
+    prompt=None, # Optionnel pour le texte brut
+    negative_prompt=None, # Optionnel pour le texte brut
+    prompt_embeds=None,
+    pooled_prompt_embeds=None,
+    negative_prompt_embeds=None,
+    negative_pooled_prompt_embeds=None,
     preview_queue=None
-):
+ ):
     """
     Exécute une seule tâche de génération dans un thread séparé,
     gère la progression et les aperçus via des queues.
@@ -47,15 +55,24 @@ def execute_pipeline_task_async(
     result_container = {"final": None, "error": None, "status": "running"}
     generator = torch.Generator(device=device).manual_seed(seed)
 
-
-    callback_combined = create_progress_callback( 
-        preview_queue, 
-        stop_event,    
-        num_inference_steps,
-        translations, 
-        progress_queue,
-        preview_frequency=1
-    )
+    # --- MODIFICATION: Choisir le callback en fonction de preview_queue ---
+    if preview_queue is not None:
+        callback_combined = create_callback_on_step_end( # Callback avec aperçu
+            preview_queue,
+            stop_event,
+            num_inference_steps,
+            translations,
+            progress_queue,
+            preview_frequency=1 # Ou une autre fréquence
+        )
+    else:
+        callback_combined = create_inpainting_callback( # Callback sans aperçu
+            stop_event,
+            num_inference_steps,
+            translations,
+            progress_queue
+        )
+    # --- FIN MODIFICATION ---
 
 
     def run_pipeline_thread():
@@ -65,21 +82,32 @@ def execute_pipeline_task_async(
                  # Utiliser translate pour le message d'erreur
                  raise TypeError(translate("erreur_callback_non_appelable", translations))
 
-            result = pipe(
-                prompt_embeds=prompt_embeds,
-                pooled_prompt_embeds=pooled_prompt_embeds,
-                negative_prompt_embeds=negative_prompt_embeds,
-                negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-                generator=generator,
-                width=width,
-                height=height,
-                callback_on_step_end=callback_combined,
-                callback_on_step_end_tensor_inputs=["latents"] # Nécessaire pour le callback
-            )
+            # --- Construire les arguments du pipeline dynamiquement ---
+            pipeline_args = {
+                "num_inference_steps": num_inference_steps, # Use : instead of =
+                "guidance_scale": guidance_scale,
+                "generator": generator,
+                "width": width,
+                "height": height,
+                "callback_on_step_end": callback_combined,
+                "callback_on_step_end_tensor_inputs": ["latents"] # Nécessaire pour le callback
+            }
+
+            # Condition pour choisir entre texte brut et embeddings
+            if prompt is not None: # Si le texte est fourni (cas spécifique comme Sana Sprint)
+                pipeline_args["prompt"] = prompt
+                # Ne PAS ajouter negative_prompt ici car Sana ne le prend pas
+                # pipeline_args["negative_prompt"] = negative_prompt
+            else: # Sinon, utiliser les embeddings (cas par défaut pour SDXL, etc.)
+                pipeline_args["prompt_embeds"] = prompt_embeds
+                pipeline_args["pooled_prompt_embeds"] = pooled_prompt_embeds
+                pipeline_args["negative_prompt_embeds"] = negative_prompt_embeds
+                pipeline_args["negative_pooled_prompt_embeds"] = negative_pooled_prompt_embeds
+
             # Vérifier l'arrêt APRÈS l'appel au pipeline
             if not stop_event.is_set():
+                result = pipe(**pipeline_args) # Appeler le pipeline avec les arguments préparés
+                # --- FIN MODIFICATION ---
                 result_container["final"] = result.images[0]
                 result_container["status"] = "success"
             else:

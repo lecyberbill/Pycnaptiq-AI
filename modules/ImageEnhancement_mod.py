@@ -420,6 +420,28 @@ class ImageEnhancementModule:
             restorer = models["restorer"]
             try:
                 # --- Prétraitement ---
+                # +++ AJOUT: Vérification et redimensionnement de l'image d'entrée +++
+                MAX_DIMENSION = 1024 # Définir une dimension maximale (ex: 1024 pixels). Ajustez si nécessaire.
+                width, height = img_pil.size
+                if width > MAX_DIMENSION or height > MAX_DIMENSION:
+                    resize_warning = self.module_translations.get("onerestore_resizing_input", "Image too large ({orig_w}x{orig_h}). Resizing to {max_dim}px max for OneRestore.").format(
+                        orig_w=width, orig_h=height, max_dim=MAX_DIMENSION
+                    )
+                    print(txt_color("[AVERTISSEMENT]", "warning"), resize_warning)
+                    gr.Warning(resize_warning) # Informer l'utilisateur via Gradio
+
+                    # Utiliser LANCZOS pour un redimensionnement de meilleure qualité
+                    try:
+                        resampling_filter = Image.Resampling.LANCZOS
+                    except AttributeError:
+                        # Fallback pour les anciennes versions de Pillow
+                        resampling_filter = Image.LANCZOS
+
+                    # Crée une copie pour ne pas modifier l'original en place avec thumbnail
+                    img_pil_copy = img_pil.copy()
+                    img_pil_copy.thumbnail((MAX_DIMENSION, MAX_DIMENSION), resampling_filter)
+                    img_pil = img_pil_copy # Remplacer l'image par la version redimensionnée
+
                 print("[INFO] Prétraitement de l'image pour OneRestore...")
                 img_np = np.array(img_pil)
                 if img_np.ndim == 2:

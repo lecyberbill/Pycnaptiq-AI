@@ -13,7 +13,8 @@ from diffusers import (
     AutoencoderKL,
     DPMSolverMultistepScheduler, # Exemple, ajoute les schedulers nécessaires
     EulerDiscreteScheduler,
-    EulerAncestralDiscreteScheduler
+    EulerAncestralDiscreteScheduler,
+    SanaSprintPipeline # <-- AJOUT SANA
 )
 from compel import Compel, ReturnedEmbeddingsType
 
@@ -25,6 +26,7 @@ cpu = torch.device("cpu")
 gpu = torch.device(
     f"cuda:{torch.cuda.current_device()}" if torch.cuda.is_available() else "cpu"
 )
+SANA_MODEL_TYPE_KEY = "sana_sprint" # <-- AJOUT DEFINITION CONSTANTE
 
 
 class ModelManager:
@@ -38,7 +40,7 @@ class ModelManager:
         self.current_pipe = None
         self.current_compel = None
         self.current_model_name = None
-        self.current_vae_name = None
+        self.current_vae_name = None # Garder pour la cohérence, même si Sana ne l'utilise pas
         self.current_model_type = None  # 'standard', 'inpainting', 'img2img'
         self.current_sampler_key = None # Ajout pour suivre le sampler
         self.loaded_loras = {}  # adapter_name: scale
@@ -59,14 +61,34 @@ class ModelManager:
         return path_from_config
 
     # --- Méthodes pour lister les fichiers ---
+    # --- Méthodes pour lister les fichiers ---
     def list_models(self, model_type="standard", gradio_mode=False):
-        """Liste les modèles disponibles pour un type donné."""
+        """Liste les modèles disponibles pour un type donné, en filtrant le placeholder."""
         if model_type == "inpainting":
             dir_path = self.inpaint_models_dir
-        else: # standard ou img2img (partagent souvent les mêmes modèles)
+        else: 
             dir_path = self.models_dir
-        # Assure-toi que lister_fichiers est bien importé depuis utils
-        return lister_fichiers(dir_path, self.translations, ext=".safetensors", gradio_mode=gradio_mode)
+
+        # 1. Obtenir la liste brute des fichiers
+        model_files_raw = lister_fichiers(dir_path, self.translations, ext=".safetensors", gradio_mode=gradio_mode)
+
+        # 2. Définir et filtrer le placeholder
+        placeholder_model = "your_default_modele.safetensors"
+        filtered_model_files = [f for f in model_files_raw if f != placeholder_model]
+
+        # 3. Gérer les cas où la liste filtrée est vide
+        no_model_msg = translate("aucun_modele_trouve", self.translations)
+        not_found_msg = translate("repertoire_not_found", self.translations) 
+
+        if not filtered_model_files:
+            # Si la liste filtrée est vide, vérifier la liste brute
+            if model_files_raw and model_files_raw[0] != no_model_msg and model_files_raw[0] != not_found_msg:
+                return [no_model_msg]
+            else:
+                return model_files_raw
+        else:
+            return filtered_model_files
+
 
     def list_vaes(self, gradio_mode=False):
         """Liste les VAEs disponibles."""
@@ -183,11 +205,16 @@ class ModelManager:
             return False, msg
 
         # Déterminer le chemin et le type de pipeline
-        pipeline_class = None
+        pipeline_loader = None # Utiliser une fonction de chargement
         model_dir = self.models_dir
+        is_from_single_file = True # Par défaut
 
-        # Déterminer la classe de pipeline et le dossier source
-        if model_type == "inpainting":
+        if model_type == SANA_MODEL_TYPE_KEY: # <-- AJOUT GESTION SANA
+            pipeline_loader = SanaSprintPipeline.from_pretrained
+            is_from_single_file = False # Chargé depuis ID Hugging Face
+            # model_name est l'ID Hugging Face ici
+            chemin_modele = model_name # Utiliser l'ID directement
+        elif model_type == "inpainting":
             pipeline_class = StableDiffusionXLInpaintPipeline
             model_dir = self.inpaint_models_dir
         elif model_type == "img2img":
@@ -199,14 +226,15 @@ class ModelManager:
             pipeline_class = StableDiffusionXLPipeline
             model_dir = self.models_dir
 
-        chemin_modele = os.path.join(model_dir, model_name)
+        # Définir le chemin seulement si c'est un fichier local
+        if is_from_single_file:
+            chemin_modele = os.path.join(model_dir, model_name)
+            if not os.path.exists(chemin_modele):
+                msg = f"{translate('modele_non_trouve', self.translations)}: {chemin_modele}"
+                print(txt_color("[ERREUR]", "erreur"), msg)
+                if gradio_mode: gr.Warning(msg, duration=4.0)
+                return False, msg
         chemin_vae = os.path.join(self.vae_dir, vae_name) if vae_name and vae_name != "Auto" else None
-
-        if not os.path.exists(chemin_modele):
-            msg = f"{translate('modele_non_trouve', self.translations)}: {chemin_modele}"
-            print(txt_color("[ERREUR]", "erreur"), msg)
-            if gradio_mode: gr.Warning(msg, duration=4.0)
-            return False, msg
 
         # Décharger l'ancien modèle
         self.unload_model(gradio_mode=gradio_mode)
@@ -216,15 +244,24 @@ class ModelManager:
 
         try:
             # Charger le pipeline avec gestion d'erreur plus fine
+            pipe = None
             try:
-                pipe = pipeline_class.from_single_file(
-                    chemin_modele,
-                    torch_dtype=self.torch_dtype,
-                    use_safetensors=True,
-                    safety_checker=None, # Désactiver par défaut
-                    # low_cpu_mem_usage=True, # Peut aider sur systèmes avec peu de RAM
-                    # variant="fp16" if self.torch_dtype == torch.float16 else None # Si nécessaire
-                )
+                if is_from_single_file:
+                    pipe = pipeline_class.from_single_file(
+                        chemin_modele,
+                        torch_dtype=self.torch_dtype,
+                        use_safetensors=True,
+                        safety_checker=None,
+                    )
+                else: # Cas Sana Sprint (from_pretrained)
+                    # Utiliser bfloat16 si dispo et recommandé par Sana, sinon self.torch_dtype
+                    dtype_to_use = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else self.torch_dtype
+                    print(f"[INFO] Chargement Sana Sprint avec dtype: {dtype_to_use}")
+                    pipe = pipeline_loader( # Utilise SanaSprintPipeline.from_pretrained
+                        chemin_modele, # C'est l'ID HF ici
+                        torch_dtype=dtype_to_use,
+                        # Ajouter d'autres args si Sana le requiert
+                    )
             except Exception as e_pipe_load:
                 # Erreur spécifique au chargement du pipeline
                 raise RuntimeError(f"{translate('erreur_chargement_pipeline', self.translations)}: {e_pipe_load}") # Nouvelle clé
@@ -232,7 +269,8 @@ class ModelManager:
             # Charger le VAE externe si spécifié
             vae_message = ""
             loaded_vae_name = "Auto"
-            if chemin_vae and os.path.exists(chemin_vae):
+            # Ne charger le VAE externe que si ce n'est PAS Sana Sprint
+            if model_type != SANA_MODEL_TYPE_KEY and chemin_vae and os.path.exists(chemin_vae):
                 print(txt_color("[INFO]", "info"), f"{translate('chargement_vae', self.translations)}: {vae_name}")
                 try:
                     vae = AutoencoderKL.from_single_file(chemin_vae, torch_dtype=self.torch_dtype)
@@ -249,12 +287,12 @@ class ModelManager:
                     loaded_vae_name = f"Auto ({translate('erreur', self.translations)})"
                     print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_chargement_vae', self.translations)}: {vae_name} - {e_vae}")
                     if gradio_mode: gr.Warning(f"{translate('erreur_chargement_vae', self.translations)}: {vae_name} - {e_vae}", duration=4.0)
-            elif chemin_vae: # Chemin spécifié mais non trouvé
+            elif model_type != SANA_MODEL_TYPE_KEY and chemin_vae: # Chemin spécifié mais non trouvé (et pas Sana)
                  vae_message = f" + VAE: {translate('vae_non_trouve_court', self.translations)}"
                  loaded_vae_name = f"Auto ({translate('non_trouve', self.translations)})"
                  print(txt_color("[ERREUR]", "erreur"), f"{translate('vae_non_trouve', self.translations)}: {chemin_vae}")
                  if gradio_mode: gr.Warning(f"{translate('vae_non_trouve', self.translations)}: {chemin_vae}", duration=4.0)
-            else: # VAE Auto (intégré)
+            elif model_type != SANA_MODEL_TYPE_KEY: # VAE Auto (intégré) (et pas Sana)
                  vae_message = f" + VAE: Auto"
                  print(txt_color("[INFO]", "info"), translate("utilisation_vae_integre", self.translations))
 
@@ -263,19 +301,17 @@ class ModelManager:
             pipe.to(self.device)
 
             # Appliquer les optimisations mémoire si nécessaire
+            # Ne pas appliquer les optimisations VAE pour Sana Sprint
             try:
-                pipe.enable_vae_slicing()
-                pipe.enable_vae_tiling()
-                # Attention: enable_model_cpu_offload() peut causer des problèmes avec Compel ou LoRA. À utiliser avec prudence.
-                # if self.device.type == "cuda" and self.vram_total_gb < 6:
-                #     print(txt_color("[INFO]", "info"), "Activation de CPU Offload (expérimental)...")
-                #     pipe.enable_model_cpu_offload()
-                # else
+                if model_type != SANA_MODEL_TYPE_KEY:
+                    pipe.enable_vae_slicing()
+                    pipe.enable_vae_tiling()
                 if self.device.type == "cuda" and self.vram_total_gb < 10:
                      pipe.enable_attention_slicing()
                      print(txt_color("[INFO]", "info"), translate("optimisation_memoire_activee", self.translations)) # Nouvelle clé
                 # XFormers (si installé et compatible)
-                if self.device.type == "cuda":
+                # --- MODIFICATION: Ne pas activer xformers pour Sana Sprint ---
+                if self.device.type == "cuda" and model_type != SANA_MODEL_TYPE_KEY:
                     try: # Ajouter try/except pour xformers
                         pipe.enable_xformers_memory_efficient_attention()
                         print(txt_color("[INFO]", "info"), "XFormers activé.")
@@ -283,18 +319,34 @@ class ModelManager:
                         print(txt_color("[INFO]", "info"), "XFormers non disponible, ignoré.")
                     except Exception as e_xformers:
                         print(txt_color("[AVERTISSEMENT]", "warning"), f"Erreur activation XFormers: {e_xformers}")
+                elif model_type == SANA_MODEL_TYPE_KEY:
+                    print(txt_color("[INFO]", "info"), "XFormers désactivé pour Sana Sprint.")
 
             except Exception as e_optim:
                  print(txt_color("[AVERTISSEMENT]", "warning"), f"Erreur application optimisations: {e_optim}") # Utiliser warning
 
 
             # Créer Compel
+            # Adapter pour Sana si nécessaire (ex: si un seul tokenizer/encoder)
+            has_tokenizer_2 = hasattr(pipe, 'tokenizer_2') and pipe.tokenizer_2 is not None
+            has_encoder_2 = hasattr(pipe, 'text_encoder_2') and pipe.text_encoder_2 is not None
+
+            if model_type == SANA_MODEL_TYPE_KEY:
+                # Configuration spécifique pour Sana Sprint (probablement pas de pooled)
+                compel_returned_embeddings_type = ReturnedEmbeddingsType.LAST_HIDDEN_STATES_NORMALIZED # Ou PENULTIMATE si ça marche mieux pour Sana
+                compel_requires_pooled = False
+            else:
+                # Configuration standard pour SDXL (avec pooled)
+                compel_returned_embeddings_type = ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED
+                compel_requires_pooled = [False, True] if has_encoder_2 else False
+
             compel = Compel(
-                tokenizer=[pipe.tokenizer, pipe.tokenizer_2] if hasattr(pipe, 'tokenizer_2') else pipe.tokenizer,
-                text_encoder=[pipe.text_encoder, pipe.text_encoder_2] if hasattr(pipe, 'text_encoder_2') else pipe.text_encoder,
-                returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
-                requires_pooled=[False, True] if hasattr(pipe, 'tokenizer_2') else False, # Adapter pour non-XL si besoin
-                # device=self.device # Compel utilise le device des encodeurs passés
+                tokenizer=[pipe.tokenizer, pipe.tokenizer_2] if has_tokenizer_2 else pipe.tokenizer,
+                text_encoder=[pipe.text_encoder, pipe.text_encoder_2] if has_encoder_2 else pipe.text_encoder,
+                returned_embeddings_type=compel_returned_embeddings_type,
+                requires_pooled=compel_requires_pooled,
+                device=self.device # Passer le device explicitement peut aider
+
             )
 
             # Mettre à jour l'état interne

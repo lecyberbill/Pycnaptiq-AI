@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 from Utils.utils import txt_color, translate, lister_fichiers
 from Utils.sampler_utils import get_sampler_choices, get_sampler_key_from_display_name
-from core.trannslator import translate_prompt
+from core.translator import translate_prompt
 from Utils.model_manager import ModelManager
 from Utils.utils import GestionModule
 # --- Chargement des métadonnées ---
@@ -206,7 +206,7 @@ class BatchGeneratorModule:
                     seed_input = gr.Number(label=translate("seed_label", self.module_translations), value=-1, precision=0, scale=1)
                 with gr.Row():
                     format_input = gr.Dropdown(label=translate("format", self.global_translations), choices=format_choices, value=default_format, scale=1)
-                    model_input = gr.Dropdown(label=translate("selectionner_modele", self.global_translations), choices=available_models, scale=2)
+                    model_input = gr.Dropdown(label=translate("selectionner_modele", self.global_translations), choices=available_models, scale=2, allow_custom_value=True)
                     vae_input = gr.Dropdown(label=translate("selectionner_vae", self.global_translations), choices=available_vaes, value="Défaut VAE", scale=2)
                     sampler_input = gr.Dropdown(label=translate("selectionner_sampler", self.global_translations), choices=sampler_display_choices, value=default_sampler_display, scale=2)
                     style_input = gr.Dropdown(label=translate("styles", self.global_translations), choices=style_choices, multiselect=True, max_choices=4, scale=2)

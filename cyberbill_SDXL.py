@@ -14,14 +14,14 @@ from diffusers import  StableDiffusionXLPipeline, AutoencoderKL, EulerDiscreteSc
     LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, StableDiffusionXLInpaintPipeline, \
     KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler, DPMSolverSinglestepScheduler
 import torch
-import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, AutoProcessor
 from core.version import version
 from Utils.callback_diffuser import latents_to_rgb, create_callback_on_step_end, create_inpainting_callback
 from Utils.model_manager import ModelManager
-from core.trannslator import translate_prompt
+from core.translator import translate_prompt
 from core.Inpaint import apply_mask_effects
+from core.image_prompter import init_image_prompter, generate_prompt_from_image
 from Utils.utils import GestionModule, enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, styles_fusion, create_progress_bar_html,\
     telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, preparer_metadonnees_image, check_gpu_availability, ImageSDXLchecker
 from Utils.sampler_utils import SAMPLER_DEFINITIONS, get_sampler_choices, get_sampler_key_from_display_name, apply_sampler_to_pipe
@@ -84,6 +84,7 @@ model_manager = ModelManager(config, translations, device, torch_dtype, vram_tot
 # --- Utiliser ModelManager pour lister les fichiers ---
 modeles_disponibles = model_manager.list_models(model_type="standard")
 vaes = model_manager.list_vaes() # Inclut "Auto"
+init_image_prompter(device, translations) 
 modeles_impaint = model_manager.list_models(model_type="inpainting")
 
 if not modeles_impaint or modeles_impaint[0] == translate("aucun_modele_trouve", translations):
@@ -140,17 +141,10 @@ is_generating = False
 
 global_selected_sampler_key = "sampler_euler"
 
-# Charger le modèle et le processeur
-caption_model = AutoModelForCausalLM.from_pretrained("MiaoshouAI/Florence-2-base-PromptGen-v2.0", trust_remote_code=True).to(device)
-caption_processor = AutoProcessor.from_pretrained("MiaoshouAI/Florence-2-base-PromptGen-v2.0", trust_remote_code=True)
+
 # =========================
 # Définition des fonctions
 # =========================
-
-
-
-
-
 def style_choice(selected_style_user, STYLES):
     """Choisi un style dans la liste des styles.
         Args:
@@ -166,38 +160,8 @@ def style_choice(selected_style_user, STYLES):
 # Fonction GENERATION PROMPT A PARTIR IMAGE
 #==========================
 
-def generate_caption(image):
-    """generate a prompt from an image."""
-
-    if image:
-        # Préparer les entrées
-        inputs = caption_processor(text="<DETAILED_CAPTION>", images=image, return_tensors="pt").to(device)
-        print(txt_color("[INFO] ", "info"), translate("prompt_calcul", translations))
-        # Générer le texte
-        generated_ids = caption_model.generate(
-            input_ids=inputs["input_ids"],
-            pixel_values=inputs["pixel_values"],
-            max_new_tokens=1024,
-            do_sample=False,
-            num_beams=3
-        )
-        generated_text = caption_processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
-        parsed_answer = caption_processor.post_process_generation(
-            generated_text, task="<DETAILED_CAPTION>", image_size=(image.width, image.height)
-        )
-
-        # Libérer la mémoire GPU
-        torch.cuda.empty_cache()
-        prompt = parsed_answer.get('<DETAILED_CAPTION>', '').strip('{}').strip('"')
-        print(txt_color("[INFO] ", "info"), translate("prompt_calculé", translations), f"{prompt}")
-        return prompt
-    return ""
-
-def update_prompt(image):
-    """update the prompt"""
-    if image:  
-        return generate_caption(image)
-    return ""
+def generate_prompt_wrapper(image, current_translations):
+    return generate_prompt_from_image(image, current_translations)
 
 #==========================
 # Fonction GENERATION IMAGE
@@ -1519,14 +1483,15 @@ with gr.Blocks(**block_kwargs) as interface:
                         seed_output = gr.Textbox(label=translate("seed_utilise", translations))
                         value = DEFAULT_MODEL if DEFAULT_MODEL else None
                         modele_dropdown = gr.Dropdown(label=translate("selectionner_modele", translations), choices=modeles_disponibles, value=initial_model_value, allow_custom_value=True)
-                        vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=vaes, value=initial_vae_value)
+                        vae_dropdown = gr.Dropdown(label=translate("selectionner_vae", translations), choices=vaes, value=initial_vae_value, allow_custom_value=True)
                         sampler_display_choices = get_sampler_choices(translations) # Obtenir les choix depuis l'utilitaire
                         default_sampler_display = translate(global_selected_sampler_key, translations) # Traduire la clé par défaut
 
                         sampler_dropdown = gr.Dropdown(
                             label=translate("selectionner_sampler", translations),
                             choices=sampler_display_choices,
-                            value=default_sampler_display # Utiliser le nom traduit par défaut
+                            value=default_sampler_display,
+                            allow_custom_value=True,
                         )                        
                         bouton_charger = gr.Button(translate("charger_modele", translations))
                                                 
@@ -1872,7 +1837,7 @@ with gr.Blocks(**block_kwargs) as interface:
                 guidance_inpainting_slider = gr.Slider(1, 20, value=7, label=translate("guidage", translations))
                 num_steps_inpainting_slider = gr.Slider(1, 50, value=30, label=translate("etapes", translations), step=1)
                 strength_inpainting_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.89, step=0.01, label=translate("force_inpainting", translations))
-                modele_inpainting_dropdown = gr.Dropdown(label=translate("selectionner_modele_inpainting", translations), choices=modeles_impaint, value=value)
+                modele_inpainting_dropdown = gr.Dropdown(label=translate("selectionner_modele_inpainting", translations), choices=modeles_impaint, value=value, allow_custom_value=True)
                 bouton_lister_inpainting = gr.Button(translate("lister_modeles_inpainting", translations))
                 bouton_charger_inpainting = gr.Button(translate("charger_modele_inpainting", translations))
                 message_chargement_inpainting = gr.Textbox(label=translate("statut_inpainting", translations), value=translate("aucun_modele_charge_inpainting", translations))
@@ -1944,7 +1909,10 @@ with gr.Blocks(**block_kwargs) as interface:
         outputs=[message_chargement, btn_generate, btn_generate]
     )
 
-    image_input.change(fn=generate_caption, inputs=image_input, outputs=text_input)
+    image_input.change(
+        fn=generate_prompt_wrapper,
+        inputs=[image_input, gr.State(translations)], 
+        outputs=text_input)
 
     btn_generate.click(
         generate_image,

@@ -1,3 +1,49 @@
+## Beta 1.8.6 🐥Crazy Happy Chick🐥
+
+*Date: 2025-05-02*
+
+### ✨ New Features
+
+*   **New Module: Sana Sprint (`sana_sprint_mod.py`)**
+    *   Added a dedicated tab for image generation using the `Efficient-Large-Model/Sana_Sprint_0.6B_1024px_diffusers` model.
+    *   Supports text-to-image generation with style mixing.
+    *   Includes image-to-prompt functionality: generate a prompt directly from an uploaded image within the Sana Sprint tab.
+    *   Optimized for speed with fixed steps (2) and output size (1024x1024).
+*   **Image-to-Prompt Refactoring:**
+    *   Isolated the image-to-prompt generation logic (using `MiaoshouAI/Florence-2-base-PromptGen-v2.0`) into a reusable module: `core/image_prompter.py`.
+    *   This functionality is now used by both the main generation tab and the Sana Sprint module.
+    *   Model loading is handled centrally and initialized at application startup.
+
+### 🛠️ Fixes
+
+*   **Gradio Dropdown Warnings:** Resolved persistent `UserWarning: The value passed into gr.Dropdown() is not in the list of choices...` by:
+    *   Adding `allow_custom_value=True` to relevant dropdown components (`model`, `VAE`, `sampler`, `format`, `LoRA`, `preset filters`, etc.) across the application.
+    *   Improving the logic in `ModelManager.list_models` to filter out the placeholder `your_default_modele.safetensors` from the choices list.
+*   **Module Stop Button:** Corrected `UserWarning` related to argument mismatch when calling the `stop_generation` method in modules like `image_to_image_mod.py` by passing necessary arguments (like translations) via `gr.State`.
+
+---
+
+### ✨ Nouvelles Fonctionnalités (French)
+
+*   **Nouveau Module : Sana Sprint (`sana_sprint_mod.py`)**
+    *   Ajout d'un onglet dédié pour la génération d'images avec le modèle `Efficient-Large-Model/Sana_Sprint_0.6B_1024px_diffusers`.
+    *   Supporte la génération texte-vers-image avec mélange de styles.
+    *   Inclut la fonctionnalité image-vers-prompt : générer un prompt directement depuis une image téléversée dans l'onglet Sana Sprint.
+    *   Optimisé pour la vitesse avec des étapes fixes (2) et une taille de sortie fixe (1024x1024).
+*   **Refactorisation Image-vers-Prompt :**
+    *   Isolation de la logique de génération de prompt depuis une image (utilisant `MiaoshouAI/Florence-2-base-PromptGen-v2.0`) dans un module réutilisable : `core/image_prompter.py`.
+    *   Cette fonctionnalité est maintenant utilisée par l'onglet de génération principal et le module Sana Sprint.
+    *   Le chargement du modèle est géré de manière centralisée et initialisé au démarrage de l'application.
+
+### 🛠️ Corrections (French)
+
+*   **Avertissements Dropdown Gradio :** Résolution des avertissements persistants `UserWarning: The value passed into gr.Dropdown() is not in the list of choices...` en :
+    *   Ajoutant `allow_custom_value=True` aux composants dropdown concernés (`modèle`, `VAE`, `sampler`, `format`, `LoRA`, `filtres presets`, etc.) dans toute l'application.
+    *   Améliorant la logique dans `ModelManager.list_models` pour filtrer la valeur placeholder `your_default_modele.safetensors` de la liste des choix.
+*   **Bouton Stop des Modules :** Correction du `UserWarning` lié à une incohérence d'arguments lors de l'appel de la méthode `stop_generation` dans les modules (ex: `image_to_image_mod.py`) en passant les arguments nécessaires (comme les traductions) via `gr.State`.
+
+---
+
 ## Beta 1.8.5 🐥Crazy Happy Chick🐥
 
 *Date: 2025-05-02*

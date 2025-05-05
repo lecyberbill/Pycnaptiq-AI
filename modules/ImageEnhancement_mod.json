@@ -50,7 +50,8 @@
             "onerestore_detected_degradation": "Dégradation détectée par OneRestore: {degradation}",
             "onerestore_pipeline_error": "Erreur lors de l'exécution du pipeline OneRestore: {error}",
             "retouch_start": "Lancement de la retouche auto...",
-            "retouch_simple_error": "Erreur lors de la retouche simple: {error}"
+            "retouch_simple_error": "Erreur lors de la retouche simple: {error}",
+            "onerestore_resizing_input": "Image trop grande ({orig_w}x{orig_h}). Redimensionnement à {max_dim}px max pour OneRestore."
         },
         "en": {
             "enhancement_tab": "Image Enhancement",
@@ -96,7 +97,8 @@
             "onerestore_detected_degradation": "OneRestore detected degradation: {degradation}",
             "onerestore_pipeline_error": "Error during OneRestore pipeline execution: {error}",
             "retouch_start": "Starting auto retouch...",
-            "retouch_simple_error": "Error during simple retouch: {error}"
+            "retouch_simple_error": "Error during simple retouch: {error}",
+            "onerestore_resizing_input": "Image too large ({orig_w}x{orig_h}). Resizing to {max_dim}px max for OneRestore."
         }
     }
 }

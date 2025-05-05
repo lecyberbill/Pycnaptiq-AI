@@ -17,7 +17,7 @@ from Utils.utils import (
 )
 from Utils.callback_diffuser import create_inpainting_callback
 from Utils.model_manager import ModelManager # <-- AJOUT
-from core.trannslator import translate_prompt
+from core.translator import translate_prompt
 from datetime import datetime
 
 # JSON associated at this module
@@ -148,16 +148,27 @@ class Image2imageSDXLModule:
                     # +++ FIN AJOUT +++
 
                 with gr.Column():
+                    available_models = self.model_manager.list_models(model_type="standard")
+                    no_model_message = translate("aucun_modele_trouve", self.global_translations) # Assurez-vous que c'est bien la clé utilisée par list_models
+                    
+                    if available_models and available_models[0] != no_model_message:
+                        default_model_value = available_models[0]
+                    elif available_models and available_models[0] == no_model_message:
+                        default_model_value = no_model_message
+                    else:
+                        default_model_value = None
                     self.modele_i2i_dropdown = gr.Dropdown(
                         label=translate("selectionner_modele", self.module_translations),
-                        choices=self.model_manager.list_models(model_type="standard"),
-                        value=self.model_manager.list_models(model_type="standard")[0] if self.model_manager.list_models(model_type="standard") else None,
+                        choices=available_models, 
+                        value=default_model_value,
+                        allow_custom_value=True,
                     )
                     self.vae_dropdown = gr.Dropdown(
                         label=translate("selectionner_vae", self.module_translations),
                         choices=self.liste_vaes,
                         value="Auto",
                         info=translate("selectionner_vae_info", self.module_translations),
+                        allow_custom_value=True,
                     )
                     self.bouton_lister = gr.Button(
                         translate("lister_modeles", self.module_translations)
@@ -294,7 +305,10 @@ class Image2imageSDXLModule:
                     self.batch_current_image_preview
                 ],
             )
-            self.i2i_bouton_stop.click(fn=self.stop_generation, inputs=None, outputs=None)
+            self.i2i_bouton_stop.click(
+                fn=self.stop_generation,
+                inputs=[gr.State(self.module_translations)], # Passer l'état des traductions
+                outputs=None)
 
         return tab
 
