@@ -538,5 +538,22 @@
     "invalid_image_type_for_caption": "Invalid image type received for caption generation: {}",
     "error_generating_caption": "Error generating prompt from image: {}",
     "prompt_calculé": "Calculated prompt:",
-    "initializing_image_prompter": "Initializing Image Prompter module..."
+    "initializing_image_prompter": "Initializing Image Prompter module...",
+    "pag_options_label": "Perturbed-Attention Guidance (PAG) Options",
+    "enable_pag_label": "Enable Perturbed-Attention Guidance (PAG)",
+    "pag_scale_label": "PAG Scale (pag_scale)",
+    "pag_applied_layers_label": "PAG Applied Layers",
+    "pag_applied_layers_info": "Comma-separated list of layers to apply PAG to (e.g., m0,u0,d1). Leave empty for pipeline defaults.",
+    "log_module_states_loaded": "Module states loaded from configuration.",
+    "log_warn_module_config_invalid_format": "Module configuration file is not in the expected JSON format. Using empty configuration.",
+    "log_module_config_not_found_creating": "Module configuration file not found. A new one will be created if necessary.",
+    "log_erreur_load_module_states": "Error loading module states: {error}",
+    "log_module_states_saved": "Module states saved to configuration.",
+    "log_erreur_save_module_states": "Error saving module states: {error}",
+    "log_module_state_updated": "Module '{module_name}' state updated: {state}.",
+    "module_etat_maj": "Module state updated",
+    "gestion_module": "Module Management",
+    "activer_desactiver_modules": "Activate/Deactivate Modules",
+    "magnific_popup_prev": "Previous (Left arrow)",
+    "magnific_popup_next": "Next (Right arrow)"
 }

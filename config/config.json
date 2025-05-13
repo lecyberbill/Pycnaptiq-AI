@@ -6,6 +6,7 @@
 	"LORAS_DIR": "models\\loras",
 	"SAVE_DIR": "Output",
 	"SAVE_BATCH_JSON_PATH": "Output\\json_batch_files",
+	"CIVITAI_API_KEY": "your_key_here",
     "IMAGE_FORMAT": "webp",
 	"DEFAULT_MODEL": "your_default_modele.safetensors",
 	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",

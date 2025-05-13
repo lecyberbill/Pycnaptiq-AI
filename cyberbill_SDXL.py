@@ -9,6 +9,7 @@ import traceback
 from datetime import datetime
 import json
 import gradio as gr
+import numpy as np
 from gradio import update
 from diffusers import  StableDiffusionXLPipeline, AutoencoderKL, EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler, \
     LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, StableDiffusionXLInpaintPipeline, \
@@ -22,7 +23,7 @@ from Utils.model_manager import ModelManager
 from core.translator import translate_prompt
 from core.Inpaint import apply_mask_effects
 from core.image_prompter import init_image_prompter, generate_prompt_from_image
-from Utils.utils import GestionModule, enregistrer_etiquettes_image_html,charger_configuration, gradio_change_theme, lister_fichiers, styles_fusion, create_progress_bar_html,\
+from Utils.utils import GestionModule, enregistrer_etiquettes_image_html, finalize_html_report_if_needed, charger_configuration, gradio_change_theme, lister_fichiers, styles_fusion, create_progress_bar_html, load_modules_js,\
     telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, preparer_metadonnees_image, check_gpu_availability, ImageSDXLchecker
 from Utils.sampler_utils import SAMPLER_DEFINITIONS, get_sampler_choices, get_sampler_key_from_display_name, apply_sampler_to_pipe
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -90,7 +91,11 @@ modeles_impaint = model_manager.list_models(model_type="inpainting")
 if not modeles_impaint or modeles_impaint[0] == translate("aucun_modele_trouve", translations):
     modeles_impaint = [translate("aucun_modele_trouve", translations)]
     
-gestionnaire = GestionModule(translations=translations, config=config, model_manager_instance=model_manager)
+gestionnaire = GestionModule(
+    translations=translations, config=config,
+    model_manager_instance=model_manager,
+    preset_manager_instance=preset_manager
+)
 
 
 if modeles_disponibles and modeles_disponibles[0] == translate("aucun_modele_trouve", translations):
@@ -124,8 +129,8 @@ loras_charges = {}
 # Charger tous les modules
 gestionnaire.charger_tous_les_modules()
 
-# Get the javascript code
-js_code = gestionnaire.get_js_code()
+# Charger le code JavaScript depuis le fichier centralisé
+js_code = load_modules_js()
 
 
 # Flag pour arrêter la génération
@@ -141,10 +146,20 @@ is_generating = False
 
 global_selected_sampler_key = "sampler_euler"
 
-
 # =========================
 # Définition des fonctions
 # =========================
+
+
+def handle_module_toggle(module_name, new_state, gestionnaire_instance, preset_manager_instance):
+    gestionnaire_instance.set_module_active(module_name, new_state)
+    status_message = f"Module '{module_name}' {'activé' if new_state else 'désactivé'}."
+    gr.Info(status_message, 1.5)
+
+
+
+
+
 def style_choice(selected_style_user, STYLES):
     """Choisi un style dans la liste des styles.
         Args:
@@ -167,7 +182,7 @@ def generate_prompt_wrapper(image, current_translations):
 # Fonction GENERATION IMAGE
 #==========================
 
-def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, *lora_inputs):
+def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, pag_enabled, pag_scale, pag_applied_layers_str, *lora_inputs):
     """Génère des images avec Stable Diffusion en utilisant execute_pipeline_task_async."""
     global lora_charges, model_selectionne, vae_selctionne, is_generating, global_selected_sampler_key, PREVIEW_QUEUE # Assurer que PREVIEW_QUEUE est global
 
@@ -215,7 +230,16 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             print(txt_color("[ERREUR] ","erreur"), translate("erreur_pas_modele", translations))
             gr.Warning(translate("erreur_pas_modele", translations), 4.0)
             final_message = translate("erreur_pas_modele", translations)
-            return
+            final_html_msg = f"<p style='color: red;'>{final_message}</p>"
+            yield (
+                [], "", final_message, final_html_msg, 
+                None, "",                             
+                bouton_charger_update_on, btn_generate_update_on, 
+                gr.update(interactive=False),         
+                None, None                            
+            )
+            return # Stop the generator
+
 
         if model_manager.current_model_type != 'standard': # <-- Vérifier le type via ModelManager
             error_message = translate("erreur_mauvais_type_modele", translations)
@@ -224,7 +248,14 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             # Mettre à jour les variables finales pour le bloc finally
             final_message = error_message
             final_html_msg = f"<p style='color: red;'>{error_message}</p>"
-            return
+            yield (
+                [], "", final_message, final_html_msg,
+                None, "",
+                bouton_charger_update_on, btn_generate_update_on,
+                gr.update(interactive=False),
+                None, None
+            )
+            return # Stop the generator
 
 
         #initialisation du chrono
@@ -270,8 +301,22 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         if message_lora and erreur_keyword in message_lora.lower():
             gr.Warning(message_lora, duration=4.0)
             final_message = message_lora
-            return
+            final_html_msg = f"<p style='color: red;'>{final_message}</p>"
+            yield (
+                [], "", final_message, final_html_msg,
+                None, "",
+                bouton_charger_update_on, btn_generate_update_on,
+                gr.update(interactive=False),
+                None, None
+            )
+            return # Stop the generator
         elif message_lora: # Si message mais pas erreur (ex: succès)
+            print(txt_color("[INFO]", "info"), f"Message LoRA: {message_lora}")
+
+        # Préparer pag_applied_layers
+        pag_applied_layers = []
+        if pag_enabled and pag_applied_layers_str:
+            pag_applied_layers = [s.strip() for s in pag_applied_layers_str.split(',') if s.strip()]
             print(txt_color("[INFO]", "info"), f"Message LoRA: {message_lora}")
 
         # principal loop for genrated images
@@ -308,7 +353,10 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 stop_event=stop_gen, # Utiliser stop_gen pour arrêter CETTE image
                 translations=translations,
                 progress_queue=progress_update_queue,
-                preview_queue=PREVIEW_QUEUE # Passer la queue globale d'aperçu
+                preview_queue=PREVIEW_QUEUE, # Passer la queue globale d'aperçu
+                pag_enabled=pag_enabled,
+                pag_scale=pag_scale,
+                pag_applied_layers=pag_applied_layers # Passer la liste
             )
             # --- FIN NOUVEAU ---
 
@@ -362,12 +410,6 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
                 last_progress_html = new_progress_html # Mettre à jour la dernière progression connue
 
-                # Vérifier si l'arrêt global a été demandé pendant la boucle
-                if stop_event.is_set():
-                    stop_gen.set() # Signaler au thread de s'arrêter via son propre event
-                    print(txt_color("[INFO]", "info"), translate("arret_global_detecte", translations))
-                    break # Sortir de la boucle while
-
                 time.sleep(0.05)
             # --- Fin Boucle de mise à jour UI ---
 
@@ -396,8 +438,10 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 yield (
                     images, " ".join(seed_strings), translate("generation_arretee", translations),
                     translate("generation_arretee_pas_sauvegarde", translations), None, final_progress_html,
-                    bouton_charger_update_off, btn_generate_update_off,
-                    gr.update(interactive=False) # Save preset button
+                    bouton_charger_update_off, btn_generate_update_off, # buttons
+                    gr.update(interactive=False), # Save preset button
+                    None, # last_successful_generation_data
+                    None  # last_successful_preview_image
                 )
                 break # Sortir de la boucle for des images
 
@@ -409,8 +453,10 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 yield (
                     images, " ".join(seed_strings), translate("erreur_pipeline", translations),
                     error_msg, None, final_progress_html,
-                    bouton_charger_update_off, btn_generate_update_off,
-                    gr.update(interactive=False) # Save preset button
+                    bouton_charger_update_off, btn_generate_update_off, # buttons
+                    gr.update(interactive=False), # Save preset button
+                    None, # last_successful_generation_data
+                    None  # last_successful_preview_image
                 )
                 continue # Passer à l'image suivante
 
@@ -421,8 +467,10 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 yield (
                     images, " ".join(seed_strings), translate("erreur_pas_image_genere", translations),
                     translate("erreur_pas_image_genere", translations), None, final_progress_html,
-                    bouton_charger_update_off, btn_generate_update_off,
-                    gr.update(interactive=False) # Save preset button
+                    bouton_charger_update_off, btn_generate_update_off, # buttons
+                    gr.update(interactive=False), # Save preset button
+                    None, # last_successful_generation_data
+                    None  # last_successful_preview_image
                 )
                 continue # Passer à l'image suivante
 
@@ -441,7 +489,11 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                  "seed": seed,
                  "width": width,
                  "height": height,
-                 "loras": json.dumps([{"name": name, "weight": weight} for name, weight in model_manager.loaded_loras.items()]),
+                 "loras": json.dumps([{"name": name, "weight": weight} for name, weight in model_manager.loaded_loras.items()]), # Utiliser model_manager
+                 "pag_enabled": pag_enabled,
+                 "pag_scale": pag_scale,
+                 "custom_pipeline_id": "hyoungwoncho/sd_perturbed_attention_guidance" if pag_enabled else None, # <-- AJOUT CUSTOM PIPELINE ID
+                 "pag_applied_layers": pag_applied_layers_str, # Sauvegarder la chaîne brute
                  "rating": 0,
                  "notes": ""
             }
@@ -474,7 +526,11 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                  "Negatif Prompt": negative_prompt_str, "Seed": seed,
                  "Size": selected_format_parts, # Utiliser selected_format_parts ici
                  "Loras": lora_info_str,
-                 "Generation Time": temps_generation_image
+                 "Generation Time": temps_generation_image,
+                 "PAG Enabled": pag_enabled,
+                 "PAG Scale": f"{pag_scale:.2f}" if pag_enabled else "N/A", # Correction f-string
+                 "PAG Custom Pipeline": "hyoungwoncho/sd_perturbed_attention_guidance" if pag_enabled else "N/A", # <-- AJOUT CUSTOM PIPELINE ID aux métadonnées XMP
+                 "PAG Applied Layers": pag_applied_layers_str if pag_enabled else "N/A"
              }
 
             metadata_structure, prep_message = preparer_metadonnees_image(
@@ -547,6 +603,25 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
     finally:
         # --- Bloc finally ---
         is_generating = False
+        # --- AJOUT POUR FINALISER LE HTML SI ARRÊT PRÉMATURÉ ---
+        if (stop_event.is_set() or stop_gen.is_set()) and final_images:
+            # La génération a été arrêtée, mais certaines images ont été créées et mises en tampon.
+            # Nous devons déterminer le chemin du rapport HTML pour cette exécution.
+            if 'date_str' in locals() and date_str: # Vérifier si date_str est défini
+                chemin_rapport_html_actuel = os.path.join(SAVE_DIR, date_str, "rapport.html")
+                print(txt_color("[INFO]", "info"), f"Tentative de finalisation du rapport HTML pour {chemin_rapport_html_actuel} suite à un arrêt.")
+                
+                finalisation_msg = finalize_html_report_if_needed(chemin_rapport_html_actuel, translations)
+                print(txt_color("[INFO]", "info"), f"Résultat finalisation HTML: {finalisation_msg}")
+                
+                # Mettre à jour final_html_msg si nécessaire.
+                if "erreur" not in finalisation_msg.lower() and final_html_msg and isinstance(final_html_msg, str):
+                    final_html_msg += f"<br/>{finalisation_msg}"
+                elif "erreur" not in finalisation_msg.lower():
+                    final_html_msg = finalisation_msg
+            else:
+                print(txt_color("[AVERTISSEMENT]", "warning"), "Impossible de déterminer le chemin du rapport HTML pour la finalisation (date_str non défini).")
+        # --- FIN AJOUT ---
         yield (
             final_images, final_seeds, final_message, final_html_msg,
             final_preview_img, final_progress_html,
@@ -561,7 +636,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 # Fonction INPAINTED IMAGE
 #==========================
 
-def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_scale, traduire):
+def generate_inpainted_image(text, original_image_pil, image_mask_editor_dict, num_steps, strength, guidance_scale, traduire):
     """Génère une image inpainted avec Stable Diffusion XL."""
     global  stop_gen
 
@@ -572,16 +647,16 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
     btn_load_inp_on = gr.update(interactive=True)
 
     # --- Placeholders pour le premier yield ---
-    initial_image = None
+    initial_slider_output = [None, None]
     initial_msg_load = "" # Message chargement/HTML
     initial_msg_status = translate("preparation", translations) # Message statut
     initial_progress = "" # Barre de progression
 
     # --- Yield initial pour désactiver les boutons ---
-    yield initial_image, initial_msg_load, initial_msg_status, initial_progress, btn_load_inp_off, btn_gen_inp_off
+    yield initial_slider_output, initial_msg_load, initial_msg_status, initial_progress, btn_load_inp_off, btn_gen_inp_off
 
     # --- Initialiser les variables pour le résultat final ---
-    final_image_result = None
+    final_slider_output_result = [None, None]
     final_msg_load_result = ""
     final_msg_status_result = ""
     final_progress_result = ""
@@ -594,7 +669,15 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
             print(txt_color("[ERREUR] ", "erreur"), msg)
             gr.Warning(msg, 4.0)
             final_msg_status_result = msg
-            return
+            yield (
+                [None, None],  # inpainting_image_slider
+                "",            # message_chargement_inpainting
+                final_msg_status_result, # message_inpainting
+                "",            # progress_inp_html_output
+                btn_load_inp_on, # bouton_charger_inpainting
+                btn_gen_inp_on   # bouton_generate_inpainting
+            )
+            return # Stop the generator
         pipe = model_manager.get_current_pipe() 
         if not isinstance(pipe, StableDiffusionXLInpaintPipeline):
             error_message = translate("erreur_mauvais_type_modele_inpainting", translations)
@@ -603,34 +686,62 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
             # Mettre à jour les variables finales pour le bloc finally
             final_msg_status_result = error_message
             final_msg_load_result = f"<p style='color: red;'>{error_message}</p>"
-            # Important : retourner immédiatement
-            return # Sortir de la fonction ici
+            yield (
+                [None, None],
+                final_msg_load_result,
+                final_msg_status_result,
+                "",
+                btn_load_inp_on,
+                btn_gen_inp_on
+            )
+            return
 
-        if image is None or mask is None:
+        if original_image_pil is None or image_mask_editor_dict is None:
             msg = translate("erreur_image_mask_manquant", translations)
             print(txt_color("[ERREUR] ", "erreur"), msg)
             gr.Warning(msg, 4.0)
             final_msg_status_result = msg
-
+            yield (
+                [None, None], "", final_msg_status_result, "",
+                btn_load_inp_on, btn_gen_inp_on
+            )
             return
 
 
         # Vérifications de type (gardées par sécurité)
-        if not isinstance(image, Image.Image):
-             msg = f"Type d'image invalide reçu pour l'inpainting: {type(image)}"
+        if not isinstance(original_image_pil, Image.Image):
+             msg = f"Type de données de l'éditeur de masque invalide: {type(image_mask_editor_dict)}"
              print(txt_color("[ERREUR]", "erreur"), msg)
-             final_msg_status_result = "Erreur type image"
+             final_msg_status_result = translate("erreur_type_image_originale_invalide", translations) # Add translation key
+             yield (
+                 [None, None], "", final_msg_status_result, "",
+                 btn_load_inp_on, btn_gen_inp_on
+             )
              return
-        if not isinstance(mask, Image.Image):
-             msg = f"Type de masque invalide reçu pour l'inpainting: {type(mask)}"
+        if not isinstance(image_mask_editor_dict, dict):
+             msg = f"Type de données de l'éditeur de masque invalide: {type(image_mask_editor_dict)}"
              print(txt_color("[ERREUR]", "erreur"), msg)
-             final_msg_status_result = "Erreur type masque"
+             final_msg_status_result = translate("erreur_type_masque_invalide", translations) # Add translation key
+             yield (
+                 [None, None], "", final_msg_status_result, "",
+                 btn_load_inp_on, btn_gen_inp_on
+             )
              return
+        
+        
+        pipeline_mask_pil = create_opaque_mask_from_editor(image_mask_editor_dict, original_image_pil.size, translations)
 
 
         actual_total_steps = math.ceil(num_steps * strength)
         if actual_total_steps <= 0: # Sécurité si strength est 0 ou très proche
             actual_total_steps = 1
+            final_msg_status_result = translate("erreur_strength_trop_faible", translations) # Add translation key
+            gr.Warning(final_msg_status_result, 3.0)
+            yield (
+                [original_image_pil, None], "", final_msg_status_result, "",
+                btn_load_inp_on, btn_gen_inp_on
+            )
+            return
 
 
         # Translate the prompt if requested
@@ -642,8 +753,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
         for adapter_name in active_adapters:
             active_adapters.global_pipe.set_adapters(adapter_name, 0)
         
-        image_rgb = image.convert("RGB")
-        mask_rgb = mask
+        image_rgb = original_image_pil.convert("RGB")
         final_image_container = {}
 
         # Créer la queue pour la progression
@@ -664,10 +774,10 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
                 inpainted_image_result = pipe(
                     pooled_prompt_embeds=pooled,
                     prompt_embeds=conditioning,
-                    image=image_rgb,
-                    mask_image=mask_rgb,
-                    width=image.width,
-                    height=image.height,
+                    image=image_rgb, # L'image originale
+                    mask_image=pipeline_mask_pil, # Le masque binaire généré
+                    width=original_image_pil.width,
+                    height=original_image_pil.height,
                     num_inference_steps=num_steps,
                     guidance_scale=guidance_scale,
                     strength=strength,
@@ -702,7 +812,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
                 progress_percent = int((current_step / total_steps) * 100)
                 new_progress_html = create_progress_bar_html(current_step, total_steps, progress_percent)
                 # Yield la mise à jour (image=None, messages inchangés, html mis à jour)
-                yield None, gr.update(), gr.update(), last_progress_html, btn_load_inp_off, btn_gen_inp_off
+                yield [original_image_pil, None], gr.update(), gr.update(), new_progress_html, btn_load_inp_off, btn_gen_inp_off
             time.sleep(0.05)  
         thread.join()
 
@@ -743,7 +853,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
             
             else:
                 # --- SUCCÈS ---
-                final_image_result = inpainted_image # Image pour le yield final
+                final_slider_output_result = [original_image_pil, inpainted_image] # Pour ImageSlider
                 current_final_progress_html = create_progress_bar_html(actual_total_steps, actual_total_steps, 100)
        
                 temps_generation_image = f"{(time.time() - start_time):.2f} sec"
@@ -751,7 +861,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
                 heure_str = datetime.now().strftime("%H_%M_%S")
                 save_dir = os.path.join(SAVE_DIR, date_str)
                 os.makedirs(save_dir, exist_ok=True)
-                filename = f"inpainting_{date_str}_{heure_str}_{image.width}x{image.height}.{IMAGE_FORMAT.lower()}"
+                filename = f"inpainting_{date_str}_{heure_str}_{original_image_pil.width}x{original_image_pil.height}.{IMAGE_FORMAT.lower()}"
                 chemin_image = os.path.join(save_dir, filename)
                 donnees_xmp = {
                     "Module": "SDXL Inpainting",
@@ -761,7 +871,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
                     "Guidance": guidance_scale,
                     "Strength": strength,
                     "Prompt": prompt_text,
-                    "Size": f"{image.width}x{image.height}",
+                    "Size": f"{original_image_pil.width}x{original_image_pil.height}",
                     "Generation Time": temps_generation_image
                 }
 
@@ -820,7 +930,7 @@ def generate_inpainted_image(text, image, mask, num_steps, strength, guidance_sc
     finally:
         if 'pipe' in locals() and hasattr(pipe, '_interrupt'):
             pipe._interrupt = False
-        yield final_image_result, final_msg_load_result, final_msg_status_result, final_progress_result, btn_load_inp_on, btn_gen_inp_on
+        yield final_slider_output_result, final_msg_load_result, final_msg_status_result, final_progress_result, btn_load_inp_on, btn_gen_inp_on
 
 
 #==========================
@@ -918,15 +1028,25 @@ elif DEFAULT_MODEL:
 # Model Loading Functions (update_globals_model, update_globals_model_inpainting) for gradio
 # =========================
 
-def update_globals_model(nom_fichier, nom_vae):
+def update_globals_model(nom_fichier, nom_vae, pag_is_enabled): # <-- AJOUT pag_is_enabled
     global  model_selectionne, vae_selctionne, loras_charges
     try:
+        custom_pipeline_to_use = None
+        if pag_is_enabled:
+            # Vous pouvez rendre cette chaîne configurable si nécessaire.
+            # Pour l'instant, nous utilisons l'exemple que vous avez fourni.
+            custom_pipeline_to_use = "hyoungwoncho/sd_perturbed_attention_guidance"
+            print(txt_color("[INFO]", "info"), f"PAG activé, tentative d'utilisation du custom_pipeline: {custom_pipeline_to_use}")
+            gr.Info(f"PAG activé, tentative de chargement avec custom_pipeline: {custom_pipeline_to_use}", 3.0)
+
+
         # --- Utiliser ModelManager pour charger ---
         success, message = model_manager.load_model(
             model_name=nom_fichier,
             vae_name=nom_vae,
             model_type="standard",
-            gradio_mode=True
+            gradio_mode=True,
+            custom_pipeline_id=custom_pipeline_to_use # <-- PASSER L'ARGUMENT
         )
     except Exception as e:
         # Gérer les erreurs inattendues pendant l'appel à load_model
@@ -996,41 +1116,107 @@ def update_globals_model_inpainting(nom_fichier):
 # Outils pour gérer les iamges du module Inpainting
 #==========================
 
-def process_uploaded_image(uploaded_image):
-    """Vérifie et redimensionne l'image uploadée avant de l'envoyer à ImageMask."""
-    if uploaded_image is None:
-        return None
 
-    print(txt_color("[INFO]", "info"), translate("verification_image_entree", translations))
-    image_checker = ImageSDXLchecker(uploaded_image, translations)
-    resized_image = image_checker.redimensionner_image()
+def handle_image_mask_interaction(image_mask_value_dict, current_original_bg_props):
+    """
+    Gère les interactions avec ImageMask (chargement d'image, dessin).
+    Met à jour validated_image_state si l'image de fond change.
+    Met à jour original_editor_background_props_state avec les props de l'image de fond de l'éditeur.
+    """
+    if image_mask_value_dict is None:
+        print(txt_color("[DEBUG]", "info"), "handle_image_mask_interaction: image_mask_value_dict est None.")
+        return None, None # Pour validated_image_state et original_editor_background_props_state
 
-    if not isinstance(resized_image, Image.Image):
-        print(txt_color("[ERREUR]", "erreur"), translate("erreur_redimensionnement_image_fond", translations).format(type(resized_image)))
-        gr.Warning(translate("erreur_redimensionnement_image_fond", translations).format(type(resized_image)), 4.0)
-        return None 
+    current_background_pil = image_mask_value_dict.get("background") # Attendu comme PIL.Image ou None
+    if current_background_pil is None:
+        # Cas où l'utilisateur a effacé l'image dans ImageMask
+        print(txt_color("[DEBUG]", "info"), "handle_image_mask_interaction: Le fond de ImageMask est None (effacé?).")
+        if current_original_bg_props is not None: 
+            return None, None # Réinitialiser validated_image et props
+        else: # Pas d'image avant, toujours pas d'image
+            return gr.update(), gr.update() 
 
-    print(txt_color("[INFO]", "info"), translate("image_prete_pour_mask", translations))
-    return resized_image
-
-# Fonction simplifiée pour les effets du masque ---
-def update_inpainting_mask_effects(image_and_mask, opacity, blur_radius):
-    """Applique seulement les effets d'opacité/flou sur le masque actuel."""
-    processed_mask = apply_mask_effects(image_and_mask, translations, opacity, blur_radius)
-    return processed_mask
+    # Vérifier si c'est une image PIL si non None
+    if current_background_pil is not None and not isinstance(current_background_pil, Image.Image):
+        print(txt_color("[AVERTISSEMENT]", "warning"), f"handle_image_mask_interaction: Le fond de ImageMask n'est pas une PIL.Image. Type: {type(current_background_pil)}. Retour sans mise à jour.")
+        return gr.update(), gr.update()  
 
 
-# --- Fonction pour mettre à jour ImageMask ET calculer le masque initial ---
-def update_image_mask_and_initial_effects(validated_image, opacity, blur_radius):
-    """Met à jour ImageMask et calcule le masque initial."""
-    if validated_image is None:
-        return None, None # Pour ImageMask et mask_output
-    initial_mask_for_effects = Image.new('L', validated_image.size, 0) # Masque noir
-    temp_dict = {"background": validated_image, "layers": [initial_mask_for_effects]}
-    initial_processed_mask = apply_mask_effects(temp_dict, translations, opacity, blur_radius)
-    # Retourner l'image pour ImageMask et le masque initial pour mask_output
-    return validated_image, initial_processed_mask
+    # Si current_background_pil est None à ce stade (après la première vérification), on retourne None
+    if current_background_pil is None:
+        return None, None
 
+    new_bg_props = (current_background_pil.width, current_background_pil.height, current_background_pil.mode)
+
+    if current_original_bg_props is None or new_bg_props != current_original_bg_props:
+        # L'image de fond a changé (nouvelle image ou première image)
+        print(txt_color("[INFO]", "info"), "Nouvelle image de fond détectée dans ImageMask, validation en cours.")
+        image_checker = ImageSDXLchecker(current_background_pil, translations)
+        processed_background_for_pipeline = image_checker.redimensionner_image()
+
+        if isinstance(processed_background_for_pipeline, Image.Image):
+            # Mettre à jour validated_image_state ET original_editor_background_props_state
+            return processed_background_for_pipeline, new_bg_props
+        else:
+            print(txt_color("[AVERTISSEMENT]", "warning"), "L'image de fond de ImageMask n'est pas valide après traitement par ImageSDXLchecker.")
+            # Réinitialiser les deux états si l'image n'est pas valide
+            return None, None
+    else:
+        return gr.update(), gr.update()
+  
+
+def create_opaque_mask_from_editor(editor_dict, target_size, translations):
+    """
+    Crée un masque binaire opaque (PIL, mode 'L') à partir des layers dessinés
+    dans ImageEditor. Les zones dessinées (non transparentes dans les layers)
+    deviennent blanches (255), le reste noir (0).
+    """
+    if editor_dict is None or not isinstance(editor_dict, dict):
+        print(txt_color("[AVERTISSEMENT]", "warning"), translate("erreur_donnees_editeur_mask_invalides", translations))
+        return Image.new('L', target_size, 0) # Masque noir par défaut
+
+    layers_pil_from_editor = editor_dict.get("layers", []) # Attendu comme liste de PIL.Image
+    
+    if not layers_pil_from_editor: # Pas de layers dessinés
+        return Image.new('L', target_size, 0) # Masque noir
+
+    # Créer un masque composite RGBA transparent de la taille cible
+    composite_rgba_mask = Image.new('RGBA', target_size, (0, 0, 0, 0))
+
+    for layer_pil in layers_pil_from_editor:
+        if layer_pil is None:
+            continue
+        try:
+            # S'assurer que le layer est en mode RGBA pour l'alpha_composite
+            if not isinstance(layer_pil, Image.Image):
+                print(txt_color("[AVERTISSEMENT]", "warning"), f"Un élément dans 'layers' n'est pas une image PIL: {type(layer_pil)}")
+                continue
+            layer_to_composite = layer_pil.convert('RGBA')
+            # Redimensionner le layer si nécessaire pour correspondre à target_size
+            # Ceci suppose que le layer original a les dimensions du "background" de l'éditeur
+            # Si l'image de fond de l'éditeur est différente de target_size, il faut ajuster.
+            # Pour l'instant, on assume que le dessin est fait sur une image déjà à target_size
+            # ou que le redimensionnement est géré en amont si le fond de l'éditeur change.
+            # Idéalement, target_size est la taille de l'image de fond de l'éditeur.
+            if layer_to_composite.size != target_size:
+                # Ceci peut arriver si l'image de fond de l'éditeur a été redimensionnée
+                # avant que le masque ne soit généré pour le pipeline.
+                # On redimensionne le layer pour qu'il corresponde à l'image du pipeline.
+                print(txt_color("[INFO]", "info"), f"Redimensionnement du layer de masque de {layer_to_composite.size} à {target_size}")
+                layer_to_composite = layer_to_composite.resize(target_size, Image.Resampling.NEAREST)
+
+            # Alpha composite le layer sur notre masque composite
+            composite_rgba_mask.alpha_composite(layer_to_composite)
+        except Exception as e:
+            print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_traitement_layer_mask', translations)}: {e}")
+            continue
+
+    # Convertir le masque RGBA composite en un masque binaire 'L'
+    # Les pixels non totalement transparents dans le composite deviennent blancs (255)
+    alpha_channel = composite_rgba_mask.split()[-1] # Obtenir le canal Alpha
+    binary_mask_pil = alpha_channel.point(lambda p: 255 if p > 0 else 0, mode='L')
+    
+    return binary_mask_pil
 #################################################
 #FONCTIONS pour les presets :
 #################################################
@@ -1259,7 +1445,14 @@ def handle_preset_load_click(preset_id):
         width = preset_data.get('width', 1024)
         height = preset_data.get('height', 1024)
         loras_data = preset_data.get('loras', []) # Récupérer la donnée (peut être str ou list)
-        loaded_loras = [] 
+        loaded_loras = []
+
+        # --- Chargement des paramètres PAG ---
+        custom_pipeline_id_preset = preset_data.get('custom_pipeline_id')
+        pag_enabled_preset = bool(custom_pipeline_id_preset) # PAG est activé si un custom_pipeline_id est présent
+        pag_scale_preset = preset_data.get('pag_scale', 1.5)
+        pag_applied_layers_preset = preset_data.get('pag_applied_layers', "m0") # Valeur par défaut si non trouvée
+        # --- Fin chargement PAG ---
 
          # --- Validation Modèle ---
         available_models = model_manager.list_models(model_type="standard", gradio_mode=True) # <-- Utiliser ModelManager
@@ -1387,20 +1580,22 @@ def handle_preset_load_click(preset_id):
             *lora_check_updates,                     # lora_checks (4)
             *lora_dd_updates,                        # lora_dropdowns (4)
             *lora_scale_updates,                     # lora_scales (4)
+            gr.update(value=pag_enabled_preset),     # pag_enabled_checkbox
+            gr.update(value=pag_scale_preset),       # pag_scale_slider
+            gr.update(value=pag_applied_layers_preset), # pag_applied_layers_input
             gr.update(value=translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}')))# message_chargement
         ]
         print(f"[INFO] Preset '{preset_data.get('name', f'ID: {preset_id}')}' chargé dans l'UI.")
         gr.Info(translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}')), 2.0)
         return outputs_list
-
     except Exception as e:
         print(txt_color("[ERREUR]", "erreur"), f"Erreur lors du chargement du preset {preset_id}: {e}")
         traceback.print_exc()
         gr.Warning(translate("erreur_generale_chargement_preset", translations))
         # Retourner des updates vides pour tous les outputs attendus (MAJ du nombre)
-        num_lora_slots = 4
-        return [gr.update()] * (2 + 7 + 3 * num_lora_slots + 1) 
-
+        num_lora_slots = 4 # Nombre de slots LoRA
+        return [gr.update()] * (2 + 7 + 3 * num_lora_slots + 1 + 3) # +3 pour PAG (checkbox, slider, textbox)
+        
 def reset_page_state_only():
     """Retourne simplement une mise à jour pour mettre l'état de la page à 1."""
     print("[Reset Page State] Mise à jour de current_preset_page à 1.")
@@ -1472,7 +1667,25 @@ with gr.Blocks(**block_kwargs) as interface:
                 guidance_slider = gr.Slider(1, 20, value=7, label=translate("guidage", translations))
                 num_steps_slider = gr.Slider(1, 50, value=30, label=translate("etapes", translations), step=1)
                 format_dropdown = gr.Dropdown(choices=FORMATS, value=FORMATS[3], label=translate("format", translations))
-                seed_input = gr.Number(label=translate("seed", translations), value=-1)
+                with gr.Accordion(translate("pag_options_label", translations), open=False): # Nouvelle clé
+                    pag_enabled_checkbox = gr.Checkbox(
+                        label=translate("enable_pag_label", translations), # Nouvelle clé
+                        value=False
+                    )
+                    pag_scale_slider = gr.Slider(
+                        minimum=0.0, maximum=10.0, value=1.5, step=0.1,
+                        label=translate("pag_scale_label", translations), # Nouvelle clé
+                        interactive=True,
+                        visible=False # Initialement caché
+                    )
+                    pag_applied_layers_input = gr.Textbox(
+                        label=translate("pag_applied_layers_label", translations), # Nouvelle clé
+                        info=translate("pag_applied_layers_info", translations), # Nouvelle clé
+                        value="m0", # Valeur par défaut comme dans l'exemple
+                        visible=False # Initialement caché
+                    )
+
+                seed_input = gr.Number(label=translate("seed", translations), value=-1, elem_id="seed_input_main_gen") # Ajout elem_id
                 num_images_slider = gr.Slider(1, 200, value=1, label=translate("nombre_images_generer", translations), step=1)                
                 
                                     
@@ -1555,7 +1768,34 @@ with gr.Blocks(**block_kwargs) as interface:
                                         outputs=[lora_dropdown]
                                     )
                     lora_message = gr.Textbox(label=translate("message_lora", translations), value="")
+                    
+                with gr.Accordion(translate("gestion_modules", translations), open=False): # Ou gr.Tab
+                    gr.Markdown(translate("activer_desactiver_modules", translations)) # Ajouter clé de traduction
+                    with gr.Column():
+                        # Récupérer les détails des modules chargés
+                        loaded_modules_details = gestionnaire.get_module_details()
 
+                        if not loaded_modules_details:
+                            gr.Markdown(f"*{translate('aucun_module_charge_pour_gestion', translations)}*") # Ajouter clé
+                        else:
+                            for module_detail in loaded_modules_details:
+                                module_name = module_detail["name"]
+                                display_name = module_detail["display_name"]
+                                is_active = module_detail["is_active"]
+
+                                # Créer une checkbox pour chaque module
+                                module_checkbox = gr.Checkbox(
+                                    label=display_name,
+                                    value=is_active,
+                                    elem_id=f"module_toggle_{module_name}" # ID unique si besoin
+                                )
+
+                                # Lier l'événement .change()
+                                module_checkbox.change(
+                                    fn=functools.partial(handle_module_toggle, module_name, gestionnaire_instance=gestionnaire, preset_manager_instance=preset_manager),
+                                    inputs=[module_checkbox], # L'input est la nouvelle valeur de la checkbox
+                                    outputs=[] # Pas d'output direct, la fonction met à jour l'état interne
+                                )
                 def mettre_a_jour_listes():
                     modeles = lister_fichiers(MODELS_DIR, translations, gradio_mode=True)
                     vaes = ["Défaut VAE"] + lister_fichiers(VAE_DIR, translations, gradio_mode=True)
@@ -1802,41 +2042,22 @@ with gr.Blocks(**block_kwargs) as interface:
 
     with gr.Tab(translate("Inpainting", translations)):
         validated_image_state = gr.State(value=None)
+        original_editor_background_props_state = gr.State(value=None)
         with gr.Row():
             with gr.Column():
                 image_mask_input = gr.ImageMask(
-                    label=translate("image_avec_mask", translations), 
-                    type="pil", 
-                    sources=[], 
+                    label=translate("image_avec_mask", translations),
+                    brush=gr.Brush(colors=["#FF0000"], color_mode="fixed"),
+                    type="pil", # <--- CHANGEMENT ICI
+                    sources=["upload", "clipboard"], # Permettre l'upload direct
                     interactive=True
-                )
-                image_upload_input = gr.Image(
-                    label=translate("telecharger_image_inpainting", translations), # Nouvelle clé
-                    type="pil",
-                    sources=["upload", "clipboard"] # Permettre upload et coller
-                )
-            with gr.Column():
-                mask_image_output = gr.Image(type="pil", label=translate("sortie_mask_inpainting", translations), interactive=False)
-            with gr.Column():
-                opacity_slider = gr.Slider(
-                    minimum=0.0,
-                    maximum=1.0,
-                    value=1.0,
-                    step=0.05,
-                    label=translate("Mask_opacity", translations),
-                )
-                blur_slider = gr.Slider(
-                    minimum=0,
-                    maximum=20,
-                    value=0,
-                    step=1,
-                    label=translate("Mask_blur", translations),
                 )
                 inpainting_prompt = gr.Textbox(label=translate("prompt_inpainting", translations))
                 traduire_inpainting_checkbox = gr.Checkbox(label=translate("traduire_en_anglais", translations), value=False, info=translate("traduire_en_anglais", translations))
                 guidance_inpainting_slider = gr.Slider(1, 20, value=7, label=translate("guidage", translations))
                 num_steps_inpainting_slider = gr.Slider(1, 50, value=30, label=translate("etapes", translations), step=1)
                 strength_inpainting_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.89, step=0.01, label=translate("force_inpainting", translations))
+            with gr.Column():               
                 modele_inpainting_dropdown = gr.Dropdown(label=translate("selectionner_modele_inpainting", translations), choices=modeles_impaint, value=value, allow_custom_value=True)
                 bouton_lister_inpainting = gr.Button(translate("lister_modeles_inpainting", translations))
                 bouton_charger_inpainting = gr.Button(translate("charger_modele_inpainting", translations))
@@ -1849,41 +2070,8 @@ with gr.Blocks(**block_kwargs) as interface:
 
 
             with gr.Column():
-            
-                inpainting_ressultion_output = gr.Image(type="pil", label=translate("sortie_inpainting", translations),interactive=False)
+                inpainting_image_slider = gr.ImageSlider(label=translate("comparaison_inpainting", translations), interactive=False) # Nouvelle clé
                 progress_inp_html_output = gr.HTML(value="")
-
-            # --- Mettre à jour les événements .change() ---
-            def update_mask_and_preview(image_and_mask, opacity, blur_radius):
-                """Met à jour l'aperçu du masque ET l'aperçu redimensionné de l'original."""
-                if image_and_mask and isinstance(image_and_mask, dict) and "background" in image_and_mask:
-                    original_img = image_and_mask["background"]
-                    processed_mask = apply_mask_effects(image_and_mask, translations, opacity, blur_radius)
-
-                    # --- AJOUT : Redimensionnement avec PIL ---
-                    target_height = 150
-                    width_orig, height_orig = original_img.size
-                    if height_orig > target_height: # Redimensionner seulement si nécessaire
-                        ratio = target_height / height_orig
-                        new_width = int(width_orig * ratio)
-                        # Utiliser Image.Resampling.LANCZOS pour Pillow >= 9.0.0
-                        # Utiliser Image.LANCZOS pour les versions plus anciennes
-                        try:
-                            resampling_filter = Image.Resampling.LANCZOS
-                        except AttributeError:
-                            resampling_filter = Image.LANCZOS
-                        resized_original = original_img.resize((new_width, target_height), resampling_filter)
-                    else:
-                        resized_original = original_img # Pas besoin de redimensionner
-
-                    # Retourner le masque traité ET l'original redimensionné
-                    return processed_mask, resized_original
-                    # --- FIN AJOUT ---
-                else:
-                    return None, None
-            
-
-
 
 
 ############################################################
@@ -1905,7 +2093,7 @@ with gr.Blocks(**block_kwargs) as interface:
                 
     bouton_charger.click(
         fn=update_globals_model,
-        inputs=[modele_dropdown, vae_dropdown],
+        inputs=[modele_dropdown, vae_dropdown, pag_enabled_checkbox], # <-- AJOUT pag_enabled_checkbox
         outputs=[message_chargement, btn_generate, btn_generate]
     )
 
@@ -1925,6 +2113,9 @@ with gr.Blocks(**block_kwargs) as interface:
             traduire_checkbox,
             seed_input,
             num_images_slider,
+            pag_enabled_checkbox, # <-- AJOUT PAG
+            pag_scale_slider,     # <-- AJOUT PAG
+            pag_applied_layers_input, # <-- AJOUT PAG
             *lora_checks,
             *lora_dropdowns,
             *lora_scales
@@ -2015,7 +2206,15 @@ with gr.Blocks(**block_kwargs) as interface:
     )
     # 
 
-
+    module_checkbox.change(
+            fn=functools.partial(
+            handle_module_toggle, module_name,
+            gestionnaire_instance=gestionnaire,
+            preset_manager_instance=preset_manager 
+        ),
+        inputs=[module_checkbox],
+         outputs=[]
+    )
 
     def handle_sampler_change(selected_display_name):
         """Gère le changement de sampler dans l'UI principale."""
@@ -2044,39 +2243,27 @@ with gr.Blocks(**block_kwargs) as interface:
         outputs=[message_chargement] # Mettre à jour le Textbox de statut
     )
 
+    # Logique pour afficher/masquer le slider pag_scale
+    def toggle_pag_scale_visibility_main(pag_enabled):
+        # Met à jour la visibilité des deux composants PAG
+        return gr.update(visible=pag_enabled), gr.update(visible=pag_enabled)
+
+    pag_enabled_checkbox.change(
+        fn=toggle_pag_scale_visibility_main,
+        inputs=[pag_enabled_checkbox],
+        outputs=[pag_scale_slider, pag_applied_layers_input] # Mettre à jour les deux
+    )
 # Liaisons pour l'onglet Inpainting
-    image_upload_input.upload(
-        fn=process_uploaded_image,
-        inputs=[image_upload_input],
-        outputs=[validated_image_state] # Met à jour SEULEMENT l'état
+    # L'événement .change de image_mask_input gère maintenant le chargement d'image et le dessin.
+    # Il met à jour validated_image_state et mask_image_output.
+
+
+    image_mask_input.change(
+        fn=handle_image_mask_interaction, # Appel direct
+        inputs=[image_mask_input, original_editor_background_props_state], # Ajouter le nouvel état en input
+        outputs=[validated_image_state, original_editor_background_props_state] # Mettre à jour les deux états
     )
-    image_upload_input.change( # Gérer aussi l'effacement
-        fn=process_uploaded_image,
-        inputs=[image_upload_input],
-        outputs=[validated_image_state]
-    )
-    validated_image_state.change(
-        fn=update_image_mask_and_initial_effects,
-        inputs=[validated_image_state, opacity_slider, blur_slider],
-        outputs=[image_mask_input, mask_image_output]
-    )            
-    
-    opacity_slider.change(
-        fn=update_inpainting_mask_effects,
-        inputs=[image_mask_input, opacity_slider, blur_slider],
-        outputs=[mask_image_output],
-    )
-    blur_slider.change(
-        fn=update_inpainting_mask_effects,
-        inputs=[image_mask_input, opacity_slider, blur_slider],
-        outputs=[mask_image_output],
-    )
-    image_mask_input.change( # Déclenché quand on dessine
-        fn=update_inpainting_mask_effects,
-        inputs=[image_mask_input, opacity_slider, blur_slider],
-        outputs=[mask_image_output],
-    )      
-    
+ 
     bouton_stop_inpainting.click(
         fn=stop_generation_process,
         outputs=message_inpainting
@@ -2097,15 +2284,15 @@ with gr.Blocks(**block_kwargs) as interface:
         fn=generate_inpainted_image,
         inputs=[
             inpainting_prompt,
-            validated_image_state,
-            mask_image_output,
+            validated_image_state,  
+            image_mask_input, 
             num_steps_inpainting_slider,
             strength_inpainting_slider,
             guidance_inpainting_slider,
             traduire_inpainting_checkbox
         ],
         outputs=[
-            inpainting_ressultion_output,
+            inpainting_image_slider, 
             message_chargement_inpainting,
             message_inpainting,
             progress_inp_html_output,
@@ -2201,15 +2388,26 @@ with interface: # Re-ouvrir le contexte pour ajouter les liaisons
         outputs=[current_preset_page_state, pagination_dd_output]
     )
 
-    # ... (idem pour preset_filter_model.change, preset_filter_sampler.change, preset_filter_lora.change) ...
+    # Initialisation de mask_image_output au démarrage avec un placeholder
+    # (si handle_image_mask_interaction n'est pas appelée au démarrage par les sliders)
+    def init_inpainting_outputs():
+        # Laisser image_mask_input s'initialiser avec son état par défaut Gradio
+        initial_editor_val_for_load = gr.update() 
+        # Pour validated_image_state (PIL Image ou None)
+        initial_validated_img = None
+        initial_original_bg_props = None
+        # Pour inpainting_image_slider (liste de 2 images ou [None, None])
+        initial_slider_val = [None, None]
+        return initial_editor_val_for_load, initial_validated_img, initial_original_bg_props, initial_slider_val
 
-    # --- Liaison du bouton Refresh manuel ---
-    # Incrémente le trigger (déclenche @gr.render) ET met à jour la pagination
+
     def refresh_trigger_and_update_pagination_dd(current_page, trigger, *filter_args):
-        pagination_dd_update = update_pagination_display(current_page, *filter_args) # Utilise page actuelle
-        return gr.update(value=trigger + 1), pagination_dd_update
+        pagination_dd_update = update_pagination_display(current_page, *filter_args)
+        initial_im_mask_val, initial_validated_img, initial_orig_props, initial_slider_val = init_inpainting_outputs()
 
-    # 1. Mettre à jour l'état de la page
+        return gr.update(value=trigger + 1), pagination_dd_update, initial_im_mask_val, initial_validated_img, initial_orig_props, initial_slider_val
+
+ 
     preset_page_dropdown.change(
         fn=handle_page_dropdown_change, # Utiliser la fonction nommée
         inputs=[preset_page_dropdown],
@@ -2217,13 +2415,21 @@ with interface: # Re-ouvrir le contexte pour ajouter les liaisons
     )
 
     def initial_load_update_pagination_dd(*filter_args):
+        # Pour les presets
         pagination_dd_update = update_pagination_display(1, *filter_args) # Page 1 initiale
-        return gr.update(value=1), pagination_dd_update
+        # Pour l'inpainting (initialiser validated_image_state et mask_image_output)
+        initial_im_mask_val, initial_validated_img, initial_orig_props, initial_slider_val = init_inpainting_outputs()
+        return (
+            gr.update(value=1), pagination_dd_update, 
+            initial_im_mask_val, initial_validated_img, initial_orig_props, initial_slider_val
+        )
 
     interface.load(
         fn=initial_load_update_pagination_dd,
         inputs=pagination_dd_inputs[1:], # Juste les filtres initiaux
-        outputs=[current_preset_page_state, pagination_dd_output] # Met à jour état page ET dropdown
+        outputs=[current_preset_page_state, pagination_dd_output, 
+                 image_mask_input, validated_image_state, original_editor_background_props_state, 
+                 inpainting_image_slider] # Ajouter le nouvel état aux outputs
     )
 
 

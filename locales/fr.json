@@ -545,5 +545,22 @@
   "invalid_image_type_for_caption": "Type d'image invalide reçu pour la génération de prompt : {}",
   "error_generating_caption": "Erreur lors de la génération du prompt à partir de l'image : {}",
   "prompt_calculé": "Prompt calculé :",
-  "initializing_image_prompter": "Initialisation du module Image Prompter..."
+  "initializing_image_prompter": "Initialisation du module Image Prompter...",
+  "pag_options_label": "Options Perturbed-Attention Guidance (PAG)",
+  "enable_pag_label": "Activer Perturbed-Attention Guidance (PAG)",
+  "pag_scale_label": "Échelle PAG (pag_scale)",
+  "pag_applied_layers_label": "Couches PAG appliquées",
+  "pag_applied_layers_info": "Liste des couches où appliquer PAG, séparées par des virgules (ex: m0,u0,d1). Laisser vide pour les valeurs par défaut du pipeline.",
+  "log_module_states_loaded": "États des modules chargés depuis la configuration.",
+  "log_warn_module_config_invalid_format": "Le fichier de configuration des modules n'est pas au format JSON attendu. Utilisation d'une configuration vide.",
+  "log_module_config_not_found_creating": "Fichier de configuration des modules non trouvé. Un nouveau sera créé si nécessaire.",
+  "log_erreur_load_module_states": "Erreur lors du chargement des états des modules : {error}",
+  "log_module_states_saved": "États des modules sauvegardés dans la configuration.",
+  "log_erreur_save_module_states": "Erreur lors de la sauvegarde des états des modules : {error}",
+  "log_module_state_updated": "État du module '{module_name}' mis à jour : {state}.",
+  "module_etat_maj": "État du module mis à jour",
+  "gestion_module": "Gestion des Modules",
+  "activer_desactiver_modules": "Activer/Désactiver les Modules",
+  "magnific_popup_prev": "Précédent (Flèche gauche)",
+  "magnific_popup_next": "Suivant (Flèche droite)"
 }

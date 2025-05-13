@@ -12,7 +12,7 @@ from tqdm import tqdm
 from colorama import init, Fore, Style
 from collections import defaultdict
 import subprocess
-import inspect
+import inspect 
 from compel import Compel, ReturnedEmbeddingsType
 import gc
 import math
@@ -26,6 +26,9 @@ from importlib_metadata import PackageNotFoundError
 import base64
 
 init()
+
+# Initialisation du buffer HTML au niveau du module
+html_contenu_buffer = {}
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
@@ -184,6 +187,86 @@ def preparer_metadonnees_image(image_pil: Image.Image, metadonnees: dict, transl
     return metadata_to_save, message
 
 
+def _write_html_content_to_file(chemin_html_file: str, items_html_str: str, translations: dict, is_new_file: bool):
+    """
+    Écrit la chaîne HTML des éléments fournie dans le fichier HTML spécifié.
+    Crée le fichier avec la structure complète si is_new_file est True.
+    Ajoute à la section galerie si is_new_file est False.
+    """
+    root_dir = Path(__file__).parent.parent
+    chemin_dossier_utils = root_dir / "html_util"
+    chemin_jquery = chemin_dossier_utils / "jquery.min.js"
+    chemin_magnific_popupCSS = chemin_dossier_utils / "magnific-popup.css"
+    chemin_magnific_popupJS = chemin_dossier_utils / "jquery.magnific-popup.min.js"
+
+    magnific_prev_text = html.escape(translate("magnific_popup_prev", translations))
+    magnific_next_text = html.escape(translate("magnific_popup_next", translations))
+
+    try:
+        with open(chemin_jquery, 'r', encoding='utf-8') as f: contenu_jquery = f.read()
+        with open(chemin_magnific_popupCSS, 'r', encoding='utf-8') as f: contenu_CSS = f.read()
+        with open(chemin_magnific_popupJS, 'r', encoding='utf-8') as f: contenu_popupJS = f.read()
+
+        if is_new_file: # Créer un nouveau fichier
+            with open(chemin_html_file, 'w', encoding='utf-8') as f:
+                f.write(f"""<!DOCTYPE html>
+<html>
+<head>
+<title>{translate('titre_rapport_html', translations)}</title>
+<script>{contenu_jquery}</script>
+<script>{contenu_popupJS}</script>
+<script>
+$(document).ready(function() {{
+  $('#imageGallery').magnificPopup({{
+    delegate: 'a.image-popup', type: 'image',
+    gallery: {{ enabled: true, navigateByImgClick: true, preload: [0,1], tPrev: '{magnific_prev_text}', tNext: '{magnific_next_text}', tCounter: '%curr% / %total%' }},
+    closeOnContentClick: true, closeBtnInside: false, mainClass: 'mfp-with-zoom mfp-img-mobile',
+    image: {{ verticalFit: true, titleSrc: 'title' }},
+    zoom: {{ enabled: true, duration: 300 }}
+  }});
+}});
+</script>
+<style>
+body {{ background-color: black; color: white; font-family: Arial, sans-serif; }}
+.image-item {{ margin: 10px; border: 1px solid #444; border-radius: 8px; background-color: #222; padding: 10px; }}
+.gallery-container {{ display: flex; flex-wrap: wrap; justify-content: center; }}
+.image-container {{ display: flex; flex-wrap: wrap; margin-bottom: 10px; padding: 10px; background-color: #222; border-radius: 8px; }}
+img {{ max-width: 300px; height: auto; margin-right: 20px; }}
+.etiquettes {{ flex: 1; }}
+table {{ width: 100%; border-collapse: collapse; }}
+th, td {{ padding: 8px; border: 1px solid #ddd; text-align: left; }}
+{contenu_CSS}
+</style>
+</head>
+<body>
+<div class="gallery-container" id="imageGallery">
+<!-- GALLERY_ITEMS_START -->
+{items_html_str}
+<!-- GALLERY_ITEMS_END -->
+</div> <!-- /gallery-container -->
+</body>
+</html>
+""")
+            msg = translate("fichier_cree", translations) + f": {chemin_html_file}"
+            print(txt_color("[OK] ", "ok"), msg)
+            return msg
+        else: # Ajouter au fichier existant
+            with open(chemin_html_file, "r", encoding='utf-8') as f: contenu = f.read()
+            gallery_end_marker = "<!-- GALLERY_ITEMS_END -->"; idx_gallery_marker = contenu.rfind(gallery_end_marker)
+            if idx_gallery_marker != -1: nouveau_contenu = contenu[:idx_gallery_marker] + items_html_str + contenu[idx_gallery_marker:]
+            else:
+                position_body = contenu.rfind("</body>");
+                nouveau_contenu = contenu[:position_body] + items_html_str + contenu[position_body:] if position_body != -1 else contenu + items_html_str
+                print(txt_color("[AVERTISSEMENT]", "warning"), f"Marqueurs HTML non trouvés dans {chemin_html_file}, ajout avant </body> ou à la fin.")
+            with open(chemin_html_file, "w", encoding='utf-8') as f: f.write(nouveau_contenu)
+            msg = translate("mise_a_jour_du", translations) + f": {chemin_html_file}"
+            print(txt_color("[OK] ", "ok"), msg)
+            return msg
+    except Exception as e:
+        error_msg = translate("erreur_ecriture_fichier_html", translations).format(file=chemin_html_file, error=e)
+        print(txt_color("[ERREUR]", "erreur"), error_msg)
+        traceback.print_exc()
+        return error_msg
 
 def enregistrer_etiquettes_image_html(chemin_image, etiquettes, translations, is_last_image=False):
     """
@@ -195,24 +278,15 @@ def enregistrer_etiquettes_image_html(chemin_image, etiquettes, translations, is
         etiquettes (dict): Dictionnaire d'étiquettes et de leurs valeurs.
         is_last_image (bool): Indique si c'est la dernière image à traiter.
     """
-    root_dir = Path(__file__).parent.parent
-    chemin_dossier_utils = root_dir / "html_util"
-    chemin_jquery = chemin_dossier_utils / "jquery.min.js"
-    chemin_magnific_popupCSS = chemin_dossier_utils / "magnific-popup.css"
-    chemin_magnific_popupJS = chemin_dossier_utils / "jquery.magnific-popup.min.js"
-
-    with open(chemin_jquery, 'r', encoding='utf-8') as f:
-        contenu_jquery = f.read()
-
-    with open(chemin_magnific_popupCSS, 'r', encoding='utf-8') as f:
-        contenu_CSS = f.read()
-
-    with open(chemin_magnific_popupJS, 'r', encoding='utf-8') as f:
-        contenu_popupJS = f.read()
+    global html_contenu_buffer # Utiliser le buffer global
 
     title_lien_html = html.escape(etiquettes.get("Prompt"))
 
     try:
+        # Textes pour les boutons de navigation de Magnific Popup
+        magnific_prev_text = html.escape(translate("magnific_popup_prev", translations))
+        magnific_next_text = html.escape(translate("magnific_popup_next", translations))
+
         nom_fichier_html = "rapport.html"
         chemin_fichier_html = os.path.join(os.path.dirname(chemin_image), nom_fichier_html)
 
@@ -221,7 +295,7 @@ def enregistrer_etiquettes_image_html(chemin_image, etiquettes, translations, is
 
         # Ajouter les informations de l'image, l'image et les étiquettes dans un div avec un tableau
         image_html += "<div class='image-item'>\n"  # Début du div pour l'image
-        image_html += "    <div class='image-container'>\n"  # Conteneur flex pour l'image et le tableau
+        image_html += "    <div class='image-container'>\n"  # Conteneur pour l'image et le tableau
         image_html += f"   <a class='image-popup' href='{os.path.basename(chemin_image)}' title='{title_lien_html}' target='_blank'><img src='{os.path.basename(chemin_image)}' alt='Image'></a>\n"  # Afficher l'image
         image_html += "        <div class='etiquettes'>\n"  # Début du div pour les étiquettes
         image_html += "             <table border='1'>\n"
@@ -229,15 +303,10 @@ def enregistrer_etiquettes_image_html(chemin_image, etiquettes, translations, is
             image_html += f"             <tr><td>{etiquette}</td><td>{valeur}</td></tr>\n"
         image_html += "             </table>\n"
         image_html += "       </div>\n"  # Fin du div pour les étiquettes
-        image_html += "    </div>\n"  # Fin du conteneur flex
+        image_html += "    </div>\n"  # Fin du conteneur image
         image_html += "</div>\n\n"  # Fin du div pour l'image
 
         # Contenu à écrire dans le fichier HTML
-        # Utilisation d'un dictionnaire global par chemin de fichier
-        global html_contenu_buffer
-        if 'html_contenu_buffer' not in globals():
-            html_contenu_buffer = {}
-
         if chemin_fichier_html not in html_contenu_buffer:
             html_contenu_buffer[chemin_fichier_html] = []  # Initialise une liste pour chaque fichier
 
@@ -245,110 +314,46 @@ def enregistrer_etiquettes_image_html(chemin_image, etiquettes, translations, is
 
         # Gestion de l'ouverture et de la fermeture du fichier HTML (seulement si c'est la dernière image)
         if is_last_image:
-            # Si le fichier existe déjà
-            if os.path.exists(chemin_fichier_html):
-                with open(chemin_fichier_html, "r", encoding='utf-8') as f:
-                    contenu = f.read()
-
-                position_body = contenu.rfind("</body>")
-                position_html = contenu.rfind("</html>")
-
-                if position_body != -1 and position_html != -1 and position_body < position_html:
-                    # Insérer le nouveau contenu avant </body> et avant </html>
-                    nouveau_contenu = (
-                            contenu[:position_body]
-                            + "".join(html_contenu_buffer[chemin_fichier_html])
-                            + contenu[position_body:position_html]
-                            + contenu[position_html:]
-                    )
-
-                    with open(chemin_fichier_html, "w", encoding='utf-8') as f:
-                        f.write(nouveau_contenu)
-
-                    print(txt_color("[OK] ", "ok"), translate("mise_a_jour_du", translations),
-                          txt_color(f"{chemin_fichier_html}", "ok"))
-                    gr.Info(translate("mise_a_jour_du", translations) + f": {chemin_fichier_html}", 3.0)
-                    # réinitialise le buffer
-                    html_contenu_buffer.pop(chemin_fichier_html, None)
-                    return translate("mise_a_jour_du", translations) + f": {chemin_fichier_html}"
-
-            else:  # Fichier n'existe pas
-                with open(chemin_fichier_html, 'w', encoding='utf-8') as f:
-                    f.write("<!DOCTYPE html>\n")
-                    f.write("<html>\n")
-                    f.write("<head>\n")
-                    f.write("<title>Recutecapitulatif des images</title>\n")
-                    f.write(f"<script>{contenu_jquery}</script>\n")
-                    f.write(f"<script>{contenu_popupJS}</script>\n")
-                    f.write("<script>\n")
-                    f.write("$(document).ready(function() {\n")
-                    f.write("  $('.image-popup').magnificPopup({\n")
-                    f.write("    type: 'image',\n")
-                    f.write("    closeOnContentClick: true,  // Ferme la popup en cliquant sur l'image\n")
-                    f.write("    closeBtnInside: false,      // Affiche le bouton de fermeture à l'extérieur de l'image\n")
-                    f.write("    mainClass: 'mfp-with-zoom', // Ajoute une classe pour une animation de zoom\n")
-                    f.write("    image: {\n")
-                    f.write("      verticalFit: true, // Ajuste l'image à la hauteur de la fenêtre\n")
-                    f.write("      titleSrc: 'title' // Affiche l'attribut 'title' comme titre de l'image dans la popup\n")
-                    f.write("    },\n")
-                    f.write("    zoom: {\n")
-                    f.write("      enabled: true, // Active l'animation de zoom\n")
-                    f.write("      duration: 300 // Durée de l'animation de zoom en millisecondes\n")
-                    f.write("    }\n")
-                    f.write("  });\n")
-                    f.write("});\n")
-                    f.write("</script>\n")
-                    f.write("<style>\n")  # Style CSS personnalisé
-                    f.write("body {\n")
-                    f.write("  background-color: black;\n")  # Fond noir
-                    f.write("  color: white;\n")  # Texte en blanc
-                    f.write("  font-family: Arial, sans-serif;\n")  # Police
-                    f.write("}\n")
-                    f.write(".image-item {\n")
-                    f.write("  margin-bottom: 20px;\n")  # Espacement entre les items
-                    f.write("}\n")
-                    f.write(".image-container {\n")
-                    f.write("  display: flex;\n")  # Utilisation de flexbox
-                    f.write("  flex-wrap: wrap;\n")  # Pour gérer les débordements
-                    f.write("  margin-bottom: 10px;\n")
-                    f.write("  padding: 10px;\n")
-                    f.write("  background-color: #222;\n")  # Fond sombre pour la zone image
-                    f.write("  border-radius: 8px;\n")
-                    f.write("}\n")
-                    f.write("img {\n")
-                    f.write("  max-width: 300px;\n")
-                    f.write("  height: auto;\n")
-                    f.write("  margin-right: 20px;\n")  # Espacement entre l'image et le tableau
-                    f.write("}\n")
-                    f.write(".etiquettes {\n")
-                    f.write("  flex: 1;\n")  # Permet à la section des étiquettes de prendre le reste de l'espace
-                    f.write("}\n")
-                    f.write("table {\n")
-                    f.write("  width: 100%;\n")
-                    f.write("  border-collapse: collapse;\n")
-                    f.write("}\n")
-                    f.write("th, td {\n")
-                    f.write("  padding: 8px;\n")
-                    f.write("  border: 1px solid #ddd;\n")
-                    f.write("  text-align: left;\n")
-                    f.write("}\n")
-                    f.write(f"{contenu_CSS}\n")
-                    f.write("</style>\n")
-                    f.write("</head>\n")
-                    f.write("<body>\n")  # Début du body
-                    f.write("".join(html_contenu_buffer[chemin_fichier_html]))  # Ajouter le contenu de la première image
-                    f.write("</body>\n")  # Fermeture du body
-                    f.write("</html>\n")
-                print(txt_color("[OK] ", "ok"), translate("fichier_cree", translations), f": {chemin_fichier_html}")
-                # reset buffer
-                html_contenu_buffer.pop(chemin_fichier_html, None)
-                return translate("fichier_cree", translations) + f": {chemin_fichier_html}"
-            return translate("mise_a_jour_du", translations) + f": {chemin_fichier_html}"
+            if chemin_fichier_html in html_contenu_buffer and html_contenu_buffer[chemin_fichier_html]:
+                items_to_write = "".join(html_contenu_buffer[chemin_fichier_html])
+                is_new = not os.path.exists(chemin_fichier_html)
+                write_msg = _write_html_content_to_file(chemin_fichier_html, items_to_write, translations, is_new_file=is_new)
+                gr.Info(write_msg, 3.0)
+                html_contenu_buffer.pop(chemin_fichier_html, None) # Vider le buffer pour ce fichier
+                return write_msg
+            else:
+                # Clé de traduction: "aucun_contenu_html_a_ecrire" -> "Aucun contenu HTML à écrire pour {file}."
+                msg = translate("aucun_contenu_html_a_ecrire", translations).format(file=chemin_fichier_html)
+                gr.Info(msg, 3.0)
+                return msg
+        else:
+            # Pas la dernière image, juste mise en tampon.
+            # Clé de traduction: "etiquettes_html_mises_en_tampon" -> "Étiquettes HTML pour {file} mises en tampon."
+            return translate("etiquettes_html_mises_en_tampon", translations).format(file=chemin_fichier_html)
 
     except Exception as e:
         print(txt_color("[ERREUR] ", "erreur"), translate("erreur_lors_generation_html", translations), f": {e}")
         raise gr.Error(translate("erreur_lors_generation_html", translations) + f": {e}")
-        return translate("erreur_lors_generation_html", translations) + f": {e}"
+        # Le return ici ne sera pas atteint à cause du raise
+
+def finalize_html_report_if_needed(chemin_fichier_html_to_finalize: str, translations: dict):
+    """
+    Finalise et écrit le rapport HTML pour le chemin donné s'il y a du contenu en attente.
+    Destiné à être appelé si un lot d'images a été interrompu.
+    """
+    global html_contenu_buffer
+    if chemin_fichier_html_to_finalize in html_contenu_buffer and html_contenu_buffer[chemin_fichier_html_to_finalize]:
+        print(txt_color("[INFO]", "info"), f"Finalisation du rapport HTML demandée pour {chemin_fichier_html_to_finalize} car il y a du contenu en attente.")
+        items_to_write = "".join(html_contenu_buffer[chemin_fichier_html_to_finalize])
+        is_new = not os.path.exists(chemin_fichier_html_to_finalize)
+        write_msg = _write_html_content_to_file(chemin_fichier_html_to_finalize, items_to_write, translations, is_new_file=is_new)
+        html_contenu_buffer.pop(chemin_fichier_html_to_finalize, None) # Vider le tampon
+        return write_msg
+    else:
+        # Clé de traduction: "rapport_html_pas_besoin_finalisation" -> "Rapport HTML {file} n'a pas besoin de finalisation (pas de contenu en attente ou déjà finalisé)."
+        msg = translate("rapport_html_pas_besoin_finalisation", translations).format(file=chemin_fichier_html_to_finalize)
+        # print(txt_color("[INFO]", "info"), msg) # Optionnel: logger même si rien à faire
+        return msg
 
 
 def charger_configuration():
@@ -665,7 +670,8 @@ class GestionModule:
         translations=None,
         language="fr",
         config=None,
-        model_manager_instance=None
+        model_manager_instance=None,
+        preset_manager_instance=None # <-- AJOUT
     ):
         """
         Initialise le gestionnaire de modules.
@@ -677,8 +683,8 @@ class GestionModule:
         self.tabs = {}
         self.modules_names = []
         self.config = config
-        self.js_code = ""
         self.model_manager = model_manager_instance
+        self.preset_manager = preset_manager_instance # <-- AJOUT
         
 
     def verifier_version(self, package_name, min_version):
@@ -693,12 +699,17 @@ class GestionModule:
             (bool, str): Un tuple indiquant si la version est satisfaisante et la version installée (ou None si non installé).
         """
         try:
+            # Utiliser importlib_metadata.version qui est plus standard
+            from importlib_metadata import version as get_version, PackageNotFoundError
             installed_version = get_version(package_name)
             if pkg_version.parse(installed_version) >= pkg_version.parse(min_version):
                 return True, installed_version
             else:
                 return False, installed_version
         except PackageNotFoundError:
+            return False, None
+        except Exception as e: # Capturer d'autres erreurs potentielles
+            print(txt_color("[ERREUR]", "erreur"), f"Erreur lors de la vérification de la version de {package_name}: {e}")
             return False, None
 
     def check_and_install_dependencies(self, module_json_path):
@@ -732,7 +743,11 @@ class GestionModule:
             return True
 
         # Chemin vers l'exécutable pip dans l'environnement virtuel
-        venv_pip_path = sys.executable.replace("python", "pip")
+        # Utiliser sys.executable est plus fiable que de remplacer "python"
+        venv_pip_path = os.path.join(os.path.dirname(sys.executable), 'pip')
+        # Sur Windows, pip peut être pip.exe
+        if sys.platform == "win32" and not os.path.exists(venv_pip_path):
+             venv_pip_path += ".exe"
 
 
         dependencies = module_data["dependencies"]
@@ -753,6 +768,10 @@ class GestionModule:
                 print(txt_color("[ERREUR] ", "erreur"), f"Dépendance au format inconnu: {dep}")
                 continue
 
+            if not package_name: # Ignorer si le nom du package est manquant
+                print(txt_color("[ERREUR] ", "erreur"), f"Nom de package manquant dans la dépendance: {dep}")
+                continue
+
             if min_version:
                 valid, installed_version = self.verifier_version(package_name, min_version)
                 if valid:
@@ -763,7 +782,9 @@ class GestionModule:
                     else:
                         print(txt_color("[INFO] ", "info"), translate("dependency_missing", self.translations).format(package_name))
                     try:
-                        subprocess.check_call([venv_pip_path, "install", f"{package_name}>={min_version}"])
+                        # Utiliser --disable-pip-version-check pour éviter les avertissements pip
+                        # Utiliser --no-cache-dir peut aider dans certains cas
+                        subprocess.check_call([venv_pip_path, "install", "--upgrade", f"{package_name}>={min_version}", "--disable-pip-version-check", "--no-cache-dir"])
                         importlib.invalidate_caches()
                         # Vérifier de nouveau
                         valid, installed_version = self.verifier_version(package_name, min_version)
@@ -775,29 +796,34 @@ class GestionModule:
                     except subprocess.CalledProcessError as e:
                         print(txt_color("[ERREUR] ", "erreur"), translate("dependency_install_error", self.translations).format(package_name, e))
                         return False
+                    except FileNotFoundError:
+                        print(txt_color("[ERREUR] ", "erreur"), f"Exécutable pip non trouvé à: {venv_pip_path}")
+                        print(txt_color("[ERREUR] ", "erreur"), translate("dependency_install_manual", self.translations).format(package_name, sys.executable.replace("python", "pip")))
+                        return False
             else:  # No min_version specified
-                spec = importlib.util.find_spec(package_name)
-                if spec is None:
-                    print(txt_color("[INFO] ", "info"), f"Dependency '{package_name}' missing. Attempting installation...")
+                try:
+                    # Essayer d'importer le package pour voir s'il est installé
+                    importlib.import_module(package_name)
+                    print(txt_color("[INFO] ", "info"), f"Dépendance '{package_name}' déjà installée.")
+                except ImportError:
+                    print(txt_color("[INFO] ", "info"), f"Dépendance '{package_name}' manquante. Tentative d'installation...")
                     try:
-                        result = subprocess.run([venv_pip_path, "install", package_name], capture_output=True, text=True, check=True)
+                        result = subprocess.run([venv_pip_path, "install", package_name, "--disable-pip-version-check", "--no-cache-dir"], capture_output=True, text=True, check=True)
                        
                         importlib.invalidate_caches()
-                        print(txt_color("[INFO] ", "info"), f"Dependency '{package_name}' installed successfully.")
+                        print(txt_color("[INFO] ", "info"), f"Dépendance '{package_name}' installée avec succès.")
                     except subprocess.CalledProcessError as e:
-                        print(txt_color("[ERREUR] ", "erreur"), f"Error installing {package_name}: return code {e.returncode}, stderr:\n{e.stderr}") # Improved error message
+                        print(txt_color("[ERREUR] ", "erreur"), f"Erreur installation {package_name}: code {e.returncode}, stderr:\n{e.stderr}") # Improved error message
                         print(txt_color("[ERREUR] ", "erreur"), translate("dependency_install_manual", self.translations).format(package_name, sys.executable.replace("python", "pip")))
                         return False
                     except FileNotFoundError:
-                        print(txt_color("[ERREUR] ", "erreur"), f"pip executable not found at: {venv_pip_path}")
+                        print(txt_color("[ERREUR] ", "erreur"), f"Exécutable pip non trouvé à: {venv_pip_path}")
                         print(txt_color("[ERREUR] ", "erreur"), translate("dependency_install_manual", self.translations).format(package_name, sys.executable.replace("python", "pip")))
                         return False
                     except Exception as e:
-                        print(txt_color("[ERREUR] ", "erreur"), f"An unexpected error occurred while installing {package_name}: {e}")
+                        print(txt_color("[ERREUR] ", "erreur"), f"Erreur inattendue lors de l'installation de {package_name}: {e}")
                         print(txt_color("[ERREUR] ", "erreur"), translate("dependency_install_manual", self.translations).format(package_name, sys.executable.replace("python", "pip")))
                         return False
-                else:
-                    print(txt_color("[INFO] ", "info"), f"Dependency '{package_name}' already installed.")
 
         return True
 
@@ -812,34 +838,52 @@ class GestionModule:
             module: Le module chargé ou None si le chargement a échoué.
         """
         try:
-            module_path = os.path.join(self.modules_dir, module_name + "_mod.py")
-            metadata_path = os.path.join(self.modules_dir, module_name + "_mod.json")
+            # Construire les chemins absolus
+            root_dir = Path(__file__).parent.parent
+            modules_abs_dir = root_dir / self.modules_dir
+            module_path = modules_abs_dir / f"{module_name}_mod.py"
+            metadata_path = modules_abs_dir / f"{module_name}_mod.json"
 
-            if not os.path.exists(module_path):
+            if not module_path.is_file():
                 print(txt_color("[ERREUR] ", "erreur"), translate("module_not_exist", self.translations).format(module_name))
                 return None
 
             # Check and install dependencies BEFORE importing the module
-            if os.path.exists(metadata_path):
-                if not self.check_and_install_dependencies(metadata_path):
+            if metadata_path.is_file():
+                if not self.check_and_install_dependencies(str(metadata_path)):
                     print(txt_color("[ERREUR] ", "erreur"), translate("dependency_install_failed", self.translations).format(module_name))
                     return None
+            else:
+                print(txt_color("[AVERTISSEMENT]", "erreur"), f"Fichier JSON manquant pour le module {module_name}, dépendances non vérifiées.")
 
 
-            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            spec = importlib.util.spec_from_file_location(module_name, str(module_path))
+            if spec is None: # Vérifier si spec est None
+                 print(txt_color("[ERREUR] ", "erreur"), f"Impossible de créer spec pour le module {module_name}")
+                 return None
             module = importlib.util.module_from_spec(spec)
+            if module is None: # Vérifier si module est None
+                 print(txt_color("[ERREUR] ", "erreur"), f"Impossible de créer le module depuis spec pour {module_name}")
+                 return None
             spec.loader.exec_module(module)
 
 
 
             # Vérifier si le module a un fichier de métadonnées
-            if os.path.exists(metadata_path):
+            if metadata_path.is_file():
                 with open(metadata_path, "r", encoding="utf-8") as f:
                     metadata = json.load(f)
                     module.metadata = metadata
             else:
-                module.metadata = {}
+                module.metadata = {} # Initialiser même si le fichier n'existe pas
 
+            # --- MODIFICATION : Utiliser l'état chargé ou défaut ---
+            if self.preset_manager and hasattr(self.preset_manager, 'loaded_module_states'):
+                # Utiliser l'état chargé s'il existe, sinon True par défaut
+                module.is_active = self.preset_manager.loaded_module_states.get(module_name, True)
+            else:
+                module.is_active = True # Fallback si preset_manager non dispo ou états non chargés
+            # --- FIN MODIFICATION ---
             module.translations = self.charger_traductions_module(module, module_name, self.language)
 
             self.modules[module_name] = module
@@ -847,6 +891,7 @@ class GestionModule:
             return module
         except Exception as e:
             print(txt_color("[ERREUR] ", "erreur"), translate("module_load_error", self.translations).format(module_name, e))
+            traceback.print_exc() # Ajouter la trace pour le débogage
             return None
 
     def charger_traductions_module(self, module, module_name, language):
@@ -858,65 +903,104 @@ class GestionModule:
             module_name (str): Le nom du module.
             language (str): La langue à charger (par exemple, "fr", "en").
         """
-        if not hasattr(module, "metadata"):
-            print(txt_color("[ERREUR] ", "erreur"), translate("module_no_metadata", self.translations).format(module_name))
-            return self.translations
+        module_translations = {} # Initialiser
+        if not hasattr(module, "metadata") or not module.metadata: # Vérifier si metadata existe et n'est pas vide
+            print(txt_color("[AVERTISSEMENT] ", "erreur"), translate("module_no_metadata", self.translations).format(module_name))
+            # Retourner une copie des traductions globales si pas de métadonnées
+            return self.translations.copy() if self.translations else {}
 
         metadata = module.metadata
-        module_translations = {}
 
-        if "language" in metadata and language in metadata["language"]:
-            return metadata["language"][language]
+        if "language" in metadata and isinstance(metadata["language"], dict) and language in metadata["language"]:
+            module_translations = metadata["language"][language]
+            if not isinstance(module_translations, dict): # Vérifier que c'est bien un dict
+                 print(txt_color("[ERREUR] ", "erreur"), f"Traductions pour '{language}' dans {module_name} ne sont pas un dictionnaire.")
+                 module_translations = {}
         else:
-            print(txt_color("[ERREUR] ", "erreur"), translate("module_translations_not_found", self.translations).format(module_name, language))
+            print(txt_color("[AVERTISSEMENT] ", "erreur"), translate("module_translations_not_found", self.translations).format(module_name, language))
         
-        merged_translations = self.translations.copy()
-        merged_translations.update(module_translations)
+        # Fusionner les traductions globales et celles du module
+        merged_translations = self.translations.copy() if self.translations else {}
+        merged_translations.update(module_translations) # Celles du module écrasent les globales si clés identiques
 
         return merged_translations      
 
     def initialiser_module(self, module_name, *args, **kwargs):
         """Initialise un module chargé."""
         module = self.modules.get(module_name)
-        if module is None:
-            print(txt_color("[ERREUR] ", "erreur"), translate("module_not_loaded", self.translations).format(module_name))
-            return None
+        if not module: # Vérifier si le module existe
+             print(txt_color("[ERREUR] ", "erreur"), f"Tentative d'initialisation d'un module non chargé: {module_name}")
+             return None
+
+        # L'état is_active est déjà défini lors du chargement, pas besoin de le redéfinir ici
 
         try:
-            init_func_name = module.metadata.get("init_function", "initialize")
+            # Utiliser .get() sur metadata pour éviter KeyError si 'metadata' ou 'init_function' manquent
+            init_func_name = module.metadata.get("init_function", "initialize") if hasattr(module, 'metadata') else "initialize"
+
             if hasattr(module, init_func_name):
                 init_func = getattr(module, init_func_name)
-                # Correctly pass only three arguments
+ 
                 instance = init_func(self.translations, self.model_manager, self, self.config, *args, **kwargs)
+ 
+                # --- MODIFICATION : Utiliser l'état chargé ou défaut (répété pour sécurité) ---
+                # (Déjà fait lors du chargement, mais on peut le laisser par sécurité)
+                if self.preset_manager and hasattr(self.preset_manager, 'loaded_module_states'):
+                    module.is_active = self.preset_manager.loaded_module_states.get(module_name, True)
+                else:
+                    module.is_active = True
+                # --- FIN MODIFICATION ---
                 module.instance = instance
                 print(txt_color("[OK] ", "ok"), translate("module_initialized", self.translations).format(module_name))
-                # Collect JavaScript code if the module has it
-                if hasattr(module.instance, "get_module_js"):
-                    self.js_code += module.instance.get_module_js()
                 return instance
             else:
                 print(txt_color("[ERREUR] ", "erreur"), translate("module_no_init_function", self.translations).format(module_name, init_func_name))
                 return None
         except Exception as e:
             print(txt_color("[ERREUR] ", "erreur"), translate("module_init_error", self.translations).format(module_name, e))
+            traceback.print_exc() # Ajouter la trace
             return None
+
+    def set_module_active(self, module_name, is_active: bool):
+        """
+        Définit l'état actif ou inactif d'un module chargé et sauvegarde l'état.
+        """
+        module = self.modules.get(module_name)
+        if module:
+            module.is_active = is_active
+            # --- AJOUT : Sauvegarder l'état via PresetManager si disponible ---
+            if self.preset_manager:
+                self.preset_manager.save_module_state(module_name, is_active)
+        else:
+            print(txt_color("[ERREUR]", "erreur"), f"Tentative de mise à jour de l'état d'un module non chargé: {module_name}")
 
 
     def charger_tous_les_modules(self):
         """Charge tous les modules dans le répertoire spécifié."""
-        for filename in os.listdir(self.modules_dir):
+        # --- NOTE : Les états sont maintenant chargés dans __init__ de PresetManager ---
+        # et utilisés dans charger_module
+        root_dir = Path(__file__).parent.parent
+        modules_abs_dir = root_dir / self.modules_dir
+        if not modules_abs_dir.is_dir():
+             print(txt_color("[ERREUR]", "erreur"), f"Le répertoire des modules '{modules_abs_dir}' n'existe pas.")
+             return
+
+        for filename in os.listdir(modules_abs_dir):
             if filename.endswith("_mod.py"):
                 print(txt_color("[INFO] ", "info"), translate("module_loading_attempt", self.translations).format(filename))
                 # Charger le module
                 module_name = filename[:-7]  # Supprimer l'extension _mod.py
                 module = self.charger_module(module_name)
-                if module:
-                    module.translations = self.charger_traductions_module(module, module_name, self.language)
-                    # Initialize the module and store the instance
-                    instance = self.initialiser_module(module_name)
-                    if instance:
-                        module.instance = instance
+                # --- AJOUT: Vérifier si le module est actif AVANT d'initialiser ---
+                if module and module.is_active:
+                    print(txt_color("[INFO]", "info"), f"Module '{module_name}' est actif, initialisation...")
+                    # Initialiser SEULEMENT si actif
+                    instance = self.initialiser_module(module_name) # Initialiser le module actif
+                    if instance: # Si l'initialisation réussit
+                        # module.instance est déjà défini dans initialiser_module
                         self.modules_names.append(module_name)
+                elif module and not module.is_active:
+                    print(txt_color("[INFO]", "info"), f"Module '{module_name}' est désactivé, initialisation ignorée.")
 
     def creer_onglet_module(self, module_name, translations):
         """Crée un onglet Gradio à partir d'un module."""
@@ -926,17 +1010,23 @@ class GestionModule:
             return None
 
         try:
+            # Utiliser les traductions déjà fusionnées dans le module
             module_translations = module.translations if hasattr(module, "translations") else {}
-            tab_name = module.metadata.get("tab_name", module_name)
+            # Utiliser .get() sur metadata
+            tab_name = module.metadata.get("tab_name", module_name) if hasattr(module, 'metadata') else module_name
 
-            if hasattr(module, "instance") and hasattr(module.instance, "create_tab"):
+            if hasattr(module, "instance") and module.instance and hasattr(module.instance, "create_tab"):
+                # Passer les traductions spécifiques au module à create_tab
                 tab = module.instance.create_tab(module_translations)
                 self.tabs[module_name] = tab
                 print(txt_color("[OK] ", "ok"), translate("tab_created_for_module", self.translations).format(tab_name, module_name))
                 return tab
             else:
-                # Ne pas traiter comme une erreur si create_tab n'existe pas
-                print(txt_color("[ERREUR] ", "erreur"), translate("module_no_create_tab", self.translations).format(module_name))
+                # Ne pas traiter comme une erreur si create_tab n'existe pas ou si instance est None
+                if not hasattr(module, "instance") or not module.instance:
+                     print(txt_color("[AVERTISSEMENT]", "erreur"), f"Module {module_name} n'a pas été initialisé correctement, onglet non créé.")
+                elif not hasattr(module.instance, "create_tab"):
+                     print(txt_color("[INFO] ", "info"), translate("module_no_create_tab", self.translations).format(module_name))
                 return None
         except Exception as e:
             print(txt_color("[ERREUR]", "erreur"), f"Erreur inattendue lors de la création de l'onglet pour {module_name}: {e}")
@@ -946,17 +1036,48 @@ class GestionModule:
     def creer_tous_les_onglets(self, translations):
         """Crée tous les onglets Gradio pour les modules chargés."""
         print(txt_color("[INFO] ", "info"), translate("creating_all_tabs", self.translations))
-        for module_name in self.modules:
-            self.creer_onglet_module(module_name, self.translations)
+        # --- AJOUT: Itérer sur les modules et vérifier s'ils sont actifs ---
+        for module_name, module_obj in self.modules.items():
+            if hasattr(module_obj, 'is_active') and module_obj.is_active:
+                # Créer l'onglet SEULEMENT si le module est actif
+                self.creer_onglet_module(module_name, translations)
+            else:
+                print(txt_color("[INFO]", "info"), f"Module '{module_name}' est désactivé, création de l'onglet ignorée.")
     
     def get_loaded_modules(self):
         """Returns a list of the names of the loaded modules."""
         return self.modules_names
     
-    def get_js_code(self):
-        """Return the javascript code"""
-        return self.js_code
+    def get_module_details(self):
+        """Retourne une liste de dictionnaires avec les détails des modules (nom, état actif)."""
+        details = []
+        for name, mod in self.modules.items():
+            # S'assurer que l'attribut existe avant d'y accéder
+            is_active = getattr(mod, 'is_active', False) # False par défaut si non trouvé
+            display_name = mod.metadata.get("name", name) if hasattr(mod, 'metadata') else name
+            details.append({"name": name, "is_active": is_active, "display_name": display_name})
+        return details
 
+
+def load_modules_js():
+    """
+    Charge le code JavaScript depuis le fichier js_modules.js dans le dossier modules.
+    """
+    # Déterminer le répertoire racine du projet (parent de Utils)
+    project_root_dir = Path(__file__).parent.parent
+    js_file_path = project_root_dir / "modules" / "js_modules.js"
+
+    try:
+        with open(js_file_path, "r", encoding="utf-8") as f:
+            js_code = f.read()
+        print(txt_color("[OK]", "ok"), f"JavaScript des modules chargé depuis: {js_file_path}")
+        return js_code
+    except FileNotFoundError:
+        print(txt_color("[ERREUR]", "erreur"), f"Fichier JavaScript des modules non trouvé: {js_file_path}")
+        return ""  # Retourner une chaîne vide si le fichier n'est pas trouvé
+    except Exception as e:
+        print(txt_color("[ERREUR]", "erreur"), f"Erreur lors de la lecture du fichier JavaScript {js_file_path}: {e}")
+        return ""
 
 # In the check_gpu_availability function
 def check_gpu_availability(translations):
@@ -1163,18 +1284,13 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
     Returns:
         str: La chaîne HTML complète pour la barre de progression.
     """
-    # S'assurer que les chemins sont valides pour l'URL CSS (utiliser des slashes)
     root_dir = Path(__file__).parent.parent
     chemin_dossier_utils = root_dir / "html_util"
-    # Utiliser les arguments corrects pour les noms de fichiers SVG
     chemin_image_fond = chemin_dossier_utils / image_fond_name
     chemin_image_remplissage = chemin_dossier_utils / image_remplissage_name
 
-    # --- Lire et encoder les SVG en Data URI ---
     def svg_to_data_uri(filepath):
         if not filepath.is_file():
-            # Utiliser txt_color ici si vous l'avez importé ou défini dans utils.py
-            # Sinon, utiliser un print standard ou le logger
             print(f"[ERREUR Utils] Fichier SVG non trouvé: {filepath}")
             return "none" # Retourne 'none' pour la propriété CSS background-image
         try:
@@ -1191,7 +1307,12 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
     data_uri_fond = svg_to_data_uri(chemin_image_fond)
     data_uri_remplissage = svg_to_data_uri(chemin_image_remplissage)
 
-    # Définir les styles CSS (inchangé)
+    # Plafonner les valeurs pour l'affichage afin d'éviter les "valeurs impossibles"
+    capped_current_step_for_text = min(current_step, total_steps)
+    capped_progress_percent_for_text = min(progress_percent, 100)
+    # La valeur de la balise <progress> doit également être plafonnée
+    capped_progress_bar_value = min(current_step, total_steps)
+
     css_styles = f"""
     <style>
         .progress-container {{
@@ -1253,16 +1374,14 @@ def create_progress_bar_html(current_step: int, total_steps: int, progress_perce
     </style>
     """
 
-    # MODIFIER la construction du texte de l'overlay
-    progress_text = f"{current_step}/{total_steps} ({progress_percent}%)"
-    if text_info: # Ajouter text_info s'il est fourni
+    progress_text = f"{capped_current_step_for_text}/{total_steps} ({capped_progress_percent_for_text}%)"
+    if text_info:
         progress_text = f"{text_info} - {progress_text}"
 
-    # Construire l'HTML final (utiliser progress_text)
     progress_html = f'''
         {css_styles}
         <div class="progress-container">
-            <progress class="custom-progress" value="{current_step}" max="{total_steps}"></progress>
+            <progress class="custom-progress" value="{capped_progress_bar_value}" max="{total_steps}"></progress>
             <div class="progress-text-overlay">{progress_text}</div>
         </div>
     '''

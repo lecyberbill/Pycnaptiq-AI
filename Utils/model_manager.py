@@ -195,8 +195,8 @@ class ModelManager:
             if gradio_mode:
                 gr.Error(f"{translate('erreur_dechargement_modele', self.translations)}: {e}")
 
-    def load_model(self, model_name, vae_name="Auto", model_type="standard", gradio_mode=False):
-        """Charge un modèle (standard, inpainting, img2img) et son VAE."""
+
+    def load_model(self, model_name, vae_name="Auto", model_type="standard", gradio_mode=False, custom_pipeline_id=None): # <-- AJOUT custom_pipeline_id
 
         if not model_name or model_name == translate("aucun_modele", self.translations) or model_name == translate("aucun_modele_trouve", self.translations):
             msg = translate("aucun_modele_selectionne", self.translations)
@@ -205,8 +205,9 @@ class ModelManager:
             return False, msg
 
         # Déterminer le chemin et le type de pipeline
-        pipeline_loader = None # Utiliser une fonction de chargement
-        model_dir = self.models_dir
+        pipeline_loader = None
+        pipeline_class = None  # Initialiser pipeline_class ici
+        model_dir = self.models_dir # Le répertoire par défaut pour les modèles
         is_from_single_file = True # Par défaut
 
         if model_type == SANA_MODEL_TYPE_KEY: # <-- AJOUT GESTION SANA
@@ -246,12 +247,19 @@ class ModelManager:
             # Charger le pipeline avec gestion d'erreur plus fine
             pipe = None
             try:
+                pipeline_kwargs = {
+                    "torch_dtype": self.torch_dtype,
+                    "use_safetensors": True,
+                    "safety_checker": None,
+                }
+                if custom_pipeline_id: # Si un custom_pipeline est fourni
+                    pipeline_kwargs["custom_pipeline"] = custom_pipeline_id
+                    print(txt_color("[INFO]", "info"), f"Tentative de chargement avec custom_pipeline: {custom_pipeline_id}")
+
                 if is_from_single_file:
                     pipe = pipeline_class.from_single_file(
                         chemin_modele,
-                        torch_dtype=self.torch_dtype,
-                        use_safetensors=True,
-                        safety_checker=None,
+                        **pipeline_kwargs # Passer tous les kwargs
                     )
                 else: # Cas Sana Sprint (from_pretrained)
                     # Utiliser bfloat16 si dispo et recommandé par Sana, sinon self.torch_dtype

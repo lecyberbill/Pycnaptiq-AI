@@ -38,7 +38,10 @@ def execute_pipeline_task_async(
     stop_event, # Garder stop_event ici
     translations, # Garder translations ici
     progress_queue, # Garder progress_queue ici
-    # --- Arguments avec défauts ensuite ---
+    # --- Arguments PAG (avec défauts) ---
+    pag_enabled=False,
+    pag_scale=1.5,
+    pag_applied_layers=None, # Liste des couches pour PAG
     prompt=None, # Optionnel pour le texte brut
     negative_prompt=None, # Optionnel pour le texte brut
     prompt_embeds=None,
@@ -104,6 +107,13 @@ def execute_pipeline_task_async(
                 pipeline_args["negative_prompt_embeds"] = negative_prompt_embeds
                 pipeline_args["negative_pooled_prompt_embeds"] = negative_pooled_prompt_embeds
 
+            # --- AJOUT PAG ---
+            if pag_enabled:
+                pipeline_args["pag_scale"] = pag_scale
+                if pag_applied_layers: # S'assurer que la liste n'est pas vide
+                    pipeline_args["pag_applied_layers_index"] = pag_applied_layers # Nom du paramètre de l'exemple
+                # Si PAG modifie guidance_scale, ajustez-le ici ou assurez-vous que le pipeline le fait.
+            # --- FIN AJOUT PAG ---
             # Vérifier l'arrêt APRÈS l'appel au pipeline
             if not stop_event.is_set():
                 result = pipe(**pipeline_args) # Appeler le pipeline avec les arguments préparés

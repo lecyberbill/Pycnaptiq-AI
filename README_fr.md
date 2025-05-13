@@ -95,6 +95,9 @@ Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini p
 Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
 ![Capture d'écran 2025-04-24 073557](https://github.com/user-attachments/assets/b3455d1c-308c-4907-8aa6-970d0b92ce7b)
 
+<!-- Ajouter une capture d'écran pour le module Téléchargeur Civitai -->
+<!-- Ajouter une capture d'écran pour le module Filigrane d'Image -->
+
 [MODULE] Amélioration d'Image (Nouveau en Beta 1.8.5) - Colorisation, Upscale 4x, Restauration, Retouche Auto
 
 Batch runner depuis la version Béta 1.8:
@@ -112,7 +115,8 @@ L'Inpainting, définir une zone de l'image à modifier, ici un visage d'une pero
 ![image](https://github.com/user-attachments/assets/d60b8d1b-8e77-4988-abe7-3f81ca0f4a34)
 
 
-[MODULE] Cicitai browser 
+[MODULE] Téléchargeur Civitai (Nouveau en Beta 1.8.7 - La capture d'écran pourrait nécessiter une mise à jour)
+<!-- Cette capture d'écran est peut-être pour une fonctionnalité Civitai plus ancienne/différente. Mettre à jour si nouvelle UI. -->
 ![image](https://github.com/user-attachments/assets/506ab5fa-eacd-4f9b-be93-2c35b157cbc6)
 
 [MODULE] Retouche d'image
@@ -337,32 +341,43 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
 
 ### 📚 Liste des Modules Disponibles
 
-1.  **Générateur de Batch** (Nouveau en Beta 1.8)
-    *   Fournit une interface dédiée pour créer et gérer des listes de tâches de génération (batches).
-    *   Génère des fichiers JSON définissant le batch, sauvegardés automatiquement dans un répertoire configuré.
-2.  **Retouche d'image**
-    *   Fournit des outils basiques pour modifier ou améliorer vos créations.
-    *   Compatible avec les images générées par l'application ou externes.
-    *   Compatible avec les images générées par l'application ou externes.    
-3.  **Amélioration d'Image** (Nouveau en Beta 1.8.5)
+1.  **Téléchargeur Civitai** (Nouveau en Beta 1.8.7)
+    *   Ajout d'un onglet dédié pour rechercher et télécharger des modèles, LoRAs, VAEs, etc., directement depuis Civitai.
+    *   Supporte le filtrage par type de modèle, ordre de tri, période et contenu NSFW.
+    *   Inclut une interface pour voir les détails du modèle, sélectionner des versions spécifiques et des fichiers à télécharger.
+    *   Option d'utiliser une clé API Civitai pour un accès étendu.
+
+2.  **Filigrane d'Image** (Nouveau en Beta 1.8.7)
+    *   Ajout d'un nouvel onglet pour appliquer des filigranes textuels ou graphiques sur vos images générées.
+    *   Supporte le traitement d'image unique et le traitement par lot d'images depuis un dossier.
+    *   Options personnalisables pour le contenu du filigrane (texte/image), police, taille, couleur, échelle, opacité, position (y compris en mosaïque), marge et rotation.
+
+3.  **Sana Sprint** (Nouveau en Beta 1.8.6)
+    *   Onglet dédié pour la génération rapide avec le modèle Sana Sprint.
+    *   Inclut la génération de prompt depuis une image.
+    *   Optimisé pour la vitesse (étapes et taille fixes).
+
+4.  **Amélioration d'Image** (Nouveau en Beta 1.8.5)
     *   Offre plusieurs outils dans un onglet dédié :
         *   **Colorisation :** Ajoute de la couleur aux images en noir et blanc via ModelScope.
         *   **Retouche Auto :** Applique des améliorations simples de contraste, netteté et saturation.
     *   Les modèles sont chargés à la demande pour économiser la VRAM.
-4.  **Suppression d'arrière-plan (RemBG)**
-    *   Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.    
-5. **Image to Image**
+
+5.  **Générateur et Exécuteur de Batch** (Fonctionnalité de Beta 1.8)
+    *   **Onglet Générateur de Batch :** Fournit une interface dédiée pour créer et gérer des listes de tâches de génération (batches). Génère des fichiers JSON définissant le batch.
+    *   **Exécuteur de Batch (Onglet Principal) :** Charge et exécute ces tâches de batch à partir d'un fichier JSON.
+
+6.  **Image to Image**
     * Permet de transformer une image existante en utilisant un prompt et des styles.
     * Supporte le traitement d'une seule image ou d'un dossier contenant plusieurs images (batch processing).
     * Permet de parcourir un dossier à la recherche d'images à traiter.
-6.  **Suppression d'arrière-plan (RemBG)**
+
+7.  **Suppression d'arrière-plan (RemBG)**
     *   Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.
-7.  **Navigation sur Civitai**
-    *   Permet de parcourir la bibliothèque Civitai pour découvrir de nouveaux modèles et prompts.
-8.  **Sana Sprint** (Nouveau en Beta 1.8.6)
-    *   Onglet dédié pour la génération rapide avec le modèle Sana Sprint.
-    *   Inclut la génération de prompt depuis une image.
-    *   Optimisé pour la vitesse (étapes et taille fixes).
+
+8.  **Retouche d'image**
+    *   Fournit des outils basiques pour modifier ou améliorer vos créations.
+    *   Compatible avec les images générées par l'application ou externes.
 
 ---
 

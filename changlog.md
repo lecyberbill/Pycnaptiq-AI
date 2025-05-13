@@ -1,3 +1,53 @@
+## Beta 1.8.7 🐥Crazy Happy Chick🐥
+
+*Date: 2025-05-13*
+
+### ✨ New Features
+
+*   **New Module: Civitai Downloader (`civitai_downloader_mod.py`)**
+    *   Added a dedicated tab to search and download models, LoRAs, VAEs, etc., directly from Civitai.
+    *   Supports filtering by model type, sort order, period, and NSFW content.
+    *   Includes an interface to view model details, select specific versions and files for download.
+    *   Option to use a Civitai API key for extended access.
+*   **New Module: Image Watermark (`ImageWatermark_mod.py`)**
+    *   Added a new tab for applying text or image watermarks to your generated images.
+    *   Supports single image processing and batch processing of images from a folder.
+    *   Customizable options for watermark content (text/image), font, size, color, scale, opacity, position (including tiling), margin, and rotation.
+
+### 🔧 Changes
+
+*   **Gradio Update:** The application has been updated to be compatible with Gradio `5.29.0`. 
+
+### 🛠️ Fixes
+
+*   **HTML Report Generation:** Improved HTML report generation to ensure it's correctly created or updated even if the image generation process is stopped prematurely.
+*   **General Bug Fixes:** Addressed various minor bugs and improved overall stability.
+
+---
+
+### ✨ Nouvelles Fonctionnalités (French)
+
+*   **Nouveau Module : Téléchargeur Civitai (`civitai_downloader_mod.py`)**
+    *   Ajout d'un onglet dédié pour rechercher et télécharger des modèles, LoRAs, VAEs, etc., directement depuis Civitai.
+    *   Supporte le filtrage par type de modèle, ordre de tri, période et contenu NSFW.
+    *   Inclut une interface pour voir les détails du modèle, sélectionner des versions spécifiques et des fichiers à télécharger.
+    *   Option d'utiliser une clé API Civitai pour un accès étendu.
+*   **Nouveau Module : Filigrane d'Image (`ImageWatermark_mod.py`)**
+    *   Ajout d'un nouvel onglet pour appliquer des filigranes textuels ou graphiques sur vos images générées.
+    *   Supporte le traitement d'image unique et le traitement par lot d'images depuis un dossier.
+    *   Options personnalisables pour le contenu du filigrane (texte/image), police, taille, couleur, échelle, opacité, position (y compris en mosaïque), marge et rotation.
+
+### 🔧 Changements (French)
+
+*   **Mise à Jour Gradio :** L'application a été mise à jour pour être compatible avec Gradio `5.29.0`. 
+
+### 🛠️ Corrections (French)
+
+*   **Génération du Rapport HTML :** Amélioration de la génération du rapport HTML pour s'assurer qu'il est correctement créé ou mis à jour même si le processus de génération d'images est arrêté prématurément.
+*   **Corrections de Bugs Générales :** Résolution de divers bugs mineurs et amélioration de la stabilité générale.
+
+---
+
 ## Beta 1.8.6 🐥Crazy Happy Chick🐥
 
 *Date: 2025-05-02*
