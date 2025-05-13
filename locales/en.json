@@ -555,5 +555,6 @@
     "gestion_modules": "Module Management",
     "activer_desactiver_modules": "Activate/Deactivate Modules",
     "magnific_popup_prev": "Previous (Left arrow)",
-    "magnific_popup_next": "Next (Right arrow)"
+    "magnific_popup_next": "Next (Right arrow)",
+    "loras_geres_succes": "Loras successfully managed"
 }
