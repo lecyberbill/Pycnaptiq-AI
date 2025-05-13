@@ -95,8 +95,12 @@ Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini p
 Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
 ![Capture d'écran 2025-04-24 073557](https://github.com/user-attachments/assets/b3455d1c-308c-4907-8aa6-970d0b92ce7b)
 
-<!-- Ajouter une capture d'écran pour le module Téléchargeur Civitai -->
-<!-- Ajouter une capture d'écran pour le module Filigrane d'Image -->
+Civitai Downloader Module
+![image](https://github.com/user-attachments/assets/436461cd-6408-48d1-a030-22bab26cf5b4)
+
+
+Watermark Module 
+![image](https://github.com/user-attachments/assets/967733a0-7d9e-4316-add6-b8375007bf09)
 
 [MODULE] Amélioration d'Image (Nouveau en Beta 1.8.5) - Colorisation, Upscale 4x, Restauration, Retouche Auto
 
