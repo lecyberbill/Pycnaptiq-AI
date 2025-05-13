@@ -552,7 +552,7 @@
     "log_erreur_save_module_states": "Error saving module states: {error}",
     "log_module_state_updated": "Module '{module_name}' state updated: {state}.",
     "module_etat_maj": "Module state updated",
-    "gestion_module": "Module Management",
+    "gestion_modules": "Module Management",
     "activer_desactiver_modules": "Activate/Deactivate Modules",
     "magnific_popup_prev": "Previous (Left arrow)",
     "magnific_popup_next": "Next (Right arrow)"

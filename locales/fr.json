@@ -559,7 +559,7 @@
   "log_erreur_save_module_states": "Erreur lors de la sauvegarde des états des modules : {error}",
   "log_module_state_updated": "État du module '{module_name}' mis à jour : {state}.",
   "module_etat_maj": "État du module mis à jour",
-  "gestion_module": "Gestion des Modules",
+  "gestion_modules": "Gestion des Modules",
   "activer_desactiver_modules": "Activer/Désactiver les Modules",
   "magnific_popup_prev": "Précédent (Flèche gauche)",
   "magnific_popup_next": "Suivant (Flèche droite)"
