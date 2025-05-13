@@ -142,12 +142,13 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
     "MODELS_DIR": "models\\checkpoints",
     "VAE_DIR": "models\\vae",
     "INPAINT_MODELS_DIR": "models\\inpainting",
-	"LORAS_DIR": "models\\loras",
-	"SAVE_DIR": "Output",
+    "LORAS_DIR": "models\\loras",
+    "SAVE_DIR": "Output",
     "SAVE_BATCH_JSON_PATH": "Output\\json_batch_files", 
     "IMAGE_FORMAT": "webp",
-	"DEFAULT_MODEL": "your_default_modele.safetensors",
-	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
+    "DEFAULT_MODEL": "your_default_modele.safetensors",
+    "CIVITAI_API_KEY": "", // Optionnel: Votre clé API Civitai. Laissez vide si non utilisée.
+    "NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
         {"dimensions": "704*1408", "orientation": "Portrait"},
         {"dimensions": "704*1344", "orientation": "Portrait"},
@@ -171,12 +172,12 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
         {"dimensions": "1152*832", "orientation": "Landscape"},
         {"dimensions": "1152*896", "orientation": "Landscape"}
 	],
-	"OPEN_BROWSER": "Yes",
-	"GRADIO_THEME": "Default",
-	"SHARE":"No",
+    "OPEN_BROWSER": "Yes",
+    "GRADIO_THEME": "Default",
+    "SHARE":"No",
     "LANGUAGE": "en",
-	"PRESETS_PER_PAGE": 12,
-	"PRESET_COLS_PER_ROW":4
+    "PRESETS_PER_PAGE": 12,
+    "PRESET_COLS_PER_ROW":4
 }
 
 ```
@@ -191,6 +192,7 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
 - **`SAVE_BATCH_JSON_PATH`**: Dossier où sont automatiquement sauvegardés les fichiers JSON de batch générés (Nouveau en Beta 1.8).
 - **`IMAGE_FORMAT`** : Format des fichiers image : `webp`, `jpeg`, ou `png`.
 - **`DEFAULT_MODEL`** : Modèle chargé par défaut au démarrage.
+- **`CIVITAI_API_KEY`** : (Optionnel) Votre clé API Civitai. Si fournie, elle sera utilisée par le module Téléchargeur Civitai pour accéder à des modèles ou informations nécessitant une authentification. Laissez vide ("") si vous n'en avez pas ou ne souhaitez pas l'utiliser.
 - **`NEGATIVE_PROMPT`** : Prompt négatif générique appliqué par défaut, utile pour exclure des éléments indésirables dans les résultats générés.
 - **`FORMATS`** : Dimensions des images, spécifiées en multiples de 4, avec des orientations comme `Portrait`, `Carré`, et `Paysage`.
 - **`OPEN_BROWSER`** :  
@@ -358,8 +360,10 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
     *   Optimisé pour la vitesse (étapes et taille fixes).
 
 4.  **Amélioration d'Image** (Nouveau en Beta 1.8.5)
-    *   Offre plusieurs outils dans un onglet dédié :
+    *   Offre plusieurs outils dans un onglet dédié pour le post-traitement :
         *   **Colorisation :** Ajoute de la couleur aux images en noir et blanc via ModelScope.
+        *   **Upscale (4x) :** Augmente la résolution de l'image par 4x en utilisant un modèle Diffusers LDM.
+        *   **Restauration :** Détecte et corrige automatiquement les dégradations telles que le flou et le bruit en utilisant OneRestore.
         *   **Retouche Auto :** Applique des améliorations simples de contraste, netteté et saturation.
     *   Les modèles sont chargés à la demande pour économiser la VRAM.
 

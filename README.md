@@ -161,6 +161,7 @@ The `config.json` file, located in the `/config` folder, allows you to customize
     "SAVE_BATCH_JSON_PATH": "Output\\json_batch_files", 
     "IMAGE_FORMAT": "webp",
 	"DEFAULT_MODEL": "your_default_modele.safetensors",
+    "CIVITAI_API_KEY": "", // Optional: Your Civitai API key. Leave empty if not used.
 	"NEGATIVE_PROMPT": "udeformed, ugly, blurry, pixelated, grainy, poorly drawn, artifacts, errors, duplicates, missing, inconsistent, unrealistic, bad anatomy, severed hands, severed heads, crossed eyes, poor quality, low resolution, washed out, overexposed, underexposed, noise, flat, lacking details, generic, amateur",
     "FORMATS": [
         {"dimensions": "704*1408", "orientation": "Portrait"},
@@ -205,6 +206,7 @@ The `config.json` file, located in the `/config` folder, allows you to customize
 - **`SAVE_BATCH_JSON_PATH`**: Folder where generated batch JSON files are automatically saved (New in Beta 1.8).
 - **`IMAGE_FORMAT`**: Image file format: `webp`, `jpeg`, or `png`.
 - **`DEFAULT_MODEL`**: Model loaded by default at startup.
+- **`CIVITAI_API_KEY`**: (Optional) Your Civitai API key. If provided, it will be used by the Civitai Downloader module to access models or information requiring authentication. Leave empty ("") if you don't have one or don't want to use it.
 - **`NEGATIVE_PROMPT`**: Generic negative prompt applied by default, useful for excluding unwanted elements in generated results.
 - **`FORMATS`**: Image dimensions, specified in multiples of 4, with orientations like `Portrait`, `Square`, and `Landscape`.
 - **`OPEN_BROWSER`**:
