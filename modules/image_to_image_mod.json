@@ -66,11 +66,13 @@
             "erreur_dossier_batch_invalide": "Erreur : Le chemin du dossier batch est invalide ou n'existe pas.",
             "erreur_aucune_image_dossier": "Erreur : Aucune image compatible trouvée dans le dossier spécifié.",
             "batch_images_trouvees": "Images trouvées pour le traitement par lot",
-            "batch_processing_image": "Traitement image",
             "batch_progress_image": "Image",
             "erreur_fichier_introuvable": "Erreur : Fichier introuvable",
             "erreur_traitement_image": "Erreur lors du traitement de l'image",
-            "generation_terminee_en": "Génération terminée en"
+            "generation_terminee_en": "Génération terminée en",
+            "batch_current_preview_label": "Batch aperçu de l'image courante",
+            "Resizing_preview_from": "Redimensionnement de l'aperçu de",
+            "batch_processing_image": "Génrération image (batch) en cours"
         },
         "en": {
             "i2i_tab_name": "Image 2 Image",
@@ -139,7 +141,11 @@
             "batch_progress_image": "Image",
             "erreur_fichier_introuvable": "Error: File not found",
             "erreur_traitement_image": "Error processing image",
-            "generation_terminee_en": "Generation finished in"
+            "generation_terminee_en": "Generation finished in",
+            "batch_current_preview_label": "Batch current preview image",
+            "Resizing_preview_from": "Resizing preview from",
+            "batch_processing_image": "Processing image (batch)"
+
         }
     },
     "init_function": "initialize"

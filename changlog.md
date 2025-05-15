@@ -1,3 +1,31 @@
+## Beta 1.8.8 🐥Crazy Happy Chick🐥
+
+*Date: 2025-05-14*
+
+### 🔧 Changes
+
+*   **UI/UX - LoRA Loading:** LoRA dropdown menus are now populated with available LoRAs upon application startup, improving initial usability by removing the need to manually refresh the list.
+*   **Gradio Update:** The application has been updated to be compatible with Gradio `5.29.1`.
+
+
+### 🛠️ Fixes
+
+*   **Preset Loading - VAE:** Corrected an issue where the VAE specified in a loaded preset was not properly selected in the VAE dropdown menu on the image generation interface.
+
+---
+
+### 🔧 Changements
+
+*   **UI/UX - Chargement des LoRAs :** Les menus déroulants des LoRAs sont désormais remplis avec les LoRAs disponibles dès le démarrage de l'application, améliorant l'utilisabilité initiale en supprimant le besoin de rafraîchir manuellement la liste.
+*   **Mise à Jour Gradio :** L'application a été mise à jour pour être compatible avec Gradio `5.29.1`.
+
+
+### 🛠️ Corrections
+
+*   **Chargement des Presets - VAE :** Correction d'un problème où le VAE spécifié dans un preset chargé n'était pas correctement sélectionné dans le menu déroulant VAE de l'interface de génération d'images.
+
+---
+
 ## Beta 1.8.7 🐥Crazy Happy Chick🐥
 
 *Date: 2025-05-13*

@@ -1,6 +1,6 @@
 diffusers==0.33.1
 transformers==4.51.3
-gradio==5.23.3
+gradio==5.29.1
 numpy==2.2.5
 pillow==11.2.1
 futures==3.0.5

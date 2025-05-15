@@ -50,6 +50,7 @@ class TestModule:
         self.global_translations = global_translations # Traductions globales / English: Global translations
         self.gestionnaire = gestionnaire # Instance de GestionModule / English: Instance of GestionModule
         self.global_config = global_config # Configuration globale (dict) / English: Global configuration (dict)
+        self.model_manager = model_manager_instance # Stocke l'instance de ModelManager / English: Store the ModelManager instance
         self.module_translations = {} # Sera rempli dans create_tab / English: Will be filled in create_tab
 
         print(txt_color("[INFO]", "info"), f"{module_data.get('name', 'Test Module')}: Configuration reçue: {'Oui' if self.global_config else 'Non'}")
@@ -96,7 +97,7 @@ class TestModule:
 
                 # Exemple d'accès au pipe global (vérifier s'il existe)
                 # English: Example of accessing global pipe (check if it exists)
-                if self.gestionnaire and self.gestionnaire.global_pipe:
+                if self.model_manager and self.model_manager.get_current_pipe(): # Utilise model_manager / English: Use model_manager
                     print(txt_color("[INFO]", "info"), translate("test_pipe_disponible", self.module_translations)) # Clé à définir / English: Key to define
                     # Attention: Ne pas faire d'opération lourde ici sans décharger/recharger
                     # English: Warning: Do not perform heavy operations here without unloading/reloading
@@ -121,12 +122,12 @@ class TestModule:
     # Par exemple, une méthode qui interagit avec le pipe global
     # English: For example, a method that interacts with the global pipe
     def exemple_utilisation_pipe(self):
-        if self.gestionnaire and self.gestionnaire.global_pipe:
+        if self.model_manager and self.model_manager.get_current_pipe(): # Utilise model_manager / English: Use model_manager
             # Décharger d'abord si nécessaire
             # English: Unload first if necessary
             # ...
-            # Utiliser self.gestionnaire.global_pipe
-            # English: Use self.gestionnaire.global_pipe
+            # Utiliser self.model_manager.get_current_pipe() et self.model_manager.get_current_compel()
+            # English: Use self.model_manager.get_current_pipe() and self.model_manager.get_current_compel()
             # ...
             # Recharger le modèle principal si besoin
             # English: Reload the main model if needed

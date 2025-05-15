@@ -86,6 +86,12 @@ model_manager = ModelManager(config, translations, device, torch_dtype, vram_tot
 modeles_disponibles = model_manager.list_models(model_type="standard")
 vaes = model_manager.list_vaes() # Inclut "Auto"
 init_image_prompter(device, translations) 
+
+# --- Lister les LORAS au démarrage ---
+initial_lora_choices = model_manager.list_loras(gradio_mode=True)
+has_initial_loras = bool(initial_lora_choices) and translate("aucun_modele_trouve", translations) not in initial_lora_choices and translate("repertoire_not_found", translations) not in initial_lora_choices
+lora_initial_dropdown_choices = initial_lora_choices if has_initial_loras else [translate("aucun_lora_disponible", translations)]
+initial_lora_message = translate("lora_trouve", translations) + ", ".join(initial_lora_choices) if has_initial_loras else translate("aucun_lora_disponible", translations)
 modeles_impaint = model_manager.list_models(model_type="inpainting")
 
 if not modeles_impaint or modeles_impaint[0] == translate("aucun_modele_trouve", translations):
@@ -1124,13 +1130,11 @@ def handle_image_mask_interaction(image_mask_value_dict, current_original_bg_pro
     Met à jour original_editor_background_props_state avec les props de l'image de fond de l'éditeur.
     """
     if image_mask_value_dict is None:
-        print(txt_color("[DEBUG]", "info"), "handle_image_mask_interaction: image_mask_value_dict est None.")
         return None, None # Pour validated_image_state et original_editor_background_props_state
 
     current_background_pil = image_mask_value_dict.get("background") # Attendu comme PIL.Image ou None
     if current_background_pil is None:
         # Cas où l'utilisateur a effacé l'image dans ImageMask
-        print(txt_color("[DEBUG]", "info"), "handle_image_mask_interaction: Le fond de ImageMask est None (effacé?).")
         if current_original_bg_props is not None: 
             return None, None # Réinitialiser validated_image et props
         else: # Pas d'image avant, toujours pas d'image
@@ -1463,18 +1467,26 @@ def handle_preset_load_click(preset_id):
             print(f"[WARN Preset Load] Modèle '{model_name}' du preset non trouvé dans les options actuelles.")
 
          # --- Validation VAE ---
-        available_vae_files  = lister_fichiers(VAE_DIR, translations, gradio_mode=True)
-        vae_value_for_ui = "Auto"
+        # Get the VAE name from the preset, defaulting if not present
+        # vae_name_from_preset is already defined from: preset_data.get('vae', "Défaut VAE")
 
-        if vae_name_from_preset == "Défaut VAE":
-            vae_value_for_ui = "Défaut VAE"
-        elif vae_name_from_preset in available_vae_files:
+        # Get the list of choices actually available in the VAE dropdown
+        dropdown_vae_choices = model_manager.list_vaes()
+
+        # Determine the value to set in the UI
+        vae_value_for_ui = "Défaut VAE" # Sensible default fallback
+
+        if vae_name_from_preset in dropdown_vae_choices:
             vae_value_for_ui = vae_name_from_preset
         else:
-            gr.Warning(translate("erreur_vae_preset_introuvable", translations).format(vae_name_from_preset))
-            vae_value_for_ui = "Défaut VAE"
-
-        vae_update = gr.update()
+            # If the VAE from preset is not in current choices, issue a warning
+            # (unless it was already the default we're falling back to).
+            # This handles cases like a VAE file being removed since the preset was saved.
+            if vae_name_from_preset != vae_value_for_ui: # Avoid warning if preset had "Défaut VAE" and it's the fallback
+                gr.Warning(translate("erreur_vae_preset_introuvable", translations).format(vae_name_from_preset))
+        
+        # Create the Gradio update object with the determined value
+        vae_update = gr.update(value=vae_value_for_ui)
 
          # --- Validation LORAS---
         if isinstance(loras_data, str):
@@ -1755,7 +1767,7 @@ with gr.Blocks(**block_kwargs) as interface:
                             for i in range(1,5):
                                 with gr.Group():
                                     lora_check = gr.Checkbox(label=f"Lora {i}", value=False)
-                                    lora_dropdown = gr.Dropdown(choices=["Aucun LORA disponible"], label=translate("selectionner_lora", translations), interactive=False)
+                                    lora_dropdown = gr.Dropdown(choices=lora_initial_dropdown_choices, label=translate("selectionner_lora", translations), interactive=has_initial_loras)
                                     lora_scale_slider = gr.Slider(0, 1, value=0, label=translate("poids_lora", translations))
                                     lora_checks.append(lora_check)
                                     lora_dropdowns.append(lora_dropdown)
@@ -1767,9 +1779,9 @@ with gr.Blocks(**block_kwargs) as interface:
                                         inputs=[lora_checks[i-1], lora_dropdowns[i-1]], # Ajouter les choix actuels comme input
                                         outputs=[lora_dropdown]
                                     )
-                    lora_message = gr.Textbox(label=translate("message_lora", translations), value="")
+                    lora_message = gr.Textbox(label=translate("message_lora", translations), value=initial_lora_message)
                     
-                with gr.Accordion(translate("gestion_modules", translations), open=False): # Ou gr.Tab
+                with gr.Accordion(translate("gestion_modules", translations), open=False):  
                     gr.Markdown(translate("activer_desactiver_modules", translations)) # Ajouter clé de traduction
                     with gr.Column():
                         # Récupérer les détails des modules chargés
@@ -1939,6 +1951,9 @@ with gr.Blocks(**block_kwargs) as interface:
                 *lora_checks,    # Dépaqueter la liste des 4 checkboxes
                 *lora_dropdowns, # Dépaqueter la liste des 4 dropdowns
                 *lora_scales,    # Dépaqueter la liste des 4 sliders
+                pag_enabled_checkbox, # <-- AJOUT PAG Checkbox
+                pag_scale_slider,     # <-- AJOUT PAG Slider
+                pag_applied_layers_input, # <-- AJOUT PAG Textbox
                 message_chargement # Le message de statut de l'onglet génération
             ]
 
@@ -2432,5 +2447,5 @@ with interface: # Re-ouvrir le contexte pour ajouter les liaisons
                  inpainting_image_slider] # Ajouter le nouvel état aux outputs
     )
 
-
+print(f"Gradio version: {gr.__version__}")
 interface.launch(inbrowser=str_to_bool(OPEN_BROWSER), pwa=True, share=str_to_bool(SHARE))

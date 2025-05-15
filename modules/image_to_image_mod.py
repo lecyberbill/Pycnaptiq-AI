@@ -315,11 +315,11 @@ class Image2imageSDXLModule:
     def mettre_a_jour_listes(self):
         """Met à jour la liste des modèles et des VAEs disponibles."""
         self.liste_modeles = self.model_manager.list_models( # <-- Utiliser ModelManager
-            self.Image2ImageModel_path, self.global_translations, gradio_mode=True
+            model_type="standard", # Specify the model type
+            gradio_mode=True
         )
-        self.liste_vaes = ["Auto"] + self.model_manager.list_vaes( # <-- Utiliser ModelManager
-            self.vae_dir, self.global_translations, ext=".safetensors", gradio_mode=True
-        )
+        # list_vaes likely takes no arguments based on cyberbill_SDXL.py usage
+        self.liste_vaes = ["Auto"] + self.model_manager.list_vaes() # <-- Remove arguments
         return gr.update(choices=self.liste_modeles), gr.update(choices=self.liste_vaes)
 
     # --- SUPPRESSION des méthodes charger_modele_i2i et charger_modele_i2i_gradio ---
@@ -527,10 +527,8 @@ class Image2imageSDXLModule:
                             except AttributeError:
                                 # Utiliser Image.LANCZOS pour les versions plus anciennes
                                 resampling_filter = Image.LANCZOS
-                            print(f"[DEBUG] Resizing preview from {w_orig}x{h_orig} to {w_new}x{target_preview_height}")
+                            print (txt_color("[INFO]", "info"), f"{translate('Resizing_preview_from', module_translations)} {w_orig}x{h_orig} to {w_new}x{target_preview_height}" )
                             resized_preview_image = current_input_image.resize((w_new, target_preview_height), resampling_filter)
-                        # Si l'image est déjà plus petite ou égale, on garde resized_preview_image = current_input_image
-
                         # Mettre à jour l'aperçu avec l'image redimensionnée
                         current_preview_update = gr.update(value=resized_preview_image)
                     else:
@@ -641,8 +639,15 @@ class Image2imageSDXLModule:
                     style_filename_part = "_".join(style_names_used) if style_names_used else "NoStyle"
                     style_filename_part = style_filename_part.replace(" ", "_")[:30]
 
-                    base_filename_part = os.path.splitext(current_filename)[0] if is_batch_mode else "single"
-                    output_filename = f"i2i_{base_filename_part}_{style_filename_part}_{current_time_str}_{height}x{width}.{self.global_config['IMAGE_FORMAT'].lower()}"
+                    # --- MODIFICATION POUR LE NOM DE FICHIER EN BATCH ---
+                    if is_batch_mode:
+                        # Utiliser l'index du batch au lieu du nom de fichier original
+                        output_filename = f"i2i_batch_{idx+1}_{style_filename_part}_{current_time_str}_{height}x{width}.{self.global_config['IMAGE_FORMAT'].lower()}"
+                    else:
+                        # Garder la logique existante pour le mode single
+                        base_filename_part = os.path.splitext(current_filename)[0] # current_filename est "single_image_0" ici
+                        output_filename = f"i2i_{base_filename_part}_{style_filename_part}_{current_time_str}_{height}x{width}.{self.global_config['IMAGE_FORMAT'].lower()}"
+                    # --- FIN MODIFICATION ---
 
                     date_str = datetime.now().strftime("%Y_%m_%d")
                     save_dir = os.path.join(self.global_config["SAVE_DIR"], date_str)
