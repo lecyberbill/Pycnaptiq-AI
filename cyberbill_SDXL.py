@@ -15,17 +15,18 @@ from diffusers import  StableDiffusionXLPipeline, AutoencoderKL, EulerDiscreteSc
     LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, StableDiffusionXLInpaintPipeline, \
     KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler, DPMSolverSinglestepScheduler
 import torch
-from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+from PIL import Image
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, AutoProcessor
 from core.version import version
-from Utils.callback_diffuser import latents_to_rgb, create_callback_on_step_end, create_inpainting_callback
+from Utils.callback_diffuser import latents_to_rgb, create_callback_on_step_end, create_inpainting_callback # Importez create_inpainting_callback si elle est utilisée
 from Utils.model_manager import ModelManager
 from core.translator import translate_prompt
 from core.Inpaint import apply_mask_effects
 from core.image_prompter import init_image_prompter, generate_prompt_from_image
+from Utils import llm_prompter_util # Modifier l'import pour accéder aux globales du module
 from Utils.utils import GestionModule, enregistrer_etiquettes_image_html, finalize_html_report_if_needed, charger_configuration, gradio_change_theme, lister_fichiers, styles_fusion, create_progress_bar_html, load_modules_js,\
     telechargement_modele, txt_color, str_to_bool, load_locales, translate, get_language_options, enregistrer_image, preparer_metadonnees_image, check_gpu_availability, ImageSDXLchecker
-from Utils.sampler_utils import SAMPLER_DEFINITIONS, get_sampler_choices, get_sampler_key_from_display_name, apply_sampler_to_pipe
+from Utils.sampler_utils import SAMPLER_DEFINITIONS, get_sampler_choices, get_sampler_key_from_display_name, apply_sampler_to_pipe # Importez apply_sampler_to_pipe si elle est utilisée
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Process
 torch.backends.cudnn.deterministic = True
@@ -37,15 +38,42 @@ import functools
 from functools import partial
 from core.batch_runner import run_batch_from_json
 from core.pipeline_executor import execute_pipeline_task_async
+from core.version import version, version_date # Importer version_date
 
 
-print (f"cyberbill_SDXL version {txt_color(version(),'info')}")
+print (txt_color("[INFO]", "info"), f"cyberbill_SDXL version {txt_color(version(),'info')}")
 # Load the configuration first
 config = charger_configuration()
 # Initialisation de la langue
-
 DEFAULT_LANGUAGE = config.get("LANGUAGE", "fr")  # Utilisez 'fr' comme langue par défaut si 'LANGUAGE' n'est pas défini.
 translations = load_locales(DEFAULT_LANGUAGE)
+
+# --- Affichage de la date de version localisée ---
+date_objet = version_date()
+
+# Noms des mois pour le formatage manuel
+mois_fr = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+mois_en = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+jour = date_objet.day
+index_mois = date_objet.month - 1 # Les listes sont indexées à partir de 0
+annee = date_objet.year
+date_formatee_str = ""
+
+if DEFAULT_LANGUAGE == "fr":
+    if 0 <= index_mois < len(mois_fr):
+        nom_mois = mois_fr[index_mois]
+        date_formatee_str = f"{jour} {nom_mois} {annee}"
+elif DEFAULT_LANGUAGE == "en":
+    if 0 <= index_mois < len(mois_en):
+        nom_mois = mois_en[index_mois]
+        date_formatee_str = f"{nom_mois} {jour}, {annee}"
+
+if not date_formatee_str: # Fallback si la langue n'est pas gérée ou si l'index du mois est incorrect
+    date_formatee_str = date_objet.isoformat()
+
+print(txt_color("[INFO]", "info"), f"{translate('version_date_label', translations)}: {txt_color(date_formatee_str, 'info')}")
+# --- Fin affichage date de version ---
 
 # --- Importer et initialiser PresetManager ---
 preset_manager = PresetManager(translations)
@@ -81,7 +109,8 @@ PREVIEW_QUEUE = []
 # --- Initialisation du ModelManager ---
 device, torch_dtype, vram_total_gb = check_gpu_availability(translations)
 model_manager = ModelManager(config, translations, device, torch_dtype, vram_total_gb)
-
+# ---  Initialisation du LLM Prompter ---
+LLM_PROMPTER_MODEL_PATH = config.get("LLM_PROMPTER_MODEL_PATH", "Qwen/Qwen3-0.6B")
 # --- Utiliser ModelManager pour lister les fichiers ---
 modeles_disponibles = model_manager.list_models(model_type="standard")
 vaes = model_manager.list_vaes() # Inclut "Auto"
@@ -99,9 +128,11 @@ if not modeles_impaint or modeles_impaint[0] == translate("aucun_modele_trouve",
     
 gestionnaire = GestionModule(
     translations=translations, config=config,
+    language=DEFAULT_LANGUAGE,  # <-- AJOUT EXPLICITE DE LA LANGUE
     model_manager_instance=model_manager,
     preset_manager_instance=preset_manager
 )
+gestionnaire.language = DEFAULT_LANGUAGE # S'assurer que la langue est bien passée
 
 
 if modeles_disponibles and modeles_disponibles[0] == translate("aucun_modele_trouve", translations):
@@ -188,7 +219,7 @@ def generate_prompt_wrapper(image, current_translations):
 # Fonction GENERATION IMAGE
 #==========================
 
-def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, pag_enabled, pag_scale, pag_applied_layers_str, *lora_inputs):
+def generate_image(text, style_selection, guidance_scale, num_steps, selected_format, traduire, seed_input, num_images, pag_enabled, pag_scale, pag_applied_layers_str, enhance_prompt_ia,  *lora_inputs):
     """Génère des images avec Stable Diffusion en utilisant execute_pipeline_task_async."""
     global lora_charges, model_selectionne, vae_selctionne, is_generating, global_selected_sampler_key, PREVIEW_QUEUE # Assurer que PREVIEW_QUEUE est global
 
@@ -212,8 +243,31 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
     output_gen_data_json = None
     output_preview_image = None
 
+    prompt_to_display_in_ui = text 
+
+    if enhance_prompt_ia:
+        print(txt_color("[INFO]", "info"), translate("llm_prompt_enhancement_active", translations))
+        gr.Info(translate("llm_prompt_enhancement_active", translations), 2.0)
+        # L'amélioration se fait sur le 'text' original de l'utilisateur.
+        # Le LLM est instruit pour générer en anglais. # MODIFIÉ ICI
+        enhanced_prompt_candidate = llm_prompter_util.generate_enhanced_prompt(text, LLM_PROMPTER_MODEL_PATH, translations=translations)
+        if enhanced_prompt_candidate and enhanced_prompt_candidate.strip() and enhanced_prompt_candidate.strip() != text.strip():
+            gr.Info(translate("prompt_enrichi_applique", translations), 2.0)
+            prompt_to_display_in_ui = enhanced_prompt_candidate # Mettre à jour pour affichage
+        else:
+            print(txt_color("[WARN]", "warning"), translate("llm_prompt_enhancement_failed", translations))
+            gr.Warning(translate("llm_prompt_enhancement_failed", translations), 3.0)
+            # prompt_to_display_in_ui reste 'text'
+
+    prompt_for_sdxl_processing = prompt_to_display_in_ui
+    if traduire:
+        translated_version = translate_prompt(prompt_to_display_in_ui, translations)
+        if translated_version != prompt_to_display_in_ui: # Afficher message seulement si traduction a eu lieu
+            gr.Info(translate("prompt_traduit_pour_generation", translations), 2.0)
+        prompt_for_sdxl_processing = translated_version
+
     yield (
-        initial_images, initial_seeds, initial_time, initial_html, initial_preview, initial_progress,
+        prompt_to_display_in_ui, initial_images, initial_seeds, initial_time, initial_html, initial_preview, initial_progress,
         bouton_charger_update_off, btn_generate_update_off,
         btn_save_preset_off,
         output_gen_data_json,
@@ -238,12 +292,13 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             final_message = translate("erreur_pas_modele", translations)
             final_html_msg = f"<p style='color: red;'>{final_message}</p>"
             yield (
-                [], "", final_message, final_html_msg, 
+                prompt_to_display_in_ui, [], "", final_message, final_html_msg, 
                 None, "",                             
                 bouton_charger_update_on, btn_generate_update_on, 
                 gr.update(interactive=False),         
                 None, None                            
             )
+            is_generating = False
             return # Stop the generator
 
 
@@ -255,12 +310,13 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             final_message = error_message
             final_html_msg = f"<p style='color: red;'>{error_message}</p>"
             yield (
-                [], "", final_message, final_html_msg,
+                prompt_to_display_in_ui, [], "", final_message, final_html_msg,
                 None, "",
                 bouton_charger_update_on, btn_generate_update_on,
                 gr.update(interactive=False),
                 None, None
             )
+            is_generating = False
             return # Stop the generator
 
 
@@ -275,7 +331,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
         prompt_en, negative_prompt_str, selected_style_display_names = styles_fusion(
             style_selection,
-            prompt_text,
+            prompt_for_sdxl_processing,
             NEGATIVE_PROMPT,
             STYLES,
             translations
@@ -309,7 +365,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             final_message = message_lora
             final_html_msg = f"<p style='color: red;'>{final_message}</p>"
             yield (
-                [], "", final_message, final_html_msg,
+                prompt_to_display_in_ui, [], "", final_message, final_html_msg,
                 None, "",
                 bouton_charger_update_on, btn_generate_update_on,
                 gr.update(interactive=False),
@@ -393,7 +449,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                     last_yielded_preview = preview_img_to_yield
                     # Yield avec l'aperçu et la dernière progression connue
                     yield (
-                        images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
+                        prompt_to_display_in_ui, images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
                         preview_img_to_yield, new_progress_html, # Utiliser new_progress_html
                         bouton_charger_update_off, btn_generate_update_off,
                         gr.update(interactive=False), # Save preset button
@@ -404,7 +460,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 
                 if not preview_yielded_in_loop and new_progress_html != last_progress_html:
                      yield (
-                         images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
+                         prompt_to_display_in_ui, images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
                          last_yielded_preview, # <--- Utiliser le dernier aperçu au lieu de None
                          new_progress_html, # Yield la nouvelle progression
                          bouton_charger_update_off, btn_generate_update_off,
@@ -442,7 +498,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 final_message = translate("generation_arretee", translations)
                 # Yield un état intermédiaire avant de sortir de la boucle for
                 yield (
-                    images, " ".join(seed_strings), translate("generation_arretee", translations),
+                    prompt_to_display_in_ui, images, " ".join(seed_strings), translate("generation_arretee", translations),
                     translate("generation_arretee_pas_sauvegarde", translations), None, final_progress_html,
                     bouton_charger_update_off, btn_generate_update_off, # buttons
                     gr.update(interactive=False), # Save preset button
@@ -457,7 +513,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_pipeline', translations)}: {error_msg}")
                 gr.Warning(f"{translate('erreur_pipeline', translations)}: {error_msg}", 4.0)
                 yield (
-                    images, " ".join(seed_strings), translate("erreur_pipeline", translations),
+                    prompt_to_display_in_ui, images, " ".join(seed_strings), translate("erreur_pipeline", translations),
                     error_msg, None, final_progress_html,
                     bouton_charger_update_off, btn_generate_update_off, # buttons
                     gr.update(interactive=False), # Save preset button
@@ -471,7 +527,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 print(txt_color("[ERREUR] ", "erreur"), translate("erreur_pas_image_genere", translations))
                 gr.Warning(translate("erreur_pas_image_genere", translations), 4.0)
                 yield (
-                    images, " ".join(seed_strings), translate("erreur_pas_image_genere", translations),
+                    prompt_to_display_in_ui, images, " ".join(seed_strings), translate("erreur_pas_image_genere", translations),
                     translate("erreur_pas_image_genere", translations), None, final_progress_html,
                     bouton_charger_update_off, btn_generate_update_off, # buttons
                     gr.update(interactive=False), # Save preset button
@@ -485,13 +541,14 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             current_data_for_preset = {
                  "model": model_manager.current_model_name,  
                  "vae": model_manager.current_vae_name,  
-                 "original_prompt": prompt_text,
+                 "original_prompt": text,
                  "prompt": prompt_en,
                  "negative_prompt": negative_prompt_str,
                  "styles": json.dumps(selected_style_display_names if selected_style_display_names else []),
                  "guidance_scale": guidance_scale,
                  "num_steps": num_steps,
                  "sampler_key": global_selected_sampler_key,
+                 "enhance_prompt_ia": enhance_prompt_ia,
                  "seed": seed,
                  "width": width,
                  "height": height,
@@ -528,7 +585,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                  "Sampler": pipe.scheduler.__class__.__name__,
                  "IMAGE": f"{idx+1} {translate('image_sur',translations)} {num_images}",
                  "Inference": num_steps, "Style": style_info_str,
-                 "original_prompt (User)": prompt_text, "Prompt": prompt_en,
+                 "original_prompt (User)": text, "Prompt": prompt_en, "LLM_Enhanced": enhance_prompt_ia,
                  "Negatif Prompt": negative_prompt_str, "Seed": seed,
                  "Size": selected_format_parts, # Utiliser selected_format_parts ici
                  "Loras": lora_info_str,
@@ -564,7 +621,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
             # Yield final pour cette image réussie
             yield (
-                images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}",
+                prompt_to_display_in_ui, images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}",
                 html_message_result, final_image, final_progress_html, # Utiliser final_progress_html
                 bouton_charger_update_off, btn_generate_update_off,
                 gr.update(interactive=False), # Save preset button
@@ -593,7 +650,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
     except Exception as e:
         # --- Gestion des erreurs inattendues ---
-        is_generating = False
+        # is_generating est déjà mis à False dans le bloc finally
         print(txt_color("[ERREUR] ","erreur"), f"{translate('erreur_lors_generation', translations)} : {e}")
         traceback.print_exc()
         final_message = f"{translate('erreur_lors_generation', translations)} : {str(e)}"
@@ -606,7 +663,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
         output_gen_data_json = None # Réinitialiser en cas d'erreur
         output_preview_image = None
 
-    finally:
+    finally: # Ce bloc s'exécute toujours à la fin
         # --- Bloc finally ---
         is_generating = False
         # --- AJOUT POUR FINALISER LE HTML SI ARRÊT PRÉMATURÉ ---
@@ -629,7 +686,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 print(txt_color("[AVERTISSEMENT]", "warning"), "Impossible de déterminer le chemin du rapport HTML pour la finalisation (date_str non défini).")
         # --- FIN AJOUT ---
         yield (
-            final_images, final_seeds, final_message, final_html_msg,
+            prompt_to_display_in_ui, final_images, final_seeds, final_message, final_html_msg, # MODIFIÉ: Utiliser prompt_to_display_in_ui
             final_preview_img, final_progress_html,
             bouton_charger_update_on, btn_generate_update_on,
             final_save_button_state, # Utiliser l'état calculé
@@ -1415,8 +1472,8 @@ def handle_preset_load_click(preset_id):
     if preset_data is None:
         msg = translate("erreur_chargement_preset_introuvable", translations).format(preset_id)
         gr.Warning(msg)
-        # Retourner des updates vides pour tous les outputs attendus
-        num_lora_slots = 4 # Assurez-vous que cela correspond au nombre de slots LoRA
+        # Retourner des updates vides pour tous les outputs attendus (MAJ du nombre)
+        num_lora_slots = 4 # Nombre de slots LoRA
         # 7 contrôles de base + 3 par LoRA + 1 message = 7 + 3*4 + 1 = 20 outputs
         return [gr.update()] * (7 + 3 * num_lora_slots + 1)
 
@@ -1424,7 +1481,8 @@ def handle_preset_load_click(preset_id):
         original_prompt_value = preset_data.get('original_prompt', preset_data.get('prompt', ''))
         if original_prompt_value is None:
             original_prompt_value = preset_data.get('prompt', '')
-        # Le prompt négatif n'est pas directement dans l'UI, on le charge pas ici
+        enhance_prompt_ia_preset = preset_data.get('enhance_prompt_ia', False)
+        traduire_checkbox_preset = preset_data.get('traduire', False) # Assurez-vous que l'état de traduction est aussi sauvegardé si nécessaire
         styles_data = preset_data.get('styles', [])
         loaded_style_names = []
         if isinstance(styles_data, str):
@@ -1595,10 +1653,11 @@ def handle_preset_load_click(preset_id):
             gr.update(value=pag_enabled_preset),     # pag_enabled_checkbox
             gr.update(value=pag_scale_preset),       # pag_scale_slider
             gr.update(value=pag_applied_layers_preset), # pag_applied_layers_input
+            gr.update(value=enhance_prompt_ia_preset), # Update pour la checkbox d'amélioration IA
             gr.update(value=translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}')))# message_chargement
         ]
         print(f"[INFO] Preset '{preset_data.get('name', f'ID: {preset_id}')}' chargé dans l'UI.")
-        gr.Info(translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}')), 2.0)
+        gr.Info(translate("preset_charge_succes", translations).format(preset_data.get('name', f'ID: {preset_id}')), 2.0) # Afficher l'info Gradio
         return outputs_list
     except Exception as e:
         print(txt_color("[ERREUR]", "erreur"), f"Erreur lors du chargement du preset {preset_id}: {e}")
@@ -1606,7 +1665,7 @@ def handle_preset_load_click(preset_id):
         gr.Warning(translate("erreur_generale_chargement_preset", translations))
         # Retourner des updates vides pour tous les outputs attendus (MAJ du nombre)
         num_lora_slots = 4 # Nombre de slots LoRA
-        return [gr.update()] * (2 + 7 + 3 * num_lora_slots + 1 + 3) # +3 pour PAG (checkbox, slider, textbox)
+        return [gr.update()] * (2 + 7 + 3 * num_lora_slots + 1 + 3 + 1) # +1 pour enhance_prompt_ia_checkbox
         
 def reset_page_state_only():
     """Retourne simplement une mise à jour pour mettre l'état de la page à 1."""
@@ -1625,6 +1684,31 @@ def handle_page_dropdown_change(page_selection):
 #####################USER INTERFACE#########################
 ############################################################
 ############################################################
+def on_enhance_prompt_checked(is_checked, current_llm_model_path, current_translations):
+    if is_checked:
+        if llm_prompter_util.llm_model_prompter is None or llm_prompter_util.llm_tokenizer_prompter is None:
+            print(f"{txt_color('[INFO]', 'info')} Tentative de chargement du LLM Prompter pour l'amélioration du prompt...")
+            gr.Info(translate("llm_prompter_loading_on_demand", current_translations), 3.0)
+            success = llm_prompter_util.init_llm_prompter(current_llm_model_path, current_translations)
+            if not success:
+                gr.Warning(translate("llm_prompter_load_failed_on_demand", current_translations).format(model_path=current_llm_model_path), 5.0)
+                return gr.update(value=False, interactive=False) # Décocher et désactiver
+            else:
+                gr.Info(translate("llm_prompter_loaded_successfully", current_translations), 3.0)
+                return gr.update() # Garder coché, interactif
+        else:
+            # Déjà chargé
+            return gr.update() # Garder coché, interactif
+    else:
+        # L'utilisateur l'a décoché.
+        if llm_prompter_util.llm_model_prompter is not None or llm_prompter_util.llm_tokenizer_prompter is not None:
+            print(f"{txt_color('[INFO]', 'info')} Décochage de l'amélioration du prompt. Déchargement du LLM Prompter...")
+            llm_prompter_util.unload_llm_prompter(current_translations)
+            gr.Info(translate("llm_prompter_unloaded", current_translations), 3.0)
+        # La case reste décochée et interactive.
+        return gr.update(interactive=True)
+
+
 
 block_kwargs = {"theme": gradio_change_theme(GRADIO_THEME)}
 if js_code:
@@ -1658,6 +1742,13 @@ with gr.Blocks(**block_kwargs) as interface:
             with gr.Column(scale=1, min_width=200):
                 text_input = gr.Textbox(label=translate("prompt", translations), info=translate("entrez_votre_texte_ici", translations), elem_id="promt_input")
                 traduire_checkbox = gr.Checkbox(label=translate("traduire_en_anglais", translations), value=False, info=translate("traduire_en_anglais", translations))
+                enhance_prompt_checkbox = gr.Checkbox(
+                    label=translate("ameliorer_prompt_ia", translations),
+                    value=False, # Valeur par défaut
+                    info=translate("info_ameliorer_prompt_ia", translations),
+                    elem_id="enhance_prompt_checkbox",
+                    interactive=True # Utiliser la variable d'état
+                )
                 style_dropdown = gr.Dropdown(
                     choices=[style["name"] for style in STYLES if style["name"] != translate("Aucun_style", translations)], # Exclure "Aucun style" des choix multiples
                     value=[], # Valeur par défaut : liste vide
@@ -2131,11 +2222,13 @@ with gr.Blocks(**block_kwargs) as interface:
             pag_enabled_checkbox, # <-- AJOUT PAG
             pag_scale_slider,     # <-- AJOUT PAG
             pag_applied_layers_input, # <-- AJOUT PAG
+            enhance_prompt_checkbox,
             *lora_checks,
             *lora_dropdowns,
             *lora_scales
         ],
         outputs=[
+            text_input, # <--- VIRGULE AJOUTÉE ICI
             image_output,
             seed_output,
             time_output,
@@ -2267,6 +2360,12 @@ with gr.Blocks(**block_kwargs) as interface:
         fn=toggle_pag_scale_visibility_main,
         inputs=[pag_enabled_checkbox],
         outputs=[pag_scale_slider, pag_applied_layers_input] # Mettre à jour les deux
+    )
+
+    enhance_prompt_checkbox.change(
+        fn=on_enhance_prompt_checked,
+        inputs=[enhance_prompt_checkbox, gr.State(LLM_PROMPTER_MODEL_PATH), gr.State(translations)],
+        outputs=[enhance_prompt_checkbox]
     )
 # Liaisons pour l'onglet Inpainting
     # L'événement .change de image_mask_input gère maintenant le chargement d'image et le dessin.

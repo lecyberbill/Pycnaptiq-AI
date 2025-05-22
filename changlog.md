@@ -1,3 +1,17 @@
+## Beta 1.8.9 🐣The Chick, Future Chicken🐔
+
+### ✨ New Features / Nouvelles Fonctionnalités
+
+*   **AI Prompt Enhancement (LLM):** Added an optional feature to automatically enrich user prompts using a local Language Model (default: `Qwen/Qwen3-0.6B`). The LLM generates more detailed and imaginative prompts in English, optimized for image generators. This feature is configurable via the `LLM_PROMPTER_MODEL_PATH` key in `config.json` and runs on the CPU to preserve GPU resources.
+    *   **Amélioration des Prompts par IA (LLM) :** Ajout d'une fonctionnalité optionnelle pour enrichir automatiquement les prompts utilisateurs en utilisant un Modèle de Langage local (par défaut : `Qwen/Qwen3-0.6B`). Le LLM génère des prompts plus détaillés et imaginatifs en anglais, optimisés pour les générateurs d'images. Cette fonctionnalité est configurable via la clé `LLM_PROMPTER_MODEL_PATH` dans `config.json` et s'exécute sur le CPU pour préserver les ressources GPU.
+
+### 🛠️ Fixes / Corrections
+
+*   **Module Translation:** Fixed a major bug where the selected language in `config.json` (e.g., English) was not correctly passed during module initialization, leading to UI translation issues within modules. `GestionModule` now correctly receives and applies the global language and translations.
+    *   **Traduction des Modules :** Correction d'un bug majeur où la langue sélectionnée dans `config.json` (par exemple, l'anglais) n'était pas correctement transmise lors de l'initialisation des modules, entraînant des problèmes de traduction de l'interface des modules. `GestionModule` reçoit et applique maintenant correctement la langue et les traductions globales.
+
+---
+
 ## Beta 1.8.8 🐥Crazy Happy Chick🐥
 
 *Date: 2025-05-14*

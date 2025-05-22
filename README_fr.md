@@ -73,6 +73,20 @@ Passioné de génération d'image et d'IA, je me suis beaucoup servi de gemini p
 4. **Générer des images**
    - Cliquez sur **"Générer"**. Les images sont enregistrées dans le dossier `output` avec un rapport HTML.
 
+### 🤖 Amélioration des Prompts par IA (LLM) (Nouveau en 1.8.9)
+
+L'application intègre désormais une fonctionnalité optionnelle pour améliorer vos prompts grâce à un modèle de langage (LLM).
+
+- **Activation** : Cochez la case "Améliorer le prompt avec l'IA" sous le champ de prompt principal.
+- **Fonctionnement** : Lorsque cette option est activée, votre prompt de base est envoyé à un LLM (par défaut, `Qwen/Qwen3-0.6B` de QwenAI, configurable dans `config.json` via la clé `LLM_PROMPTER_MODEL_PATH`).
+- **Objectif** : Le LLM est instruit pour générer une version plus détaillée, descriptive et imaginative de votre idée initiale, spécifiquement en **anglais**, afin d'optimiser les résultats avec les modèles de génération d'images comme Stable Diffusion XL.
+- **Ressources** : Pour préserver les ressources de votre carte graphique (VRAM) pour la génération d'images, le LLM est configuré pour s'exécuter sur le **CPU**.
+- **Sortie** : Le prompt amélioré par l'IA remplacera votre prompt initial dans le champ de texte et sera utilisé pour la génération. Si l'amélioration échoue ou ne produit pas de résultat significativement différent, votre prompt original sera conservé.
+
+Cette fonctionnalité vise à vous aider à explorer de nouvelles avenues créatives et à obtenir des images plus riches en détails sans avoir à formuler vous-même des prompts complexes.
+
+   - Cliquez sur **"Générer"**. Les images sont enregistrées dans le dossier `output` avec un rapport HTML.
+
 ### 🚀 Nouveau : Génération par Lots (Batch) (Beta 1.8)
 
 1.  **Créer une Définition de Batch :**
@@ -149,6 +163,7 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
     "LORAS_DIR": "models\\loras",
     "SAVE_DIR": "Output",
     "SAVE_BATCH_JSON_PATH": "Output\\json_batch_files", 
+    "LLM_PROMPTER_MODEL_PATH": "Qwen/Qwen3-0.6B",
     "IMAGE_FORMAT": "webp",
     "DEFAULT_MODEL": "your_default_modele.safetensors",
     "CIVITAI_API_KEY": "", // Optionnel: Votre clé API Civitai. Laissez vide si non utilisée.
@@ -194,6 +209,7 @@ Le fichier `config.json`, situé dans le dossier `/config`, permet de personnali
 - **`LORAS_DIR`** : Emplacement pour charger les fichiers LoRA au format `.safetensors`.
 - **`SAVE_DIR`** : Dossier où sont sauvegardées les images générées.
 - **`SAVE_BATCH_JSON_PATH`**: Dossier où sont automatiquement sauvegardés les fichiers JSON de batch générés (Nouveau en Beta 1.8).
+- **`LLM_PROMPTER_MODEL_PATH`**: (Nouveau en 1.8.9) Chemin ou nom Hugging Face du modèle de langage (LLM) utilisé pour l'amélioration des prompts. Par défaut : "Qwen/Qwen3-0.6B".
 - **`IMAGE_FORMAT`** : Format des fichiers image : `webp`, `jpeg`, ou `png`.
 - **`DEFAULT_MODEL`** : Modèle chargé par défaut au démarrage.
 - **`CIVITAI_API_KEY`** : (Optionnel) Votre clé API Civitai. Si fournie, elle sera utilisée par le module Téléchargeur Civitai pour accéder à des modèles ou informations nécessitant une authentification. Laissez vide ("") si vous n'en avez pas ou ne souhaitez pas l'utiliser.
