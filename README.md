@@ -105,6 +105,9 @@ This feature aims to help you explore new creative avenues and achieve richer, m
     *   The application will process each task sequentially, displaying progress and results. You can stop the process using the **"Stop Batch"** button.
 
 ## Interface Capture
+Image generator, Prompt Enhancement (LLM)
+![image](https://github.com/user-attachments/assets/db8810cc-0e92-4059-b9c9-5276ae9e7716)
+
 
 Image generator, prompt calculated from the image, adding a LoRA
 
