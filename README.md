@@ -106,6 +106,10 @@ This feature aims to help you explore new creative avenues and achieve richer, m
 
 ## Interface Capture
 Image generator, Prompt Enhancement (LLM)
+
+original_prompt (User)	: une jolie femme
+Prompt Enhancement : An elegant, ethereal woman in a pastel-scented pastel dress, her hair cascading like soft rainbows over her face, surrounded by blooming flora and a quiet cottage with a view of a garden, lit by soft, warm light. Her eyes sparkle with a smile that radiates happiness, and the scene feels peaceful and serene, with no distractions.
+
 ![image](https://github.com/user-attachments/assets/db8810cc-0e92-4059-b9c9-5276ae9e7716)
 
 
