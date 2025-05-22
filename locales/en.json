@@ -557,5 +557,21 @@
     "magnific_popup_prev": "Previous (Left arrow)",
     "magnific_popup_next": "Next (Right arrow)",
     "loras_geres_succes": "Loras successfully managed",
-    "preparation": "In preparation"
+    "preparation": "In preparation",
+    "ameliorer_prompt_ia": "Enhance Prompt with AI (LLM)",
+    "info_ameliorer_prompt_ia": "Uses a language model to enrich your base prompt (generated in English and displayed). May take a few seconds on CPU.",
+    "llm_prompt_enhancement_active": "AI prompt enhancement active...",
+    "llm_prompt_enhancement_failed": "AI prompt enhancement failed, using original prompt.",
+    "prompt_enrichi_applique": "AI enhanced prompt applied and displayed.",
+    "prompt_traduit_pour_generation": "Prompt translated to English for generation.",
+    "llm_prompter_already_initialized": "LLM Prompter already initialized.",
+    "llm_prompter_initializing": "Initializing LLM Prompter on {device} with model {model_id}...",
+    "llm_prompter_init_success": "LLM Prompter initialized successfully.",
+    "llm_prompter_init_error": "Error initializing LLM Prompter: {error}",
+    "erreur_llm_prompter_non_init": "Error: LLM Prompter not initialized. Cannot enhance prompt.",
+    "erreur_generation_prompt_enrichi": "Error generating enhanced prompt: {error}",
+    "erreur_llm_prompter_non_charge_ui": "Warning: The LLM model for prompt enhancement could not be loaded from {model_path}. AI prompt enhancement will be disabled.",
+    "llm_prompter_not_loaded_nothing_to_unload": "LLM Prompter is not loaded, nothing to unload.",
+    "llm_prompter_unloaded": "LLM Prompter unloaded from memory.",
+    "version_date_label": "Version date: "
 }

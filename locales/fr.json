@@ -564,5 +564,22 @@
   "magnific_popup_prev": "Précédent (Flèche gauche)",
   "magnific_popup_next": "Suivant (Flèche droite)",
   "loras_geres_succes": "Loras gérés avec succès",
-  "preparation": "En préparation"
+  "preparation": "En préparation",
+  "ameliorer_prompt_ia": "Améliorer le prompt avec IA (LLM)",
+  "info_ameliorer_prompt_ia": "Utilise un modèle de langage pour enrichir votre prompt de base (généré en anglais et affiché). Peut prendre quelques secondes sur CPU.",
+  "llm_prompt_enhancement_active": "Amélioration du prompt par IA activée...",
+  "llm_prompt_enhancement_failed": "Échec de l'amélioration du prompt par IA, utilisation du prompt original.",
+  "prompt_enrichi_applique": "Prompt enrichi par IA appliqué et affiché.",
+  "prompt_traduit_pour_generation": "Prompt traduit en anglais pour la génération.",
+  "llm_prompter_already_initialized": "LLM Prompter déjà initialisé.",
+  "llm_prompter_initializing": "Initialisation du LLM Prompter sur {device} avec le modèle {model_id}...",
+  "llm_prompter_init_success": "LLM Prompter initialisé avec succès.",
+  "llm_prompter_init_error": "Erreur lors de l'initialisation du LLM Prompter: {error}",
+  "erreur_llm_prompter_non_init": "Erreur: Le LLM Prompter n'est pas initialisé. Impossible d'améliorer le prompt.",
+  "erreur_generation_prompt_enrichi": "Erreur lors de la génération du prompt enrichi: {error}",
+  "erreur_llm_prompter_non_charge_ui": "Attention : Le modèle LLM pour l'amélioration de prompt n'a pas pu être chargé depuis {model_path}. L'amélioration de prompt IA sera désactivée.",
+  "llm_prompter_not_loaded_nothing_to_unload": "LLM Prompter n'est pas chargé, rien à décharger.",
+  "llm_prompter_unloaded": "LLM Prompter déchargé de la mémoire.",
+  "version_date_label": "Mise à jour du : "
+
 }
