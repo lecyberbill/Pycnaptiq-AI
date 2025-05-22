@@ -44,7 +44,10 @@ def load_locales(lang="fr"):
     try:
         with open(chemin_fichier_langue, "r", encoding="utf-8") as f:
             translations = json.load(f)
-        print(txt_color("[OK] ","ok"),translate("langue_charge",translations),f" {lang}")
+        # Utiliser une clé de traduction pour le message de chargement de langue
+        # et fournir un message par défaut si la clé n'est pas trouvée AVANT que les traductions soient pleinement chargées.
+        lang_loaded_msg = translations.get("langue_charge", "Langue chargée avec succès")
+        print(txt_color("[OK] ","ok"), lang_loaded_msg, f" ({lang})")
         return translations
     except FileNotFoundError:
         print(txt_color("[ERREUR] ","erreur"),translate("erreur_fichier_langue",translations), f": {chemin_fichier_langue}")
@@ -685,8 +688,6 @@ class GestionModule:
         self.config = config
         self.model_manager = model_manager_instance
         self.preset_manager = preset_manager_instance # <-- AJOUT
-        
-
     def verifier_version(self, package_name, min_version):
         """
         Vérifie si le package est installé et satisfait la version minimale requise.
@@ -916,12 +917,14 @@ class GestionModule:
             if not isinstance(module_translations, dict): # Vérifier que c'est bien un dict
                  print(txt_color("[ERREUR] ", "erreur"), f"Traductions pour '{language}' dans {module_name} ne sont pas un dictionnaire.")
                  module_translations = {}
+
         else:
             print(txt_color("[AVERTISSEMENT] ", "erreur"), translate("module_translations_not_found", self.translations).format(module_name, language))
-        
+
         # Fusionner les traductions globales et celles du module
         merged_translations = self.translations.copy() if self.translations else {}
         merged_translations.update(module_translations) # Celles du module écrasent les globales si clés identiques
+
 
         return merged_translations      
 
@@ -941,8 +944,10 @@ class GestionModule:
             if hasattr(module, init_func_name):
                 init_func = getattr(module, init_func_name)
  
-                instance = init_func(self.translations, self.model_manager, self, self.config, *args, **kwargs)
- 
+                # Utiliser module.translations qui contient les traductions fusionnées (globales + spécifiques au module)
+                # pour la langue courante. module.translations est défini dans charger_module.
+                instance = init_func(module.translations, self.model_manager, self, self.config, *args, **kwargs)
+
                 # --- MODIFICATION : Utiliser l'état chargé ou défaut (répété pour sécurité) ---
                 # (Déjà fait lors du chargement, mais on peut le laisser par sécurité)
                 if self.preset_manager and hasattr(self.preset_manager, 'loaded_module_states'):
