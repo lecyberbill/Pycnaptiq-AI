@@ -30,28 +30,31 @@ except FileNotFoundError:
 # --- Fonction d'initialisation (appelée par GestionModule) ---
 # English: Initialization function (called by GestionModule) ---
 # Elle reçoit les traductions globales, l'instance du gestionnaire, et la config globale
-# English: It receives global translations, the manager instance, and the global config
-def initialize(global_translations, model_manager_instance, gestionnaire, global_config=None):
+# English: It receives the merged translations for the module, the manager instance, and the global config
+def initialize(merged_translations_for_module, model_manager_instance, gestionnaire, global_config=None):
     """Initialise le module de test."""
     # English: Initializes the test module.
     print(txt_color("[OK] ", "ok"), f"Initialisation du module: {module_data.get('name', 'Test Module')}")
     # Crée et retourne une instance de la classe principale du module
     # English: Creates and returns an instance of the main module class
-    return TestModule(global_translations, model_manager_instance, gestionnaire, global_config)
+    return TestModule(merged_translations_for_module, model_manager_instance, gestionnaire, global_config)
 
 # --- Classe principale du module ---
 # English: Main module class ---
 class TestModule:
     # Le constructeur reçoit les arguments de la fonction initialize
     # English: The constructor receives arguments from the initialize function
-    def __init__(self, global_translations, model_manager_instance, gestionnaire, global_config=None):
+    def __init__(self, initial_module_translations, model_manager_instance, gestionnaire, global_config=None):
         """Initialise la classe TestModule."""
         # English: Initializes the TestModule class.
-        self.global_translations = global_translations # Traductions globales / English: Global translations
+        # 'initial_module_translations' est l'ensemble déjà fusionné (globales + spécifiques au module)
+        # pour la langue courante.
+        # English: 'initial_module_translations' is the already merged set (global + module-specific)
+        # for the current language.
+        self.module_translations = initial_module_translations
         self.gestionnaire = gestionnaire # Instance de GestionModule / English: Instance of GestionModule
         self.global_config = global_config # Configuration globale (dict) / English: Global configuration (dict)
         self.model_manager = model_manager_instance # Stocke l'instance de ModelManager / English: Store the ModelManager instance
-        self.module_translations = {} # Sera rempli dans create_tab / English: Will be filled in create_tab
 
         print(txt_color("[INFO]", "info"), f"{module_data.get('name', 'Test Module')}: Configuration reçue: {'Oui' if self.global_config else 'Non'}")
         # English: Configuration received: Yes/No
@@ -64,12 +67,13 @@ class TestModule:
         # English: Example: load resources, define states, etc.
         # self.device, _, _ = check_gpu_availability(self.global_translations) # Si besoin du device / English: If device is needed
 
-    def create_tab(self, module_translations):
+    def create_tab(self, module_translations_arg):
         """Crée l'onglet Gradio pour ce module."""
         # English: Creates the Gradio tab for this module.
-        # Stocke les traductions spécifiques à ce module
-        # English: Stores the translations specific to this module
-        self.module_translations = module_translations
+        # self.module_translations a déjà été défini dans __init__ avec les traductions correctes.
+        # L'argument module_translations_arg devrait être le même objet.
+        # English: self.module_translations was already set in __init__ with the correct translations.
+        # The module_translations_arg argument should be the same object.
 
         # Utilise module_translations pour l'interface de cet onglet
         # English: Use module_translations for the interface of this tab
