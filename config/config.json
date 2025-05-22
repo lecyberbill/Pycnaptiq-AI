@@ -6,6 +6,7 @@
 	"LORAS_DIR": "models\\loras",
 	"SAVE_DIR": "Output",
 	"SAVE_BATCH_JSON_PATH": "Output\\json_batch_files",
+    "LLM_PROMPTER_MODEL_PATH": "Qwen/Qwen3-0.6B",
 	"CIVITAI_API_KEY": "your_key_here",
     "IMAGE_FORMAT": "webp",
 	"DEFAULT_MODEL": "your_default_modele.safetensors",
@@ -36,7 +37,7 @@
 	"OPEN_BROWSER": "Yes",
 	"GRADIO_THEME": "Default",
 	"SHARE":"No",
-    "LANGUAGE": "fr",
+    "LANGUAGE": "en",
 	"PRESETS_PER_PAGE": 12,
 	"PRESET_COLS_PER_ROW":4
 }
