@@ -802,16 +802,24 @@ class GestionModule:
                         print(txt_color("[ERREUR] ", "erreur"), translate("dependency_install_manual", self.translations).format(package_name, sys.executable.replace("python", "pip")))
                         return False
             else:  # No min_version specified
+                # Déterminer le nom à utiliser pour l'importation
+                # Si dep est un dict et a 'import', utiliser cette valeur, sinon utiliser package_name
+                import_name_to_check = package_name # Par défaut
+                if isinstance(dep, dict) and dep.get("import"):
+                    import_name_to_check = dep.get("import")
+
                 try:
                     # Essayer d'importer le package pour voir s'il est installé
-                    importlib.import_module(package_name)
-                    print(txt_color("[INFO] ", "info"), f"Dépendance '{package_name}' déjà installée.")
+                    importlib.import_module(import_name_to_check)
+                    print(txt_color("[INFO] ", "info"), f"Dépendance '{package_name}' (import: '{import_name_to_check}') déjà installée.")
                 except ImportError:
-                    print(txt_color("[INFO] ", "info"), f"Dépendance '{package_name}' manquante. Tentative d'installation...")
+                    print(txt_color("[INFO] ", "info"), f"Dépendance '{package_name}' (import: '{import_name_to_check}') manquante. Tentative d'installation de '{package_name}'...")
                     try:
                         result = subprocess.run([venv_pip_path, "install", package_name, "--disable-pip-version-check", "--no-cache-dir"], capture_output=True, text=True, check=True)
                        
                         importlib.invalidate_caches()
+                        # Tentative de ré-importation après installation pour confirmer
+                        importlib.import_module(import_name_to_check)
                         print(txt_color("[INFO] ", "info"), f"Dépendance '{package_name}' installée avec succès.")
                     except subprocess.CalledProcessError as e:
                         print(txt_color("[ERREUR] ", "erreur"), f"Erreur installation {package_name}: code {e.returncode}, stderr:\n{e.stderr}") # Improved error message

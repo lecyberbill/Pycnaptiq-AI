@@ -1,4 +1,3 @@
-# d:\image_to_text\cyberbill_SDXL\cyberbill_image_generator\Utils\callback_diffuser.py
 import os
 import torch
 from PIL import Image
