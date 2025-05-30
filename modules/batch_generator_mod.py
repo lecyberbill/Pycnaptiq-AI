@@ -105,7 +105,7 @@ class BatchGeneratorModule:
         tab_title = translate("batch_generator_tab_title", self.module_translations)
 
         available_models = lister_fichiers(self.models_dir, self.global_translations, gradio_mode=True)
-        available_vaes = ["Défaut VAE"] + lister_fichiers(self.vae_dir, self.global_translations, ext=".safetensors", gradio_mode=True)
+        available_vaes = ["Auto"] + lister_fichiers(self.vae_dir, self.global_translations, ext=".safetensors", gradio_mode=True)
         available_loras = lister_fichiers(self.loras_dir, self.global_translations, gradio_mode=True)
         has_loras = bool(available_loras) and translate("aucun_modele_trouve", self.global_translations) not in available_loras and translate("repertoire_not_found", self.global_translations) not in available_loras
         lora_choices = available_loras if has_loras else [translate("aucun_lora_disponible", self.module_translations)]
@@ -117,7 +117,7 @@ class BatchGeneratorModule:
 
         dataframe_columns = [
             "model", "vae", "prompt", "negative_prompt", "styles",
-            "sampler_key", "steps", "guidance_scale", "seed",
+            "sampler_key", "steps", "guidance_scale", "seed", "num_images",
             "width", "height", "loras", "output_filename", "rating", "notes"
         ]
 
@@ -128,7 +128,7 @@ class BatchGeneratorModule:
                               translate_prompt_value,
                               steps, cfg, seed,
                               format_str,
-                              filename,
+                              filename, num_images_input,
                               *loras_all_inputs):
             """Ajoute une nouvelle tâche à la liste du batch."""
             sampler_key = get_sampler_key_from_display_name(sampler_display, self.global_translations)
@@ -166,7 +166,7 @@ class BatchGeneratorModule:
                     prompt_final = prompt_input
 
             new_task = {
-                "model": model if model else None, "vae": vae if vae else "Défaut VAE",
+                "model": model if model else None, "vae": vae if vae else "Auto",
                 "original_prompt": prompt_input, "prompt": prompt_final,
                 "negative_prompt": neg_prompt_input if neg_prompt_input else self.negative_prompt_default,
                 "styles": styles_list if styles_list else [],
@@ -174,6 +174,7 @@ class BatchGeneratorModule:
                 "steps": int(steps) if steps is not None else 25,
                 "guidance_scale": float(cfg) if cfg is not None else 7.0,
                 "seed": int(seed) if seed is not None else -1,
+                "num_images": int(num_images_input) if num_images_input is not None else 1,
                 "width": width, "height": height, "loras": active_loras_list,
                 "output_filename": filename if filename else None,
                 "rating": 0, "notes": ""
@@ -204,10 +205,11 @@ class BatchGeneratorModule:
                     steps_input = gr.Number(label=translate("steps_label", self.module_translations), value=25, precision=0, minimum=1, scale=1)
                     cfg_input = gr.Number(label=translate("cfg_scale_label", self.module_translations), value=7.0, minimum=0.0, scale=1)
                     seed_input = gr.Number(label=translate("seed_label", self.module_translations), value=-1, precision=0, scale=1)
+                    num_images_input = gr.Number(label=translate("num_images_label", self.module_translations), value=1, precision=0, minimum=1, maximum=100, step=1, scale=1) # AJOUT DU CHAMP
                 with gr.Row():
                     format_input = gr.Dropdown(label=translate("format", self.global_translations), choices=format_choices, value=default_format, scale=1)
                     model_input = gr.Dropdown(label=translate("selectionner_modele", self.global_translations), choices=available_models, scale=2, allow_custom_value=True)
-                    vae_input = gr.Dropdown(label=translate("selectionner_vae", self.global_translations), choices=available_vaes, value="Défaut VAE", scale=2)
+                    vae_input = gr.Dropdown(label=translate("selectionner_vae", self.global_translations), choices=available_vaes, value="Auto", scale=2)
                     sampler_input = gr.Dropdown(label=translate("selectionner_sampler", self.global_translations), choices=sampler_display_choices, value=default_sampler_display, scale=2)
                     style_input = gr.Dropdown(label=translate("styles", self.global_translations), choices=style_choices, multiselect=True, max_choices=4, scale=2)
                 with gr.Row(equal_height=False):
@@ -244,8 +246,8 @@ class BatchGeneratorModule:
             add_button_inputs = [
                 batch_state, model_input, vae_input, sampler_input,
                 prompt_input, neg_prompt_input, style_input,
-                translate_prompt_checkbox, steps_input, cfg_input, seed_input,
-                format_input, filename_input, *lora_inputs_components
+                translate_prompt_checkbox, steps_input, cfg_input, seed_input, # num_images_input sera ici
+                format_input, filename_input, num_images_input, *lora_inputs_components # AJOUT DE num_images_input
             ]
             add_button.click(fn=add_task_to_batch, inputs=add_button_inputs, outputs=[batch_state, batch_display])
 

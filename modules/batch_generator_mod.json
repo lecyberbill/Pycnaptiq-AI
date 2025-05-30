@@ -41,7 +41,8 @@
       "save_json_success_msg": "JSON sauvegardé avec succès dans : {filepath}",
       "save_json_error_msg": "Erreur lors de la sauvegarde du JSON dans {filepath} : {error}",
       "auto_save_json_success_msg": "JSON sauvegardé automatiquement dans : {filepath}",
-      "auto_save_json_error_msg": "Erreur lors de la sauvegarde automatique du JSON vers {path} : {error}"
+      "auto_save_json_error_msg": "Erreur lors de la sauvegarde automatique du JSON vers {path} : {error}",
+      "num_images_label":"nombre d'images"
     },
     "en": {
       "batch_generator_tab_name": "Batch Generator",
@@ -78,7 +79,8 @@
       "save_json_success_msg": "JSON successfully saved to: {filepath}",
       "save_json_error_msg": "Error saving JSON to {filepath}: {error}",
       "auto_save_json_success_msg": "JSON automatically saved to: {filepath}",
-      "auto_save_json_error_msg": "Error automatically saving JSON to {path}: {error}"
+      "auto_save_json_error_msg": "Error automatically saving JSON to {path}: {error}",
+      "num_images_label":"Number of images"
     }
   }
 }
