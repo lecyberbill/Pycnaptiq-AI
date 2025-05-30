@@ -21,7 +21,7 @@ from Utils.utils import (
     preparer_metadonnees_image, enregistrer_image,
     enregistrer_etiquettes_image_html, styles_fusion
 )
-from Utils.sampler_utils import apply_sampler_to_pipe, get_sampler_key_from_display_name
+from Utils.sampler_utils import SAMPLER_DEFINITIONS, apply_sampler_to_pipe, get_sampler_key_from_display_name
 from Utils.model_manager import ModelManager
 # Import de la nouvelle fonction d'exécution (assurez-vous du chemin correct)
 from core.pipeline_executor import execute_pipeline_task_async
@@ -278,7 +278,8 @@ def run_batch_from_json(model_manager: ModelManager, stop_event, json_file_obj, 
             output_filename_base = task.get('output_filename')
 
             # --- Fusion des styles ---
-            final_prompt, final_neg_prompt, style_names_applied = styles_fusion(
+            prompt_to_use_for_style_fusion = prompt_orig # Peut être modifié par la traduction plus tard si nécessaire
+            final_prompt, final_neg_prompt, style_names_applied = styles_fusion( # noqa: E501
                 styles_list, prompt_orig, neg_prompt_orig, config['STYLES'], translations
             )
             print(txt_color("[INFO]", "info"), f"Batch Task {current_task_index} - Prompt Final: {final_prompt}")
@@ -330,152 +331,182 @@ def run_batch_from_json(model_manager: ModelManager, stop_event, json_file_obj, 
                 continue # Skip this task
 
             # 5. Execute Pipeline via la fonction asynchrone
-            image_seed = seed if seed != -1 else random.randint(1, 10**19 - 1)
-            progress_update_queue = queue.Queue()
+            num_images_for_task = int(task.get('num_images', 1))
+            if num_images_for_task < 1:
+                num_images_for_task = 1
 
-            pipeline_thread, result_container = execute_pipeline_task_async(
-                pipe=pipe, # Utiliser le pipe obtenu plus haut
-                prompt_embeds=conditioning,
-                pooled_prompt_embeds=pooled,
-                negative_prompt_embeds=neg_conditioning,
-                negative_pooled_prompt_embeds=neg_pooled,
-                num_inference_steps=steps,
-                guidance_scale=guidance,
-                seed=image_seed,
-                width=width,
-                height=height,
-                device=device,
-                stop_event=stop_event, # Passer l'event global
-                translations=translations,
-                progress_queue=progress_update_queue
-                # preview_queue n'est pas utilisé ici, on ne gère pas l'aperçu dans le batch runner
-            )
+            task_seed_config = seed # Seed from the task configuration
 
-            # Boucle pour afficher la progression PENDANT que le thread tourne
-            last_progress_html = ""
-            while pipeline_thread.is_alive() or not progress_update_queue.empty():
+            if task_seed_config == -1:
+                seeds_for_this_task_run = [random.randint(1, 10**19 - 1) for _ in range(num_images_for_task)]
+            else:
+                seeds_for_this_task_run = [task_seed_config] * num_images_for_task
+
+            base_status_msg_task = f"{translate('batch_processing_task', translations)} {current_task_index}/{total_tasks}"
+
+            for image_idx_in_task, current_image_seed in enumerate(seeds_for_this_task_run):
                 if stop_event.is_set():
                     break
 
-                current_step_img, total_steps_img = None, steps
-                while not progress_update_queue.empty():
-                    try:
-                        current_step_img, total_steps_img = progress_update_queue.get_nowait()
-                    except queue.Empty: break
+                current_image_status_msg = base_status_msg_task
+                if num_images_for_task > 1:
+                    current_image_status_msg += f" ({translate('image_label_short', translations)} {image_idx_in_task + 1}/{num_images_for_task})"
 
-                new_progress_html = last_progress_html
-                if current_step_img is not None:
-                    progress_percent_img = int((current_step_img / total_steps_img) * 100)
-                    progress_text = f"{status_msg} - Step {current_step_img}/{total_steps_img}"
-                    new_progress_html = create_progress_bar_html(current_step_img, total_steps_img, progress_percent_img, progress_text)
+                yield (
+                    current_image_status_msg, # status
+                    gr.update(), # progress (will be updated by the inner loop)
+                    gr.update(), # gallery (will be updated later)
+                    gr.update(interactive=False), # run button (keep disabled)
+                    gr.update(interactive=True) # stop button (keep enabled)
+                )
 
-                if new_progress_html != last_progress_html:
+                progress_update_queue = queue.Queue()
+                pipeline_thread, result_container = execute_pipeline_task_async(
+                    pipe=pipe,
+                    prompt_embeds=conditioning,
+                    pooled_prompt_embeds=pooled,
+                    negative_prompt_embeds=neg_conditioning,
+                    negative_pooled_prompt_embeds=neg_pooled,
+                    num_inference_steps=steps,
+                    guidance_scale=guidance,
+                    seed=current_image_seed, # Use the seed for this specific image
+                    width=width,
+                    height=height,
+                    device=device,
+                    stop_event=stop_event,
+                    translations=translations,
+                    progress_queue=progress_update_queue
+                )
+
+                last_progress_html = ""
+                while pipeline_thread.is_alive() or not progress_update_queue.empty():
+                    if stop_event.is_set():
+                        break
+
+                    current_step_img, total_steps_img = None, steps
+                    while not progress_update_queue.empty():
+                        try:
+                            current_step_img, total_steps_img = progress_update_queue.get_nowait()
+                        except queue.Empty: break
+
+                    new_progress_html = last_progress_html
+                    if current_step_img is not None:
+                        progress_percent_img = int((current_step_img / total_steps_img) * 100)
+                        progress_text = f"{current_image_status_msg} - Step {current_step_img}/{total_steps_img}"
+                        new_progress_html = create_progress_bar_html(current_step_img, total_steps_img, progress_percent_img, progress_text)
+
+                    if new_progress_html != last_progress_html:
+                        yield (
+                            gr.update(), # status (keep current)
+                            new_progress_html, # progress
+                            gr.update(), # gallery (keep current)
+                            gr.update(interactive=False), # run button (keep disabled)
+                            gr.update(interactive=True) # stop button (keep enabled)
+                        )
+                        last_progress_html = new_progress_html
+                    time.sleep(0.05)
+
+                pipeline_thread.join()
+
+                final_status = result_container.get("status")
+                generated_image_pil = result_container.get("final")
+                error_details = result_container.get("error")
+
+                if stop_event.is_set() or final_status == "stopped":
+                    print(txt_color("[INFO]", "info"), f"Batch task {current_task_index}, image {image_idx_in_task + 1} stopped.")
+                    break # Break from inner image loop
+
+                elif final_status == "error":
+                    error_msg = str(error_details) if error_details else "Unknown pipeline error"
                     yield (
-                        gr.update(), # status (keep current)
-                        new_progress_html, # progress
+                        f"{translate('erreur_pipeline', translations)}: {error_msg}", # status
+                        "", # progress (clear)
                         gr.update(), # gallery (keep current)
-                        gr.update(interactive=False), # run button (keep disabled)
-                        gr.update(interactive=True) # stop button (keep enabled)
+                        gr.update(interactive=True), # run button (re-enable on error)
+                        gr.update(interactive=False) # stop button (disable on error)
                     )
-                    last_progress_html = new_progress_html
+                    continue # Skip to next image in this task, or next task if this was the only image
 
-                time.sleep(0.05)
+                elif generated_image_pil is None:
+                    yield (
+                        translate('erreur_pas_image_genere', translations), # status
+                        "", # progress (clear)
+                        gr.update(), # gallery (keep current)
+                        gr.update(interactive=True), # run button (re-enable on error)
+                        gr.update(interactive=False) # stop button (disable on error)
+                    )
+                    continue # Skip to next image
 
-            pipeline_thread.join() # Attendre la fin du thread
+                # --- Sauvegarde (si succès) ---
+                temps_gen_img = f"{(time.time() - task_start_time):.2f} sec" # task_start_time is for the whole task, maybe refine for single image
+                date_str = datetime.now().strftime("%Y_%m_%d")
+                heure_str = datetime.now().strftime("%H_%M_%S")
+                save_dir = os.path.join(config["SAVE_DIR"], date_str)
+                os.makedirs(save_dir, exist_ok=True)
 
-            # --- Gérer le résultat après la fin du thread ---
-            final_status = result_container.get("status")
-            generated_image = result_container.get("final")
-            error_details = result_container.get("error")
+                # Nom de fichier unique pour chaque image
+                if output_filename_base:
+                    temp_filename = output_filename_base.replace("{seed}", str(current_image_seed))
+                    temp_filename = temp_filename.replace("{index}", str(current_task_index))
+                    name_part, ext_part = os.path.splitext(temp_filename)
+                    if num_images_for_task > 1:
+                        filename_final = f"{name_part}_img{image_idx_in_task + 1}{ext_part if ext_part else '.' + config['IMAGE_FORMAT'].lower()}"
+                    else:
+                        filename_final = temp_filename
+                    if not os.path.splitext(filename_final)[1]: # Ensure extension if base didn't have one
+                         filename_final += f".{config['IMAGE_FORMAT'].lower()}"
+                else:
+                    sub_index_str = f"_img{image_idx_in_task + 1}" if num_images_for_task > 1 else ""
+                    filename_final = f"batch_{date_str}_{heure_str}_{current_image_seed}_{width}x{height}{sub_index_str}.{config['IMAGE_FORMAT'].lower()}"
+                chemin_image = os.path.join(save_dir, filename_final)
 
-            if stop_event.is_set() or final_status == "stopped":
-                print(txt_color("[INFO]", "info"), f"Batch task {current_task_index} stopped.")
-                break # Sortir de la boucle des tâches
+                lora_info_str = ", ".join(lora_info_for_metadata) if lora_info_for_metadata else translate("aucun_lora", translations)
+                style_info_str = ", ".join(style_names_applied) if style_names_applied else translate("Aucun_style", translations)
+                sampler_display_name = translate(sampler_key_req, translations)
 
-            elif final_status == "error":
-                error_msg = str(error_details) if error_details else "Unknown pipeline error"
-                yield (
-                    f"{translate('erreur_pipeline', translations)}: {error_msg}", # status
-                    "", # progress (clear)
-                    gr.update(), # gallery (keep current)
-                    gr.update(interactive=True), # run button (re-enable on error)
-                    gr.update(interactive=False) # stop button (disable on error)
+                donnees_xmp = {
+                    "Module": "SDXL Batch Generation", "Creator": config.get("AUTHOR", "CyberBill"),
+                    "Model": model_name_req, "VAE": vae_name_req, "Steps": steps,
+                    "Guidance": guidance, "Sampler": sampler_display_name,
+                    "Style": style_info_str,
+                    "Original Prompt": prompt_orig, "Prompt": final_prompt,
+                    "Negatif Prompt": final_neg_prompt,
+                    "Seed": current_image_seed, "Size": f"{width}x{height}",
+                    "Loras": lora_info_str, "Generation Time": temps_gen_img,
+                    "Batch Task Index": f"{current_task_index}/{total_tasks}",
+                    "Image In Task Index": f"{image_idx_in_task + 1}/{num_images_for_task}"
+                }
+
+                metadata_structure, prep_message = preparer_metadonnees_image(
+                    generated_image_pil, donnees_xmp, translations, chemin_image
                 )
-                continue # Passer à la tâche suivante
+                print(txt_color("[INFO]", "info"), prep_message)
 
-            elif generated_image is None:
-                yield (
-                    translate('erreur_pas_image_genere', translations), # status
-                    "", # progress (clear)
-                    gr.update(), # gallery (keep current)
-                    gr.update(interactive=True), # run button (re-enable on error)
-                    gr.update(interactive=False) # stop button (disable on error)
+                enregistrer_image(
+                    generated_image_pil, chemin_image, translations, config['IMAGE_FORMAT'],
+                    metadata_to_save=metadata_structure
                 )
-                continue # Passer à la tâche suivante
+                is_last_image_in_batch = (current_task_index == total_tasks and image_idx_in_task == num_images_for_task - 1)
+                enregistrer_etiquettes_image_html(
+                    chemin_image, donnees_xmp, translations, is_last_image_in_batch
+                )
+                generated_images.append(generated_image_pil)
 
-            # --- 6. Sauvegarde (si succès) ---
-            temps_gen_img = f"{(time.time() - task_start_time):.2f} sec"
-            date_str = datetime.now().strftime("%Y_%m_%d")
-            heure_str = datetime.now().strftime("%H_%M_%S")
-            save_dir = os.path.join(config["SAVE_DIR"], date_str)
-            os.makedirs(save_dir, exist_ok=True)
+                # Mise à jour UI (Galerie + Progression Globale pour la tâche)
+                # Le progress_text dans create_progress_bar_html est déjà mis à jour pour l'image actuelle
+                # Ici, on met à jour la galerie et le statut général de la tâche
+                global_progress_percent = int((current_task_index / total_tasks) * 100) # Overall task progress
+                # Use the last known progress HTML for this image, or a completion message for the image
+                final_image_progress_html = create_progress_bar_html(steps, steps, 100, f"{current_image_status_msg} - {translate('completed', translations)}")
 
-            # Nom de fichier
-            if output_filename_base:
-                filename_final = output_filename_base.replace("{seed}", str(image_seed))
-                filename_final = filename_final.replace("{index}", str(current_task_index))
-                # Ajouter l'extension si manquante
-                if not os.path.splitext(filename_final)[1]:
-                    filename_final += f".{config['IMAGE_FORMAT'].lower()}"
-            else:
-                filename_final = f"batch_{date_str}_{heure_str}_{image_seed}_{width}x{height}.{config['IMAGE_FORMAT'].lower()}"
-            chemin_image = os.path.join(save_dir, filename_final)
-
-            # Métadonnées
-            lora_info_str = ", ".join(lora_info_for_metadata) if lora_info_for_metadata else translate("aucun_lora", translations)
-            style_info_str = ", ".join(style_names_applied) if style_names_applied else translate("Aucun_style", translations)
-            sampler_display_name = translate(sampler_key_req, translations)
-
-            donnees_xmp = {
-                "Module": "SDXL Batch Generation", "Creator": config.get("AUTHOR", "CyberBill"),
-                "Model": model_name_req, "VAE": vae_name_req, "Steps": steps,
-                "Guidance": guidance, "Sampler": sampler_display_name,
-                "Style": style_info_str,
-                "Original Prompt": prompt_orig,
-                "Prompt": final_prompt,
-                "Negatif Prompt": final_neg_prompt,
-                "Seed": image_seed, "Size": f"{width}x{height}",
-                "Loras": lora_info_str, "Generation Time": temps_gen_img,
-                "Batch Index": f"{current_task_index}/{total_tasks}"
-            }
-
-            metadata_structure, prep_message = preparer_metadonnees_image(
-                generated_image, donnees_xmp, translations, chemin_image
-            )
-            print(txt_color("[INFO]", "info"), prep_message)
-
-            # Sauvegarde (peut être mise dans un executor si besoin)
-            enregistrer_image(
-                generated_image, chemin_image, translations, config['IMAGE_FORMAT'],
-                metadata_to_save=metadata_structure
-            )
-            enregistrer_etiquettes_image_html(
-                chemin_image, donnees_xmp, translations, (current_task_index == total_tasks)
-            )
-
-            generated_images.append(generated_image)
-
-            # Mise à jour UI (Galerie + Progression Globale)
-            global_progress_percent = int((current_task_index / total_tasks) * 100)
-            final_task_progress_html = create_progress_bar_html(current_task_index, total_tasks, global_progress_percent, status_msg)
-            yield (
-                status_msg, # status (keep current)
-                final_task_progress_html, # progress
-                generated_images, # gallery (update)
-                gr.update(interactive=False), # run button (keep disabled)
-                gr.update(interactive=True) # stop button (keep enabled)
-            )
-            # --- Fin de la gestion du résultat ---
+                yield (
+                    current_image_status_msg, # status
+                    final_image_progress_html, # progress for this image
+                    generated_images, # gallery (update)
+                    gr.update(interactive=False), # run button (keep disabled)
+                    gr.update(interactive=True) # stop button (keep enabled)
+                )
+            # --- Fin de la boucle pour num_images_for_task ---
 
         # --- Fin de la boucle des tâches pour ce groupe ---
         if stop_event.is_set():
