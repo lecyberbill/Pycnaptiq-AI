@@ -7,6 +7,7 @@
 	"SAVE_DIR": "Output",
 	"SAVE_BATCH_JSON_PATH": "Output\\json_batch_files",
     "LLM_PROMPTER_MODEL_PATH": "Qwen/Qwen3-0.6B",
+    "LLM_PROMPTER_N_GPU_LAYERS": 0,
 	"CIVITAI_API_KEY": "your_key_here",
     "IMAGE_FORMAT": "webp",
 	"DEFAULT_MODEL": "your_default_modele.safetensors",
