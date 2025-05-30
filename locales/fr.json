@@ -580,6 +580,19 @@
   "erreur_llm_prompter_non_charge_ui": "Attention : Le modèle LLM pour l'amélioration de prompt n'a pas pu être chargé depuis {model_path}. L'amélioration de prompt IA sera désactivée.",
   "llm_prompter_not_loaded_nothing_to_unload": "LLM Prompter n'est pas chargé, rien à décharger.",
   "llm_prompter_unloaded": "LLM Prompter déchargé de la mémoire.",
-  "version_date_label": "Mise à jour du : "
+  "version_date_label": "Mise à jour du : ",
+  "llm_prompter_not_loaded_nothing_to_unload": "LLM Prompter n'est pas chargé, rien à décharger.",
+  "llm_prompter_unloaded": "LLM Prompter déchargé de la mémoire.",
+  "version_date_label": "Mise à jour du : ",
+  "llm_enhancement_no_prompt": "Veuillez d'abord entrer un prompt avant de tenter de l'améliorer.",
+  "llm_prompt_enhancing_in_progress": "Amélioration du prompt en cours...",
+  "llm_prompt_enhancement_failed_or_same": "L'amélioration du prompt a échoué ou n'a pas modifié le prompt.",
+  "llm_prompter_unloaded_due_to_empty_prompt": "LLM Prompter déchargé car le prompt est vide.",
+  "ameliorer_prompt_ia_btn": "Améliorer le prompt (IA)",
+  "refaire_amelioration_btn": "Refaire",
+  "valider_prompt_btn": "Valider",
+  "prompt_amelioration_validee": "Amélioration du prompt validée.",
+  "prompt_modifie_reinitialisation_amelioration": "Prompt modifié. Cycle d'amélioration réinitialisé."
+}
 
 }

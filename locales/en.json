@@ -573,5 +573,14 @@
     "erreur_llm_prompter_non_charge_ui": "Warning: The LLM model for prompt enhancement could not be loaded from {model_path}. AI prompt enhancement will be disabled.",
     "llm_prompter_not_loaded_nothing_to_unload": "LLM Prompter is not loaded, nothing to unload.",
     "llm_prompter_unloaded": "LLM Prompter unloaded from memory.",
-    "version_date_label": "Version date: "
+    "version_date_label": "Version date: ",
+    "llm_enhancement_no_prompt": "Please enter a prompt first before trying to enhance it.",
+    "llm_prompt_enhancing_in_progress": "Enhancing prompt in progress...",
+    "llm_prompt_enhancement_failed_or_same": "Prompt enhancement failed or did not change the prompt.",
+    "llm_prompter_unloaded_due_to_empty_prompt": "LLM Prompter unloaded because the prompt is empty.",
+    "ameliorer_prompt_ia_btn": "Enhance Prompt (AI)",
+    "refaire_amelioration_btn": "Redo Enhancement",
+    "valider_prompt_btn": "Validate Prompt",
+    "prompt_amelioration_validee": "Validated.",
+    "prompt_modifie_reinitialisation_amelioration": "Prompt modified. Enhancement cycle reset."
 }
