@@ -112,6 +112,13 @@ Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
 Civitai Downloader Module
 ![image](https://github.com/user-attachments/assets/436461cd-6408-48d1-a030-22bab26cf5b4)
 
+Image ReLighting (Beta 1.9.0)
+
+![Capture d'écran 2025-05-29 192759](https://github.com/user-attachments/assets/1a23ab6d-8da1-4e4a-82e0-2ced8b271313)
+
+![Capture d'écran 2025-05-29 192446](https://github.com/user-attachments/assets/d1d277b0-3a03-40ed-91a8-92bda3369f3e)
+
+
 
 Watermark Module 
 ![image](https://github.com/user-attachments/assets/967733a0-7d9e-4316-add6-b8375007bf09)
