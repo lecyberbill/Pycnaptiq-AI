@@ -110,6 +110,11 @@ Image generator, prompt calculated from the image, adding a LoRA
 
 ![Capture d'écran 2025-04-24 073557](https://github.com/user-attachments/assets/b3455d1c-308c-4907-8aa6-970d0b92ce7b)
 
+Image ReLighting (Beta 1.9.0)
+![Capture d'écran 2025-05-29 192759](https://github.com/user-attachments/assets/7425f67d-efae-434d-b9d4-1fba313c0815)
+![Capture d'écran 2025-05-29 192446](https://github.com/user-attachments/assets/9d6901c3-d92c-441d-95aa-ccda2d8ea084)
+
+
 Civitai Downloader Module
 ![image](https://github.com/user-attachments/assets/436461cd-6408-48d1-a030-22bab26cf5b4)
 
