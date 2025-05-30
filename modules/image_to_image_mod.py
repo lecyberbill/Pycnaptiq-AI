@@ -62,8 +62,8 @@ class Image2imageSDXLModule:
         self.current_model_name = None
         self.current_vae_name = "Auto"
         self.stop_event = threading.Event()
-        # AJOUT: Extensions d'image supportées pour le batch
-        self.supported_extensions = [".png", ".jpg", ".jpeg", ".webp"]
+        # Liste des extensions supportées localement par ce module
+        self.supported_extensions = [".png", ".jpg", ".jpeg", ".webp", ".bmp"]
         self.module_translations = {} # Initialize module_translations
 
 
