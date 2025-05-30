@@ -1,3 +1,28 @@
+## Beta 1.9.0 🐔The Chicken Arrives🐔
+
+*Date: 2025-05-29*
+
+### ✨ New Features / Nouvelles Fonctionnalités
+
+*   **New Module: Image ReLighting (`reLighting_mod.py`)**
+    *   Introduced a new tab for advanced image relighting using IC-Light models. This module is based on the excellent work by lllyasviel/IC-Light.
+    *   Supports two main modes:
+        *   **FC (Foreground Conditioned):** Relights a subject based on the foreground image and a chosen light direction (e.g., left, right, top, bottom, or none).
+        *   **FBC (Foreground-Background Conditioned):** Relights a subject considering both a foreground image and a background. The background can be uploaded, flipped, or generated as a directional light source or ambient grey.
+    *   Integrates automatic background removal for the foreground subject using BriaRMBG.
+    *   Offers comprehensive controls: prompt, negative prompt, seed, steps, CFG scale, high-resolution upscaling with denoising, and mode-specific parameters.
+    *   Saves relighted images with detailed generation metadata.
+*   **Nouveau Module : Re-Éclairage d'Image (`reLighting_mod.py`)**
+    *   Introduction d'un nouvel onglet pour le re-éclairage avancé d'images utilisant les modèles IC-Light. Ce module est basé sur l'excellent travail de lllyasviel/IC-Light.
+    *   Supporte deux modes principaux :
+        *   **FC (Conditionné par l'Avant-plan) :** Ré-éclaire un sujet en se basant sur l'image d'avant-plan et une direction de lumière choisie (ex: gauche, droite, haut, bas, ou aucune).
+        *   **FBC (Conditionné par l'Avant-plan et l'Arrière-plan) :** Ré-éclaire un sujet en considérant à la fois une image d'avant-plan et un arrière-plan. L'arrière-plan peut être téléversé, inversé, ou généré comme une source de lumière directionnelle ou un gris ambiant.
+    *   Intègre la suppression automatique de l'arrière-plan pour le sujet d'avant-plan en utilisant BriaRMBG.
+    *   Offre des contrôles complets : prompt, prompt négatif, seed, étapes, échelle CFG, mise à l'échelle haute résolution avec débruitage, et paramètres spécifiques au mode.
+    *   Sauvegarde les images ré-éclairées avec des métadonnées de génération détaillées.
+
+---
+
 ## Beta 1.8.9 🐣The Chick, Future Chicken🐔
 
 ### ✨ New Features / Nouvelles Fonctionnalités

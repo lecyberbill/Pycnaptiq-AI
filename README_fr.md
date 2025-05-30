@@ -364,22 +364,29 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
 ### 📚 Liste des Modules Disponibles
 
 1.  **Téléchargeur Civitai** (Nouveau en Beta 1.8.7)
+*   **Re-Éclairage d'Image (IC-Light)** (Nouveau en Beta 1.9.0)
+    *   Module pour le re-éclairage avancé d'images utilisant les modèles IC-Light, basé sur l'excellent travail de [lllyasviel/IC-Light](https://github.com/lllyasviel/IC-Light).
+    *   Propose deux modes : Conditionné par l'Avant-plan (FC) pour ré-éclairer un sujet avec une lumière directionnelle, et Conditionné par l'Avant-plan et l'Arrière-plan (FBC) pour un re-éclairage en fonction d'un arrière-plan.
+    *   Intègre la suppression automatique de l'arrière-plan (BriaRMBG) pour le sujet.
+    *   Offre des contrôles pour les prompts, la seed, les étapes, le CFG, la correction haute résolution, et des options spécifiques aux modes.
+
+2.  **Téléchargeur Civitai** (Nouveau en Beta 1.8.7)
     *   Ajout d'un onglet dédié pour rechercher et télécharger des modèles, LoRAs, VAEs, etc., directement depuis Civitai.
     *   Supporte le filtrage par type de modèle, ordre de tri, période et contenu NSFW.
     *   Inclut une interface pour voir les détails du modèle, sélectionner des versions spécifiques et des fichiers à télécharger.
     *   Option d'utiliser une clé API Civitai pour un accès étendu.
 
-2.  **Filigrane d'Image** (Nouveau en Beta 1.8.7)
+3.  **Filigrane d'Image** (Nouveau en Beta 1.8.7)
     *   Ajout d'un nouvel onglet pour appliquer des filigranes textuels ou graphiques sur vos images générées.
     *   Supporte le traitement d'image unique et le traitement par lot d'images depuis un dossier.
     *   Options personnalisables pour le contenu du filigrane (texte/image), police, taille, couleur, échelle, opacité, position (y compris en mosaïque), marge et rotation.
 
-3.  **Sana Sprint** (Nouveau en Beta 1.8.6)
+4.  **Sana Sprint** (Nouveau en Beta 1.8.6)
     *   Onglet dédié pour la génération rapide avec le modèle Sana Sprint.
     *   Inclut la génération de prompt depuis une image.
     *   Optimisé pour la vitesse (étapes et taille fixes).
 
-4.  **Amélioration d'Image** (Nouveau en Beta 1.8.5)
+5.  **Amélioration d'Image** (Nouveau en Beta 1.8.5)
     *   Offre plusieurs outils dans un onglet dédié pour le post-traitement :
         *   **Colorisation :** Ajoute de la couleur aux images en noir et blanc via ModelScope.
         *   **Upscale (4x) :** Augmente la résolution de l'image par 4x en utilisant un modèle Diffusers LDM.
@@ -387,7 +394,7 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
         *   **Retouche Auto :** Applique des améliorations simples de contraste, netteté et saturation.
     *   Les modèles sont chargés à la demande pour économiser la VRAM.
 
-5.  **Générateur et Exécuteur de Batch** (Fonctionnalité de Beta 1.8)
+6.  **Générateur et Exécuteur de Batch** (Fonctionnalité de Beta 1.8)
     *   **Onglet Générateur de Batch :** Fournit une interface dédiée pour créer et gérer des listes de tâches de génération (batches). Génère des fichiers JSON définissant le batch.
     *   **Exécuteur de Batch (Onglet Principal) :** Charge et exécute ces tâches de batch à partir d'un fichier JSON.
 
@@ -395,11 +402,13 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
     * Permet de transformer une image existante en utilisant un prompt et des styles.
     * Supporte le traitement d'une seule image ou d'un dossier contenant plusieurs images (batch processing).
     * Permet de parcourir un dossier à la recherche d'images à traiter.
-
-7.  **Suppression d'arrière-plan (RemBG)**
+8.  **Image to Image**
+    * Permet de transformer une image existante en utilisant un prompt et des styles.
+    * Supporte le traitement d'une seule image ou d'un dossier contenant plusieurs images (batch processing).
+    * Permet de parcourir un dossier à la recherche d'images à traiter.
+9.  **Suppression d'arrière-plan (RemBG)**
     *   Basé sur RemBG, ce module isole rapidement le sujet de l'image en supprimant son arrière-plan.
-
-8.  **Retouche d'image**
+10. **Retouche d'image**
     *   Fournit des outils basiques pour modifier ou améliorer vos créations.
     *   Compatible avec les images générées par l'application ou externes.
 
