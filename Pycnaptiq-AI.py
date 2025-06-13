@@ -1437,7 +1437,15 @@ def handle_preset_load_click(preset_id):
             loaded_style_names = []
 
         model_name = preset_data.get('model', None)
-        vae_name_from_preset = preset_data.get('vae', "Défaut VAE")
+        # Original VAE name from preset, could be None, "Défaut VAE", or a real VAE name
+        raw_vae_name_from_preset = preset_data.get('vae')
+
+        # Determine the VAE to attempt to use, mapping "Défaut VAE" or None to "Auto"
+        if raw_vae_name_from_preset is None or raw_vae_name_from_preset == "Défaut VAE":
+            vae_to_attempt_loading = "Auto"
+        else:
+            vae_to_attempt_loading = raw_vae_name_from_preset
+
         guidance = preset_data.get('guidance_scale', 7.0)
         steps = preset_data.get('num_steps', 30)
         sampler_key = preset_data.get('sampler_key', 'sampler_euler')
@@ -1461,14 +1469,19 @@ def handle_preset_load_click(preset_id):
             print(txt_color("[AVERTISSEMENT]", "warning"), f"{translate('preset_load_model_not_found_warn', translations)}")
 
 
-        dropdown_vae_choices = model_manager.list_vaes()
-        vae_value_for_ui = "Défaut VAE" 
-        if vae_name_from_preset in dropdown_vae_choices:
-            vae_value_for_ui = vae_name_from_preset
+        available_vae_choices_for_ui = model_manager.list_vaes() # These are the valid choices for the dropdown
+        
+        # Determine the final VAE value for the UI dropdown
+        final_vae_for_ui_dropdown = "Auto" # Default to "Auto" if preferred VAE not found
+        if vae_to_attempt_loading in available_vae_choices_for_ui:
+            final_vae_for_ui_dropdown = vae_to_attempt_loading
         else:
-            if vae_name_from_preset != vae_value_for_ui: 
-                gr.Warning(translate("erreur_vae_preset_introuvable", translations).format(vae_name_from_preset))
-        vae_update = gr.update(value=vae_value_for_ui)
+            # Warn only if the intended VAE was something specific and not found,
+            # and it wasn't already "Auto" (which we've now defaulted to).
+            if vae_to_attempt_loading != "Auto":
+                gr.Warning(translate("erreur_vae_preset_introuvable", translations).format(vae_to_attempt_loading))
+        
+        vae_update = gr.update(value=final_vae_for_ui_dropdown)
 
         if isinstance(loras_data, str):
             try:
@@ -1937,7 +1950,7 @@ with gr.Blocks(**block_kwargs) as interface:
                                 )
                 def mettre_a_jour_listes():
                     modeles = lister_fichiers(MODELS_DIR, translations, gradio_mode=True)
-                    vaes = ["Défaut VAE"] + lister_fichiers(VAE_DIR, translations, gradio_mode=True)
+                    vaes = model_manager.list_vaes() # Utilise model_manager qui inclut "Auto"
                     loras = model_manager.list_loras(gradio_mode=True)
 
                     has_loras = bool(loras) and loras[0] != translate("aucun_modele_trouve", translations) and loras[0] != translate("repertoire_not_found", translations)
