@@ -1,3 +1,167 @@
+# Changelog
+
+## 🐓 Beta 2.0.0 The fearless young rooster 🐓 - 2025-06-13
+
+### ✨ New Features and Improvements ✨
+
+*   **ImageToText (`ImageToText_mod.py`)**:
+    *   Improved log management: the log list and the maximum number of entries are now managed at the instance level for better encapsulation.
+    *   Added a "Unload Model" button to free up Florence-2 model resources.
+    *   Generation of a detailed JSON report at the end of processing, including the status of each image, the method used, processing time, etc.
+    *   Direct use of `FLORENCE2_TASKS` and module translations for task mapping, enhancing robustness.
+
+*   **LoRA Training (`LoRATraining_mod.py`)**:
+    *   **Major UI and Logic Overhaul**:
+        *   Clear separation of data preparation and training steps with dedicated buttons ("Prepare Data", "Start Training").
+        *   Internal logic divided into `_actual_preparation_logic` and `_actual_training_logic` for better organization.
+        *   Use of `queue.Queue` for non-blocking log communication from background threads to the user interface.
+    *   **Enhanced Data Preparation**:
+        *   Optional automatic *captioning* toggle via a checkbox.
+        *   If automatic *captioning* is disabled, existing `.txt` files in the source folder are copied.
+        *   Sequential renaming of images and associated `.txt` files in the prepared data folder (e.g., `concept_0001.png`, `concept_0001.txt`).
+    *   **Dataset Management (`DreamBoothDataset`)**:
+        *   Now stores and returns the original image sizes (`original_size_hw`) and crop coordinates (`crop_coords_top_left_yx`).
+    *   **Training Logic (SDXL)**:
+        *   Calculation and passing of `add_time_ids` (including original size and crop coordinates) to the UNet model, as required by SDXL.
+        *   VAE encoding is performed outside the `autocast` context if the VAE is in fp32 and training is in fp16/bf16.
+        *   Added *gradient clipping* during training for better convergence stability.
+        *   Final saving of LoRA as a single `.safetensors` file containing UNet weights and optionally text encoders.
+        *   Use of `unet.add_adapter()` and `text_encoder.add_adapter()` for modern PEFT configuration.
+        *   Use of `cast_training_params()` to convert LoRA parameters to fp32 when training in fp16.
+    *   **User Interface (UI)**:
+        *   Learning rate selection is now a dropdown menu with descriptions for each value.
+        *   Base model selection is a dropdown menu.
+        *   Optimizer, learning rate scheduler, and mixed precision options are dropdown menus.
+        *   Advanced network and optimizer settings are grouped into accordion sections.
+
+*   **Memory Management (`Utils/gest_mem.py`)**:
+    *   New utility module for monitoring system resource usage (RAM, CPU, VRAM, GPU Usage).
+    *   Uses `psutil` for RAM and CPU statistics.
+    *   Uses `pynvml` (if available) for detailed VRAM statistics and GPU usage for NVIDIA cards.
+    *   Falls back to `torch.cuda` for basic VRAM information if `pynvml` is unavailable.
+    *   Displays statistics via circular progress bars in the UI.
+    *   Provides a "Memory Management" accordion in the UI with:
+        *   Optional live display of statistics.
+        *   A "Unload All Models" button interacting with `ModelManager`.
+        *   Explicit memory cleanup (`gc.collect()`, `torch.cuda.empty_cache()`) after unloading.
+
+*   **CogView3-Plus (`CogView3Plus_mod.py`)**:
+    *   Improved logic for determining allowed resolutions, falling back to `FORMATS` if `COGVIEW3PLUS_ALLOWED_RESOLUTIONS` is undefined.
+    *   Model loading now indicates that configurations (offload, slicing, tiling) are handled by `ModelManager`.
+    *   Uses `execute_pipeline_task_async` for image generation, enabling a more responsive UI.
+    *   Explicit memory cleanup (`del`, `gc.collect()`, `torch.cuda.empty_cache()`) after generating each batch.
+    *   Saved image metadata includes `Module: "CogView3-Plus"` and `Model: THUDM/CogView3-Plus-3B`.
+
+*   **CogView4 (`CogView4_mod.py`)**:
+    *   Similar resolution determination logic as CogView3Plus, using `COGVIEW4_ALLOWED_RESOLUTIONS`.
+    *   Model loading applies specific configurations (CPU offload, VAE slicing/tiling) *after* loading the `CogView4Pipeline`.
+    *   Uses `execute_pipeline_task_async` for generation.
+    *   Saved image metadata includes `Module: "CogView4"` and `Model: THUDM/CogView4-6B`.
+
+### 🐛 Bug Fixes 🐛
+
+*   **LoRA Training (`LoRATraining_mod.py`)**:
+    *   Fixed a potential bug where `is_preparing` was not properly used, replaced with `self.is_preparing`.
+    *   Ensures `is_preparing` is set to `False` when training starts.
+
+### ⚙️ Technical and Refactoring ⚙️
+
+*   **General**:
+    *   Modules now use `self.module_translations`, initialized with merged translations (global + module-specific) during module initialization via `GestionModule`.
+
+*   **Model Manager (`Utils/model_manager.py`)**:
+    *   The `load_model` method now handles `sana_sprint`, `cogview4`, `cogview3plus` model types and applies specific configurations (dtype, offload) for these models.
+    *   Improved `unload_model` method for explicit pipeline component removal.
+    *   The `apply_loras` method has been revised to use `unload_lora_weights` and `set_adapters` more robustly.
+
+*   **LLM Prompter (`Utils/llm_prompter_util.py`)**:
+    *   Uses `AutoModelForCausalLM` and `AutoTokenizer` for broader Hugging Face model compatibility.
+    *   Model is loaded on CPU (`device_map="cpu"`) to avoid VRAM conflicts.
+    *   Tokenizer `pad_token` is set to `eos_token` if absent, necessary for models like Qwen.
+    *   Improved parsing of LLM output to extract the prompt, handling `<think>` tags and common preambles.
+
+
+## 🐓 béta 2.0.0 The fearless young rooster 🐓 - 2025-06-13
+
+### ✨ Nouvelles Fonctionnalités et Améliorations ✨
+
+*   **ImageToText (`ImageToText_mod.py`)**:
+    *   Amélioration de la gestion des logs : la liste des logs et le nombre maximum d'entrées sont désormais gérés au niveau de l'instance pour une meilleure encapsulation.
+    *   Ajout d'un bouton "Décharger le modèle" permettant de libérer les ressources du modèle Florence-2.
+    *   Génération d'un rapport JSON détaillé à la fin du traitement, incluant le statut de chaque image, la méthode utilisée, le temps de traitement, etc.
+    *   Utilisation directe de `FLORENCE2_TASKS` et des traductions du module pour le mappage des tâches, améliorant la robustesse.
+
+*   **Entraînement LoRA (`LoRATraining_mod.py`)**:
+    *   **Refonte Majeure de l'Interface et de la Logique**:
+        *   Séparation claire des étapes de préparation des données et d'entraînement avec des boutons dédiés ("Préparer les Données", "Démarrer l'Entraînement").
+        *   La logique interne a été divisée en `_actual_preparation_logic` et `_actual_training_logic` pour une meilleure organisation.
+        *   Utilisation de `queue.Queue` pour une communication non bloquante des logs depuis les threads d'arrière-plan vers l'interface utilisateur.
+    *   **Préparation des Données Améliorée**:
+        *   Option de *captioning* automatique désactivable via une case à cocher.
+        *   Si le *captioning* automatique est désactivé, les fichiers `.txt` existants dans le dossier source sont copiés.
+        *   Renommage séquentiel des images et des fichiers `.txt` associés dans le dossier de données préparé (ex: `concept_0001.png`, `concept_0001.txt`).
+    *   **Gestion du Dataset (`DreamBoothDataset`)**:
+        *   Stocke et retourne maintenant les tailles originales des images (`original_size_hw`) et les coordonnées de recadrage (`crop_coords_top_left_yx`).
+    *   **Logique d'Entraînement (SDXL)**:
+        *   Calcul et passage des `add_time_ids` (incluant taille originale et coordonnées de recadrage) au modèle UNet, conformément aux exigences de SDXL.
+        *   L'encodage VAE est effectué en dehors du contexte `autocast` si le VAE est en fp32 et l'entraînement en fp16/bf16.
+        *   Ajout du *gradient clipping* pendant l'entraînement pour stabiliser la convergence.
+        *   Sauvegarde finale du LoRA en un unique fichier `.safetensors` contenant les poids de l'UNet et optionnellement des encodeurs de texte.
+        *   Utilisation de `unet.add_adapter()` et `text_encoder.add_adapter()` pour une configuration PEFT plus moderne.
+        *   Utilisation de `cast_training_params()` pour convertir les paramètres LoRA en fp32 lors de l'entraînement en fp16.
+    *   **Interface Utilisateur (UI)**:
+        *   Le taux d'apprentissage (learning rate) est maintenant sélectionnable via un menu déroulant avec des descriptions pour chaque valeur.
+        *   La sélection du modèle de base est un menu déroulant.
+        *   Les options d'optimiseur, de planificateur de taux d'apprentissage et de précision mixte sont des menus déroulants.
+        *   Les options avancées de réseau et d'optimiseur sont groupées dans des accordéons.
+
+*   **Gestion de la Mémoire (`Utils/gest_mem.py`)**:
+    *   Nouveau module utilitaire pour surveiller l'utilisation des ressources système (RAM, CPU, VRAM, Utilisation GPU).
+    *   Utilise `psutil` pour les statistiques RAM et CPU.
+    *   Utilise `pynvml` (si disponible) pour des statistiques VRAM détaillées et l'utilisation GPU pour les cartes NVIDIA.
+    *   Fallback sur `torch.cuda` pour les informations VRAM de base si `pynvml` n'est pas disponible.
+    *   Affiche les statistiques via des barres de progression circulaires SVG dans l'interface utilisateur.
+    *   Fournit un accordéon "Gestion de la Mémoire" dans l'interface utilisateur avec :
+        *   Affichage en direct (optionnel) des statistiques.
+        *   Un bouton "Décharger Tous les Modèles" qui interagit avec `ModelManager`.
+        *   Nettoyage explicite de la mémoire (`gc.collect()`, `torch.cuda.empty_cache()`) après le déchargement.
+
+*   **CogView3-Plus (`CogView3Plus_mod.py`)**:
+    *   Logique de détermination des résolutions autorisées améliorée, avec fallback sur la configuration `FORMATS` si `COGVIEW3PLUS_ALLOWED_RESOLUTIONS` n'est pas définie.
+    *   Le chargement du modèle indique maintenant que les configurations (offload, slicing, tiling) sont gérées par le `ModelManager`.
+    *   Utilisation de `execute_pipeline_task_async` pour la génération d'images, permettant une interface utilisateur plus réactive.
+    *   Nettoyage explicite de la mémoire (`del`, `gc.collect()`, `torch.cuda.empty_cache()`) après la génération de chaque image dans un lot.
+    *   Les métadonnées des images sauvegardées incluent `Module: "CogView3-Plus"` et `Model: THUDM/CogView3-Plus-3B`.
+
+*   **CogView4 (`CogView4_mod.py`)**:
+    *   Logique de détermination des résolutions autorisées similaire à CogView3Plus, utilisant `COGVIEW4_ALLOWED_RESOLUTIONS`.
+    *   Le chargement du modèle applique les configurations spécifiques (CPU offload, VAE slicing/tiling) *après* le chargement du pipeline `CogView4Pipeline`.
+    *   Utilisation de `execute_pipeline_task_async` pour la génération.
+    *   Les métadonnées des images sauvegardées incluent `Module: "CogView4"` et `Model: THUDM/CogView4-6B`.
+
+### 🐛 Corrections de Bugs 🐛
+
+*   **LoRATraining (`LoRATraining_mod.py`)**:
+    *   Correction d'un bug potentiel où `is_preparing` n'était pas correctement utilisé, remplacé par `self.is_preparing`.
+    *   Assure que `is_preparing` est mis à `False` lorsque l'entraînement démarre.
+
+### ⚙️ Technique et Refactoring ⚙️
+
+*   **Général**:
+    *   Les modules utilisent maintenant `self.module_translations` qui est initialisé avec les traductions fusionnées (globales + spécifiques au module) lors de l'initialisation du module par `GestionModule`.
+*   **ModelManager (`Utils/model_manager.py`)**:
+    *   La méthode `load_model` gère maintenant les types de modèles `sana_sprint`, `cogview4`, `cogview3plus` et applique des configurations spécifiques (dtype, offload) pour ces modèles.
+    *   La méthode `unload_model` a été améliorée pour une suppression plus explicite des composants du pipeline.
+    *   La méthode `apply_loras` a été revue pour utiliser `unload_lora_weights` et `set_adapters` de manière plus robuste.
+*   **LLM Prompter (`Utils/llm_prompter_util.py`)**:
+    *   Utilise `AutoModelForCausalLM` et `AutoTokenizer` pour une compatibilité plus large avec les modèles Hugging Face.
+    *   Le modèle est chargé sur CPU (`device_map="cpu"`) pour éviter les conflits de VRAM.
+    *   Le `pad_token` du tokenizer est défini sur `eos_token` si non présent, ce qui est nécessaire pour certains modèles comme Qwen.
+    *   Amélioration du parsing de la sortie du LLM pour extraire le prompt, en gérant les balises `<think>` et les préambules courants.
+
+---
+
+
 ## Beta 1.9.0 🐔The Chicken Arrives🐔
 
 *Date: 2025-05-29*

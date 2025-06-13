@@ -112,13 +112,6 @@ Le générateur d'image, prompt calculé à partir de l'image, ajout d'un lora
 Civitai Downloader Module
 ![image](https://github.com/user-attachments/assets/436461cd-6408-48d1-a030-22bab26cf5b4)
 
-Image ReLighting (Beta 1.9.0)
-
-![Capture d'écran 2025-05-29 192759](https://github.com/user-attachments/assets/1a23ab6d-8da1-4e4a-82e0-2ced8b271313)
-
-![Capture d'écran 2025-05-29 192446](https://github.com/user-attachments/assets/d1d277b0-3a03-40ed-91a8-92bda3369f3e)
-
-
 
 Watermark Module 
 ![image](https://github.com/user-attachments/assets/967733a0-7d9e-4316-add6-b8375007bf09)
@@ -419,6 +412,40 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
     *   Fournit des outils basiques pour modifier ou améliorer vos créations.
     *   Compatible avec les images générées par l'application ou externes.
 
+
+### 📚 Liste des Modules Disponibles (Version 2.0.0 et ultérieures)
+
+*   **ImageToText (`ImageToText_mod.py`)**:
+    *   Module utilitaire pour générer des descriptions textuelles ou des mots-clés à partir d'images en utilisant le modèle Florence-2.
+    *   Fonctionnalités : sélection de tâches spécifiques de Florence-2 (description détaillée, mots-clés, etc.), scan récursif de répertoires, filtrage par nom de fichier, option d'écrasement des fichiers texte existants.
+    *   Fournit un bouton "Décharger le modèle" pour libérer la VRAM et génère un rapport JSON détaillé de ses opérations.
+
+*   **Entraînement LoRA (`LoRATraining_mod.py`)**:
+    *   Module complet pour l'entraînement d'adaptateurs LoRA (Low-Rank Adaptation) pour les modèles SDXL.
+    *   **Fonctionnalités Clés**:
+        *   Interface utilisateur séparée pour la préparation des données (incluant le *captioning* automatique optionnel avec Florence-2, ou la copie de fichiers `.txt` existants, et le renommage séquentiel des fichiers) et l'entraînement.
+        *   Supporte la logique d'entraînement spécifique à SDXL comme les `add_time_ids`, les considérations d'encodage VAE, et le *gradient clipping*.
+        *   Configuration PEFT moderne avec `add_adapter()`.
+        *   Sauvegarde le LoRA final en un unique fichier `.safetensors`.
+        *   Interface utilisateur conviviale avec des menus déroulants pour le taux d'apprentissage, le modèle de base, l'optimiseur, le planificateur et la précision mixte.
+    *   **Une documentation détaillée pour l'entraînement LoRA est disponible dans `/modules/modules_utils/lora_train_mod_doc/`**.
+
+*   **Gestion de la Mémoire (`Utils/gest_mem.py`)**:
+    *   Utilitaire intégré (non pas un onglet séparé, mais un accordéon dans l'interface utilisateur) pour surveiller l'utilisation des ressources système : RAM, CPU, VRAM, et Utilisation GPU.
+    *   Utilise `psutil` et `pynvml` (pour les GPU NVIDIA) pour afficher les statistiques via des barres de progression circulaires.
+    *   Inclut un bouton "Décharger Tous les Modèles" (interagissant avec le ModelManager) et effectue un nettoyage explicite de la mémoire (`gc.collect()`, `torch.cuda.empty_cache()`).
+
+*   **CogView3-Plus (`CogView3Plus_mod.py`)**:
+    *   Onglet dédié pour la génération d'images avec le modèle `THUDM/CogView3-Plus-3B`.
+    *   Propose une génération asynchrone pour une interface utilisateur réactive et un nettoyage explicite de la mémoire après chaque lot.
+    *   Les configurations du modèle (déchargement, découpage, tuilage) sont gérées par le ModelManager central.
+
+*   **CogView4 (`CogView4_mod.py`)**:
+    *   Onglet dédié pour la génération d'images avec le modèle `THUDM/CogView4-6B`.
+    *   Similaire à CogView3-Plus, il utilise la génération asynchrone.
+    *   Des configurations spécifiques au modèle (déchargement CPU, découpage/tuilage VAE) sont appliquées après le chargement du pipeline.
+
+ ---
 ---
 
 ### 🛠️ Activation des Modules

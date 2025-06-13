@@ -25,6 +25,7 @@
     *   **SDXL Model Selection:** Easy selection from available `.safetensors` checkpoints.
     *   **VAE Support:** Use external VAEs or the model's built-in VAE.
     *   **Multi-LoRA:** Simultaneously apply multiple LoRA (Low-Rank Adaptation) models with individual adjustment of their influence (weights).
+    *   **LoRA Training:** Comprehensive module for creating custom LoRA adapters for SDXL models, with features like automatic captioning, sequential data renaming, and modern PEFT configuration. (Documentation available in `/modules/modules_utils/lora_train_mod_doc/`)
 
 *   **Advanced Generation Control:**
     *   **Samplers:** Wide choice of diffusion algorithms (Euler, DPM++, etc.) to vary the generation process.
@@ -43,6 +44,7 @@
     *   **Real-Time Previews:** Display of the image being generated at regular intervals.
     *   **Detailed Progress Bars:** Visual tracking of task progress.
     *   **Internationalization:** Multilingual interface (initially French/English) thanks to translation files.
+    *   **Integrated Memory Management:** UI accordion for monitoring system resources (RAM, CPU, VRAM, GPU) and unloading models.
     *   **User Feedback:** Clear informational, warning, and error messages.
     *   **Global Configuration:** `config.json` file for paths, default prompts, etc.
 
@@ -56,7 +58,7 @@
 *   **`ModelManager`:**
     *   Core of resource management: intelligent loading/unloading of SDXL models, VAEs, and LoRAs to optimize VRAM usage.
     *   Manages different types of pipelines (`StableDiffusionXLPipeline`, `StableDiffusionXLInpaintPipeline`, `StableDiffusionXLImg2ImgPipeline`, and potentially `SanaSprintPipeline`).
-    *   Integrates `Compel` for advanced prompt interpretation (keyword weighting).
+    *   Integrates `Compel` for advanced prompt interpretation (keyword weighting). Enhanced to handle new model types and improved LoRA application.
 
 *   **`PresetManager`:**
     *   Responsible for the persistence (saving/loading) of user presets and module states.
@@ -72,7 +74,10 @@
 
 *   **`image_prompter` (in `core/`):**
     *   Module responsible for analyzing a user-provided image to extract a text description (prompt).
-
+*   **`llm_prompter_util` (in `Utils/`):**
+    *   Utility for AI prompt enhancement using various Hugging Face Language Models.
+    *   Optimized for CPU usage to conserve VRAM and improved parsing for broader model compatibility.
+*   **`gest_mem` (in `Utils/`):** Utility for system resource monitoring (RAM, CPU, VRAM, GPU) displayed in the UI.
 ## Technologies Used
 
 *   **Language:** Python
@@ -166,7 +171,61 @@ Here is a list of modules currently integrated into the project:
 
 ---
 
+### 6. ImageToText
+
+*   **Module Name (internal):** `ImageToText_mod`
+*   **Description:** Utility module to generate text descriptions or tags from images using the Florence-2 model.
+*   **Key Features:**
+    *   Selection of specific Florence-2 tasks (detailed caption, tags, object detection, etc.).
+    *   Recursive directory scanning for images.
+    *   Filename filtering (e.g., `*.png`).
+    *   Option to overwrite existing text files.
+    *   "Unload Model" button to free VRAM.
+    *   Generates a detailed JSON report of its operations.
+
+---
+
+### 7. LoRA Training
+
+*   **Module Name (internal):** `LoRATraining_mod`
+*   **Description:** A comprehensive module for training LoRA (Low-Rank Adaptation) adapters for SDXL models.
+*   **Key Features:**
+    *   Separate UI for data preparation (including optional automatic captioning with Florence-2, or copying existing `.txt` files, and sequential file renaming) and training.
+    *   Supports SDXL-specific training logic like `add_time_ids`, VAE encoding considerations, and gradient clipping.
+    *   Modern PEFT configuration with `unet.add_adapter()` and `text_encoder.add_adapter()`.
+    *   Saves final LoRA as a single `.safetensors` file.
+    *   User-friendly UI with dropdowns for learning rate, base model, optimizer, scheduler, and mixed precision.
+    *   Detailed documentation available in `/modules/modules_utils/lora_train_mod_doc/`.
+
+---
+
+### 8. CogView3-Plus Generator
+
+*   **Module Name (internal):** `CogView3Plus_mod`
+*   **Description:** Dedicated tab for image generation using the `THUDM/CogView3-Plus-3B` model.
+*   **Key Features:**
+    *   Text-to-image generation with style mixing and prompt translation.
+    *   Asynchronous generation for a responsive UI.
+    *   Explicit memory cleanup after each batch.
+    *   Model configurations (offload, slicing, tiling) are managed by the central ModelManager.
+    *   Saves images with specific CogView3-Plus metadata.
+
+---
+
+### 9. CogView4 Generator
+
+*   **Module Name (internal):** `CogView4_mod`
+*   **Description:** Dedicated tab for image generation using the `THUDM/CogView4-6B` model.
+*   **Key Features:**
+    *   Similar to CogView3-Plus, offers text-to-image generation with styles.
+    *   Uses asynchronous generation.
+    *   Specific model configurations (CPU offload, VAE slicing/tiling) are applied after the pipeline is loaded.
+    *   Saves images with specific CogView4 metadata.
+
+---
+
 ### 6. Image Watermark
+### 10. Image Watermark
 
 *   **Module Name (internal):** `ImageWatermark_mod`
 *   **Description:** Allows adding text or graphic watermarks to one or more images.
@@ -178,7 +237,7 @@ Here is a list of modules currently integrated into the project:
 
 ---
 
-### 7. Civitai Downloader
+### 11. Civitai Downloader
 
 *   **Module Name (internal):** `civitai_downloader_mod`
 *   **Description:** Facilitates searching, viewing, and downloading models (checkpoints, LoRAs, VAEs, Textual Inversions, etc.) directly from Civitai.com.
@@ -191,7 +250,7 @@ Here is a list of modules currently integrated into the project:
 
 ---
 
-### 8. Image to Image
+### 12. Image to Image
 
 *   **Module Name (internal):** `image_to_image_mod`
 *   **Description:** Allows generating new images based on an input image and a text prompt, using an SDXL Image-to-Image pipeline.
@@ -205,7 +264,7 @@ Here is a list of modules currently integrated into the project:
 
 ---
 
-### 9. Photo Editing (Basic)
+### 13. Photo Editing (Basic)
 
 *   **Module Name (internal):** `photo_editing_mod`
 *   **Description:** Provides an interface for basic photo adjustments and filters, primarily operated by the Pillow library.
@@ -218,7 +277,7 @@ Here is a list of modules currently integrated into the project:
 
 ---
 
-### 10. Test Module
+### 14. Test Module
 
 *   **Module Name (internal):** `test_module_mod`
 *   **Description:** A skeleton module designed as an example or starting point for developing new custom modules. It illustrates the basic structure of a module, its initialization, and how it can interact with the main system.
@@ -242,7 +301,7 @@ Here is a list of modules currently integrated into the project:
     *   **Translations:** Uses provided translations to display interface labels (e.g., `translate("test_module_tab_name", self.module_translations)`). Translation keys specific to this module should be defined in `test_module_mod.json`.
     *   **Educational Purpose:** Primarily serves to demonstrate how to create a new module, how it's integrated, and how it can access the application's shared resources. It does not perform complex image processing or heavy operations itself.
 
-### 11. Re-Lighting (Image Re-illumination)
+### 15. Re-Lighting (Image Re-illumination)
 
 *   **Module Name (internal):** `reLighting_mod`
 *   **Description:** This module allows users to adjust or completely change the lighting conditions of an existing image. It can be used to simulate different light sources, times of day, or artistic lighting effects.
@@ -290,6 +349,7 @@ This overview should now be much more complete and accurately reflect the full s
     *   **Choix de Modèles SDXL :** Sélection facile parmi les checkpoints `.safetensors` disponibles.
     *   **Support VAE :** Utilisation de VAEs externes ou du VAE intégré au modèle.
     *   **Multi-LoRA :** Application simultanée de plusieurs modèles LoRA (Low-Rank Adaptation) avec ajustement individuel de leur influence (poids).
+    *   **Entraînement LoRA :** Module complet pour la création d'adaptateurs LoRA personnalisés pour les modèles SDXL, avec des fonctionnalités telles que le *captioning* automatique, le renommage séquentiel des données et une configuration PEFT moderne. (Documentation disponible dans `/modules/modules_utils/lora_train_mod_doc/`)
 
 *   **Contrôle Avancé de la Génération :**
     *   **Samplers :** Large choix d'algorithmes de diffusion (Euler, DPM++, etc.) pour varier le processus de génération.
@@ -309,6 +369,7 @@ This overview should now be much more complete and accurately reflect the full s
     *   **Barres de Progression Détaillées :** Suivi visuel de l'avancement des tâches.
     *   **Internationalisation :** Interface multilingue (Français/Anglais initialement) grâce à des fichiers de traduction.
     *   **Feedback Utilisateur :** Messages d'information, d'avertissement et d'erreur clairs.
+    *   **Gestion de la Mémoire Intégrée :** Accordéon UI pour surveiller les ressources système (RAM, CPU, VRAM, GPU) et décharger les modèles.
     *   **Configuration Globale :** Fichier `config.json` pour les chemins, prompts par défaut, etc.
 
 *   **Sortie et Métadonnées :**
@@ -321,7 +382,7 @@ This overview should now be much more complete and accurately reflect the full s
 *   **`ModelManager` :**
     *   Cœur de la gestion des ressources : chargement/déchargement intelligent des modèles SDXL, VAEs, et LoRAs pour optimiser l'utilisation de la VRAM.
     *   Gère différents types de pipelines (`StableDiffusionXLPipeline`, `StableDiffusionXLInpaintPipeline`, `StableDiffusionXLImg2ImgPipeline` et potentiellement `SanaSprintPipeline`).
-    *   Intègre `Compel` pour une interprétation avancée des prompts (pondération des mots-clés).
+    *   Intègre `Compel` pour une interprétation avancée des prompts (pondération des mots-clés). Amélioré pour gérer de nouveaux types de modèles et une application LoRA plus robuste.
 
 *   **`PresetManager` :**
     *   Responsable de la persistance (sauvegarde/chargement) des presets utilisateur et de l'état des modules.
@@ -337,7 +398,10 @@ This overview should now be much more complete and accurately reflect the full s
 
 *   **`image_prompter` (dans `core/`) :**
     *   Module responsable de l'analyse d'une image fournie par l'utilisateur pour en extraire une description textuelle (prompt).
-
+*   **`llm_prompter_util` (dans `Utils/`) :**
+    *   Utilitaire pour l'amélioration des prompts par IA utilisant divers modèles de langage Hugging Face.
+    *   Optimisé pour une utilisation CPU afin de préserver la VRAM et amélioration du parsing pour une compatibilité plus large des modèles.
+*   **`gest_mem` (dans `Utils/`) :** Utilitaire pour la surveillance des ressources système (RAM, CPU, VRAM, GPU) affichées dans l'interface utilisateur.
 ## Technologies Utilisées
 
 *   **Langage :** Python
@@ -431,7 +495,61 @@ Voici une liste des modules actuellement intégrés au projet :
 
 ---
 
+### 6. ImageToText
+
+*   **Nom du module (interne) :** `ImageToText_mod`
+*   **Description :** Module utilitaire pour générer des descriptions textuelles ou des mots-clés à partir d'images en utilisant le modèle Florence-2.
+*   **Fonctionnalités Clés :**
+    *   Sélection de tâches spécifiques de Florence-2 (description détaillée, mots-clés, détection d'objets, etc.).
+    *   Scan récursif de répertoires pour les images.
+    *   Filtrage par nom de fichier (ex: `*.png`).
+    *   Option d'écrasement des fichiers texte existants.
+    *   Bouton "Décharger le modèle" pour libérer la VRAM.
+    *   Génère un rapport JSON détaillé de ses opérations.
+
+---
+
+### 7. Entraînement LoRA
+
+*   **Nom du module (interne) :** `LoRATraining_mod`
+*   **Description :** Module complet pour l'entraînement d'adaptateurs LoRA (Low-Rank Adaptation) pour les modèles SDXL.
+*   **Fonctionnalités Clés :**
+    *   Interface utilisateur séparée pour la préparation des données (incluant le *captioning* automatique optionnel avec Florence-2, ou la copie de fichiers `.txt` existants, et le renommage séquentiel des fichiers) et l'entraînement.
+    *   Supporte la logique d'entraînement spécifique à SDXL comme les `add_time_ids`, les considérations d'encodage VAE, et le *gradient clipping*.
+    *   Configuration PEFT moderne avec `unet.add_adapter()` et `text_encoder.add_adapter()`.
+    *   Sauvegarde le LoRA final en un unique fichier `.safetensors`.
+    *   Interface utilisateur conviviale avec des menus déroulants pour le taux d'apprentissage, le modèle de base, l'optimiseur, le planificateur et la précision mixte.
+    *   Documentation détaillée disponible dans `/modules/modules_utils/lora_train_mod_doc/`.
+
+---
+
+### 8. Générateur CogView3-Plus
+
+*   **Nom du module (interne) :** `CogView3Plus_mod`
+*   **Description :** Onglet dédié pour la génération d'images avec le modèle `THUDM/CogView3-Plus-3B`.
+*   **Fonctionnalités Clés :**
+    *   Génération texte-vers-image avec mélange de styles et traduction de prompt.
+    *   Génération asynchrone pour une interface utilisateur réactive.
+    *   Nettoyage explicite de la mémoire après chaque lot.
+    *   Les configurations du modèle (déchargement, découpage, tuilage) sont gérées par le ModelManager central.
+    *   Sauvegarde les images avec des métadonnées spécifiques à CogView3-Plus.
+
+---
+
+### 9. Générateur CogView4
+
+*   **Nom du module (interne) :** `CogView4_mod`
+*   **Description :** Onglet dédié pour la génération d'images avec le modèle `THUDM/CogView4-6B`.
+*   **Fonctionnalités Clés :**
+    *   Similaire à CogView3-Plus, offre la génération texte-vers-image avec styles.
+    *   Utilise la génération asynchrone.
+    *   Des configurations spécifiques au modèle (déchargement CPU, découpage/tuilage VAE) sont appliquées après le chargement du pipeline.
+    *   Sauvegarde les images avec des métadonnées spécifiques à CogView4.
+
+---
+
 ### 6. Image Watermark (Filigrane d'Image)
+### 10. Image Watermark (Filigrane d'Image)
 
 *   **Nom du module (interne) :** `ImageWatermark_mod`
 *   **Description :** Permet d'ajouter des filigranes (watermarks) textuels ou graphiques sur une ou plusieurs images.
@@ -443,7 +561,7 @@ Voici une liste des modules actuellement intégrés au projet :
 
 ---
 
-### 7. Civitai Downloader (Téléchargeur Civitai)
+### 11. Civitai Downloader (Téléchargeur Civitai)
 
 *   **Nom du module (interne) :** `civitai_downloader_mod`
 *   **Description :** Facilite la recherche, la visualisation et le téléchargement de modèles (checkpoints, LoRAs, VAEs, Textual Inversions, etc.) directement depuis le site Civitai.com.
@@ -456,7 +574,7 @@ Voici une liste des modules actuellement intégrés au projet :
 
 ---
 
-### 8. Image to Image (Image vers Image)
+### 12. Image to Image (Image vers Image)
 
 *   **Nom du module (interne) :** `image_to_image_mod`
 *   **Description :** Permet de générer de nouvelles images en se basant sur une image d'entrée et un prompt textuel, en utilisant un pipeline SDXL Image-to-Image.
@@ -470,7 +588,7 @@ Voici une liste des modules actuellement intégrés au projet :
 
 ---
 
-### 9. Photo Editing (Retouche Photo Basique)
+### 13. Photo Editing (Retouche Photo Basique)
 
 *   **Nom du module (interne) :** `photo_editing_mod`
 *   **Description :** Fournit une interface pour des ajustements et des filtres photo basiques, opérés principalement par la bibliothèque Pillow.
@@ -483,7 +601,7 @@ Voici une liste des modules actuellement intégrés au projet :
 
 ---
 
-### 10. Test Module (Module de Test)
+### 14. Test Module (Module de Test)
 
 *   **Nom du module (interne) :** `test_module_mod`
 *   **Description :** Un module squelette conçu comme exemple ou point de départ pour le développement de nouveaux modules personnalisés. Il illustre la structure de base d'un module, son initialisation, et comment il peut interagir avec le système principal.
@@ -509,7 +627,7 @@ Voici une liste des modules actuellement intégrés au projet :
 
 
 
-### 11. Re-Lighting (Ré-éclairage d'Image)
+### 15. Re-Lighting (Ré-éclairage d'Image)
 
 *   **Nom du module (interne) :** `reLighting_mod`
 *   **Description :** Ce module permet aux utilisateurs d'ajuster ou de modifier complètement les conditions d'éclairage d'une image existante. Il peut être utilisé pour simuler différentes sources de lumière, moments de la journée, ou effets d'éclairage artistiques.
