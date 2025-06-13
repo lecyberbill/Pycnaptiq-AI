@@ -1,4 +1,4 @@
-# cyberbill image generator 🚀
+# Pycnaptiq-AI  🚀
 
 This development was heavily inspired by the excellent software Fooocus https://github.com/lllyasviel/Fooocus, whose latest version dates back to August 2024.
 Although many forks have appeared, I wanted to create a complete software almost from scratch, drawing from libraries like Gradio, Diffusers, Hugging Face (Transformers, Compel), ONNX Runtime, Rembg, etc. It also integrates specific models and techniques for image enhancement, such as ModelScope for colorization, Diffusers LDM for upscaling, and OneRestore for image restoration. It is therefore a coherent assembly of various sources, and the work of many teams whom I warmly thank.
