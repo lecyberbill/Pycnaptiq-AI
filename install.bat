@@ -5,7 +5,7 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 set "PYTHON_DIR_NAME=python-3.10.11-embed-amd64"
 set "VENV_DIR_NAME=venv"
 set "REQUIREMENTS_FILE=requirements.txt"
-set "MAIN_APP_SCRIPT=cyberbill_SDXL.py"
+set "MAIN_APP_SCRIPT=Pycnaptiq-AI.py"
 set "locales_dir=%~dp0locales\"
 
 :: --- Début du Script ---
@@ -144,7 +144,7 @@ call :check_error ERROR_UPGRADE_PIP
 echo !OK_UPGRADE_PIP!
 
 echo !INFO_INSTALL_TORCH!
-"%venv_pip_exe%" install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+"%venv_pip_exe%" install --no-cache-dir -U xformers torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 call :check_error ERROR_INSTALL_TORCH
 echo !OK_INSTALL_TORCH!
 
