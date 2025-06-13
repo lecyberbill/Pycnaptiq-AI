@@ -1,3 +1,6 @@
+![image](https://github.com/user-attachments/assets/0ce3396a-56ad-4b6f-86f4-4caa9f058c28)
+
+
 # Pycnaptiq-AI  🚀
 
 This development was heavily inspired by the excellent software Fooocus https://github.com/lllyasviel/Fooocus, whose latest version dates back to August 2024.
