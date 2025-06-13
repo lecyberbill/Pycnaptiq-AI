@@ -105,6 +105,30 @@ This feature aims to help you explore new creative avenues and achieve richer, m
     *   The application will process each task sequentially, displaying progress and results. You can stop the process using the **"Stop Batch"** button.
 
 ## Interface Capture
+Memory Management
+
+![Capture d'écran 2025-06-13 143103](https://github.com/user-attachments/assets/f14a2b89-6dc8-4bc7-b7b5-b6d3f183bd78)
+
+CogView3-Plus support
+
+![Capture d'écran 2025-06-13 143115](https://github.com/user-attachments/assets/8b1f769d-4c8e-4599-9b16-a7d96c397c25)
+
+CogView4 support
+
+![Capture d'écran 2025-06-13 145107](https://github.com/user-attachments/assets/f02c354a-0b82-437e-a938-78f63ba039f0)
+
+ImageToText
+
+![Capture d'écran 2025-06-13 145426](https://github.com/user-attachments/assets/e63a8a98-3962-4538-b67d-e0154774fe1a)
+
+LoRA Training ! automatique image preparation !
+![Capture d'écran 2025-06-13 152258](https://github.com/user-attachments/assets/b15c83dc-6175-43d3-932a-166fd43b52a6)
+![Capture d'écran 2025-06-13 152422](https://github.com/user-attachments/assets/b44c3426-8ac0-41b4-9319-d24f0a6b8984)
+![Capture d'écran 2025-06-13 153723](https://github.com/user-attachments/assets/ab6f5146-feaa-4765-89af-de0579f3e497)
+
+
+
+
 
 Image generator, prompt calculated from the image, adding a LoRA
 
