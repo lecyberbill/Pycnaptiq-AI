@@ -1,8 +1,8 @@
-# Cyberbill Image Generator Project
+# Pycnaptiq-AI Project
 
 ## General Description
 
-**Cyberbill Image Generator** is a comprehensive and user-friendly desktop application designed for high-quality image generation and manipulation. Primarily leveraging the powerful **Stable Diffusion XL (SDXL)** artificial intelligence model, it provides users with a vast array of tools for artistic creation, photo editing, and creative exploration. Its user interface, developed with Gradio, is designed to be intuitive, organized into thematic tabs for simplified access to its multiple features. One of the project's major strengths lies in its modular architecture, allowing for easy extensibility by adding new capabilities via dynamic modules.
+*Pycnaptiq-AI ** is a comprehensive and user-friendly desktop application designed for high-quality image generation and manipulation. Primarily leveraging the powerful **Stable Diffusion XL (SDXL)** artificial intelligence model, it provides users with a vast array of tools for artistic creation, photo editing, and creative exploration. Its user interface, developed with Gradio, is designed to be intuitive, organized into thematic tabs for simplified access to its multiple features. One of the project's major strengths lies in its modular architecture, allowing for easy extensibility by adding new capabilities via dynamic modules.
 
 ## Key Project Features
 
