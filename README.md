@@ -16,7 +16,7 @@ Passionate about image generation and AI, I heavily relied on Gemini to help me.
 
 ## 📥 Installation
 1.  **Download the project**
-    - Choose the `zip` file or `cyberbill_SDXL.zip` and unzip it into the directory of your choice.
+    - Choose the `zip` file or `Pycnaptiq-AI.zip` and unzip it into the directory of your choice.
 
 2.  **Install CUDA 12.8** via this [link] (https://developer.nvidia.com/cuda-downloads).
 
@@ -32,7 +32,7 @@ Passionate about image generation and AI, I heavily relied on Gemini to help me.
 2.  **Or use the command line:**
     ```sh
     venv\Scripts\activate
-    python cyberbill_SDXL.py
+    python Pycnaptiq-AI.py
     ```
 
 
@@ -475,6 +475,16 @@ The **cyberbill_SDXL** application offers several complementary modules that act
     *   Dedicated tab for image generation using the `THUDM/CogView4-6B` model.
     *   Similar to CogView3-Plus, it uses asynchronous generation.
     *   Specific model configurations (CPU offload, VAE slicing/tiling) are applied after the pipeline is loaded.
+
+*   **CogView4 (`FluxSchnell_mod.py`)**:
+    *   Introduced a new tab for ultra-fast image generation using **FLUX.1-Schnell** models (e.g., `black-forest-labs/FLUX.1-schnell`).
+    *   Supports both **Text-to-Image** and **Image-to-Image** generation modes.
+    *   Utilizes `FluxPipeline` and `FluxImg2ImgPipeline` for efficient processing.
+    *   Offers a selection of specific resolutions optimized for FLUX models.
+    *   Integrates **LoRA support** (up to 2 LoRAs) with weight adjustment.
+    *   Includes **style selection**, **Image-to-Prompt** (Florence-2), and **LLM Prompt Enhancement** (e.g., Qwen).
+    *   Managed by `ModelManager` for model loading, unloading, and device management.
+
 
 ----
 

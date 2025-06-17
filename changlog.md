@@ -1,5 +1,29 @@
 # Changelog
 
+## 🐓 Beta 2.0.2 The fearless young rooster 🐓 - 2025-06-17
+
+### ✨ New Features and Improvements ✨
+
+*   **New Module: FLUX.1-Schnell Generator (`FluxSchnell_mod.py`)**:
+    *   Introduced a new tab for ultra-fast image generation using **FLUX.1-Schnell** models (e.g., `black-forest-labs/FLUX.1-schnell`).
+    *   Supports both **Text-to-Image** and **Image-to-Image** generation modes.
+    *   Utilizes `FluxPipeline` and `FluxImg2ImgPipeline` for efficient processing.
+    *   Offers a selection of specific resolutions optimized for FLUX models.
+    *   Integrates **LoRA support** (up to 2 LoRAs) with weight adjustment.
+    *   Includes **style selection** to influence image aesthetics.
+    *   Features **Image-to-Prompt** capability using Florence-2 for generating prompts from uploaded images.
+    *   Incorporates **LLM Prompt Enhancement** (e.g., Qwen) to enrich user prompts.
+    *   Managed by `ModelManager` for model loading, unloading, and device management.
+    *   Saves generated images with comprehensive metadata.
+    *   User interface includes controls for prompt, translation, styles, image-to-prompt, img2img mode (with strength), resolution, steps, guidance scale, seed, number of images, and LoRA configuration.
+
+### ⚙️ Technical and Refactoring ⚙️
+
+*   **General**:
+    *   Version bump to 2.0.2.
+
+---
+
 ## 🐓 Beta 2.0.0 The fearless young rooster 🐓 - 2025-06-13
 
 ### ✨ New Features and Improvements ✨
@@ -82,6 +106,30 @@
 
 
 ## 🐓 béta 2.0.0 The fearless young rooster 🐓 - 2025-06-13
+
+### ✨ Nouvelles Fonctionnalités et Améliorations ✨
+
+*   **Nouveau Module : Générateur FLUX.1-Schnell (`FluxSchnell_mod.py`)**:
+    *   Introduction d'un nouvel onglet pour la génération d'images ultra-rapide utilisant les modèles **FLUX.1-Schnell** (ex: `black-forest-labs/FLUX.1-schnell`).
+    *   Supporte les modes de génération **Texte-vers-Image** et **Image-vers-Image**.
+    *   Utilise `FluxPipeline` et `FluxImg2ImgPipeline` pour un traitement efficace.
+    *   Offre une sélection de résolutions spécifiques optimisées pour les modèles FLUX.
+    *   Intègre le **support des LoRAs** (jusqu'à 2 LoRAs) avec ajustement des poids.
+    *   Inclut la **sélection de styles** pour influencer l'esthétique des images.
+    *   Dispose de la capacité **Image-vers-Prompt** utilisant Florence-2 pour générer des prompts à partir d'images téléversées.
+    *   Incorpore l'**Amélioration de Prompt par LLM** (ex: Qwen) pour enrichir les prompts utilisateurs.
+    *   Géré par `ModelManager` pour le chargement, le déchargement des modèles et la gestion des dispositifs.
+    *   Sauvegarde les images générées avec des métadonnées complètes.
+    *   L'interface utilisateur comprend des contrôles pour le prompt, la traduction, les styles, l'image-vers-prompt, le mode img2img (avec force), la résolution, les étapes, l'échelle de guidage, le seed, le nombre d'images et la configuration des LoRAs.
+
+### ⚙️ Technique et Refactoring ⚙️
+
+*   **Général**:
+    *   Montée de version à 2.0.2.
+
+---
+
+## 🐓 béta 2.0.0 Le jeune coq intrépide 🐓 - 2025-06-13
 
 ### ✨ Nouvelles Fonctionnalités et Améliorations ✨
 

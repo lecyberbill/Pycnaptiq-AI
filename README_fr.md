@@ -445,7 +445,7 @@ L'application **cyberbill_SDXL** propose plusieurs modules complémentaires qui 
     *   Similaire à CogView3-Plus, il utilise la génération asynchrone.
     *   Des configurations spécifiques au modèle (déchargement CPU, découpage/tuilage VAE) sont appliquées après le chargement du pipeline.
 
- ---
+
 ---
 
 ### 🛠️ Activation des Modules

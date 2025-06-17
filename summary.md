@@ -313,7 +313,17 @@ Here is a list of modules currently integrated into the project:
     *   **Preview:** Real-time or quick preview of lighting changes.
     *   Resource management, potentially unloading SDXL if using a dedicated re-lighting model or heavy CPU/GPU processing.
 
+### 16. FLUX.1-Schnell Generator
 
+*   **Module Name (internal):** `FluxSchnell_mod`
+*   **Description:** Module for ultra-fast image generation using FLUX.1-Schnell models (e.g., `black-forest-labs/FLUX.1-schnell`).
+*   **Key Features:**
+    *   Supports both **Text-to-Image** and **Image-to-Image** generation.
+    *   Utilizes `FluxPipeline` and `FluxImg2ImgPipeline`.
+    *   Offers specific FLUX-optimized resolutions.
+    *   Integrates LoRA support (up to 2), style selection, Image-to-Prompt (Florence-2), and LLM Prompt Enhancement.
+    *   Managed by `ModelManager` for efficient resource handling.
+    *   Saves images with detailed metadata.
 ---
 
 This overview should now be much more complete and accurately reflect the full scope of **Cyberbill Image Generator**'s capabilities!
