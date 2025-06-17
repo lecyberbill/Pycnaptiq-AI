@@ -109,7 +109,8 @@ This feature aims to help you explore new creative avenues and achieve richer, m
 
 ## Interface Capture
 Console Print :
-![image](https://github.com/user-attachments/assets/af45dd9f-2948-400a-9865-56123f5240a5)
+![image](https://github.com/user-attachments/assets/18948a1f-5d11-422d-953e-2a560520ce10)
+
 
 FLUX.1-Schnell Image Generator (Tab)
 ![image](https://github.com/user-attachments/assets/63821db2-ba51-4b7a-8a64-9c745d3bfdf5)
