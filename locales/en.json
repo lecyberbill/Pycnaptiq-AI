@@ -621,5 +621,13 @@
     "activation_cpu_offload_forced_config": "CPU offload forced by configuration. VRAM reduction activated (may slow down generation).",
     "cleanup_warning_occurred": "Warning during memory cleanup.",
     "enable_live_memory_stats_label": "Enable Auto-Update Stats",
-    "memory_stats_update_interval_label": "Update Interval (sec)"
+    "memory_stats_update_interval_label": "Update Interval (sec)",
+    "flux_schnell_loading_prior_pipeline": "Loading FLUX.1-Redux (prior) pipeline...",
+    "flux_schnell_prior_already_loaded": "FLUX.1-Redux (prior) pipeline already loaded.",
+    "flux_schnell_prior_loaded_successfully": "FLUX.1-Redux (prior) pipeline loaded successfully.",
+    "flux_schnell_error_loading_prior": "Error loading FLUX.1-Redux (prior) pipeline",
+    "flux_schnell_unloading_prior_pipeline": "Unloading FLUX.1-Redux (prior) pipeline...",
+    "flux_schnell_prior_not_loaded_nothing_to_unload": "FLUX.1-Redux (prior) pipeline not loaded, nothing to unload.",
+    "flux_schnell_prior_unloaded_successfully": "FLUX.1-Redux (prior) pipeline unloaded successfully.",
+    "flux_schnell_error_unloading_prior": "Error unloading FLUX.1-Redux (prior) pipeline"
     }

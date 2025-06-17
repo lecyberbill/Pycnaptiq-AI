@@ -624,10 +624,18 @@
   "cleanup_warning_suffix": "Avertissement de nettoyage enregistré",
   "unload_process_completed_check_stats": "Processus de déchargement terminé. Vérifiez les statistiques mémoire.",
   "aucun_modele_a_decharger": "Aucun modèle à décharger.",
-"modele_precedent_decharge": "Modèle précédent déchargé.",
-"activation_cpu_offload_forced_config": "Offload CPU forcé par configuration. Réduction VRAM activée (peut ralentir la génération).",
+    "modele_precedent_decharge": "Modèle précédent déchargé.",
+    "activation_cpu_offload_forced_config": "Offload CPU forcé par configuration. Réduction VRAM activée (peut ralentir la génération).",
     "cleanup_warning_occurred": "Avertissement lors du nettoyage de la mémoire.",
     "enable_live_memory_stats_label": "Activer MàJ auto Stats",
-    "memory_stats_update_interval_label": "Intervalle MàJ (sec)"
+    "memory_stats_update_interval_label": "Intervalle MàJ (sec)",
+    "flux_schnell_loading_prior_pipeline": "Chargement du pipeline FLUX.1-Redux (prior)...",
+    "flux_schnell_prior_already_loaded": "Pipeline FLUX.1-Redux (prior) déjà chargé.",
+    "flux_schnell_prior_loaded_successfully": "Pipeline FLUX.1-Redux (prior) chargé avec succès.",
+    "flux_schnell_error_loading_prior": "Erreur lors du chargement du pipeline FLUX.1-Redux (prior)",
+    "flux_schnell_unloading_prior_pipeline": "Déchargement du pipeline FLUX.1-Redux (prior)...",
+    "flux_schnell_prior_not_loaded_nothing_to_unload": "Pipeline FLUX.1-Redux (prior) non chargé, rien à décharger.",
+    "flux_schnell_prior_unloaded_successfully": "Pipeline FLUX.1-Redux (prior) déchargé avec succès.",
+    "flux_schnell_error_unloading_prior": "Erreur lors du déchargement du pipeline FLUX.1-Redux (prior)"
 
 }
