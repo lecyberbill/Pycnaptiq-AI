@@ -108,6 +108,14 @@ This feature aims to help you explore new creative avenues and achieve richer, m
     *   The application will process each task sequentially, displaying progress and results. You can stop the process using the **"Stop Batch"** button.
 
 ## Interface Capture
+Console Print :
+![image](https://github.com/user-attachments/assets/18948a1f-5d11-422d-953e-2a560520ce10)
+
+
+FLUX.1-Schnell Image Generator (Tab)
+![image](https://github.com/user-attachments/assets/63821db2-ba51-4b7a-8a64-9c745d3bfdf5)
+
+
 Memory Management
 
 ![Capture d'écran 2025-06-13 143103](https://github.com/user-attachments/assets/f14a2b89-6dc8-4bc7-b7b5-b6d3f183bd78)

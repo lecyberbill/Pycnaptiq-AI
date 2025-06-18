@@ -1,8 +1,8 @@
-# Cyberbill Image Generator Project
+# Pycnaptiq-AI Project
 
 ## General Description
 
-**Cyberbill Image Generator** is a comprehensive and user-friendly desktop application designed for high-quality image generation and manipulation. Primarily leveraging the powerful **Stable Diffusion XL (SDXL)** artificial intelligence model, it provides users with a vast array of tools for artistic creation, photo editing, and creative exploration. Its user interface, developed with Gradio, is designed to be intuitive, organized into thematic tabs for simplified access to its multiple features. One of the project's major strengths lies in its modular architecture, allowing for easy extensibility by adding new capabilities via dynamic modules.
+*Pycnaptiq-AI ** is a comprehensive and user-friendly desktop application designed for high-quality image generation and manipulation. Primarily leveraging the powerful **Stable Diffusion XL (SDXL)** artificial intelligence model, it provides users with a vast array of tools for artistic creation, photo editing, and creative exploration. Its user interface, developed with Gradio, is designed to be intuitive, organized into thematic tabs for simplified access to its multiple features. One of the project's major strengths lies in its modular architecture, allowing for easy extensibility by adding new capabilities via dynamic modules.
 
 ## Key Project Features
 
@@ -332,11 +332,11 @@ This overview should now be much more complete and accurately reflect the full s
 
 
 
-# Projet Cyberbill Image Generator
+# Pycnaptiq-AI
 
 ## Description Générale
 
-**Cyberbill Image Generator** est une application de bureau complète et conviviale, conçue pour la génération et la manipulation d'images de haute qualité. S'appuyant principalement sur le puissant modèle d'intelligence artificielle **Stable Diffusion XL (SDXL)**, elle met à disposition des utilisateurs une vaste gamme d'outils pour la création artistique, la retouche photo et l'exploration créative. Son interface utilisateur, développée avec Gradio, est pensée pour être intuitive, organisée en onglets thématiques pour un accès simplifié aux multiples fonctionnalités. Un des atouts majeurs du projet réside dans son architecture modulaire, permettant une extensibilité aisée par l'ajout de nouvelles capacités via des modules dynamiques.
+**Pycnaptiq-AI** est une application de bureau complète et conviviale, conçue pour la génération et la manipulation d'images de haute qualité. S'appuyant principalement sur le puissant modèle d'intelligence artificielle **Stable Diffusion XL (SDXL)**, elle met à disposition des utilisateurs une vaste gamme d'outils pour la création artistique, la retouche photo et l'exploration créative. Son interface utilisateur, développée avec Gradio, est pensée pour être intuitive, organisée en onglets thématiques pour un accès simplifié aux multiples fonctionnalités. Un des atouts majeurs du projet réside dans son architecture modulaire, permettant une extensibilité aisée par l'ajout de nouvelles capacités via des modules dynamiques.
 
 ## Fonctionnalités Clés du Projet
 
