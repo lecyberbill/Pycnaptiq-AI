@@ -326,7 +326,34 @@ Here is a list of modules currently integrated into the project:
     *   Saves images with detailed metadata.
 ---
 
-This overview should now be much more complete and accurately reflect the full scope of **Cyberbill Image Generator**'s capabilities!
+### 17. StarVector (Image to SVG)
+
+*   **Module Name (internal):** `starvector_mod`
+*   **Description:** This module allows converting a raster image (like PNG or JPG) into a vector graphic (SVG) using the StarVector model.
+*   **Key Features:**
+    *   Converts an uploaded image into Scalable Vector Graphics (SVG) code.
+    *   Provides the raw SVG code output.
+    *   Displays a rasterized preview of the generated SVG.
+    *   Managed by `ModelManager` for efficient resource handling.
+    *   Saves images with detailed metadata.
+---
+
+### 18. RealEdit Image Editor
+
+*   **Module Name (internal):** `RealEdit_mod`
+*   **Description:** This module allows users to edit images based on textual instructions using the `peter-sushko/RealEdit` model. It's designed for realistic image editing tasks.
+*   **Key Features:**
+    *   Upload an input image for editing.
+    *   Provide a textual instruction (prompt) describing the desired modification (e.g., "give him a crown").
+    *   Option to translate the editing prompt to English for potentially better model performance.
+    *   Controls for adjusting the number of inference steps and the image guidance scale.
+    *   Verifies image conformity before processing.
+    *   Saves the generated edited image with relevant metadata.
+    *   Aims to address real-world image editing demands, leveraging a model trained on authentic user requests and human-made edits.
+
+---
+
+This overview should now be much more complete and accurately reflect the full scope of **Pycnaptiq-Ai**'s capabilities!
 
 
 
@@ -653,4 +680,4 @@ Voici une liste des modules actuellement intégrés au projet :
 
 
 
-Cette vue d'ensemble devrait maintenant être beaucoup plus complète et refléter fidèlement l'étendue des capacités de **Cyberbill Image Generator** !
+Cette vue d'ensemble devrait maintenant être beaucoup plus complète et refléter fidèlement l'étendue des capacités de **Pycnaptiq-Ai** !

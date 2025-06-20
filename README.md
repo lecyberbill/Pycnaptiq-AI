@@ -493,6 +493,18 @@ The **cyberbill_SDXL** application offers several complementary modules that act
     *   Includes **style selection**, **Image-to-Prompt** (Florence-2), and **LLM Prompt Enhancement** (e.g., Qwen).
     *   Managed by `ModelManager` for model loading, unloading, and device management.
 
+*   **RealEdit Image Editor (`RealEdit_mod.py`)**: (New in Beta 2.0.4)
+    *   Introduced a new tab for realistic image editing based on user instructions (prompts).
+    *   Utilizes the `peter-sushko/RealEdit` model, which is trained on a large-scale dataset (REALEDIT) of authentic user requests and human-made edits.
+    *   Allows users to upload an image, provide an editing instruction (e.g., "give him a crown"), and generate the edited image.
+    *   Includes an option to translate the editing prompt to English for potentially better model performance.
+    *   Features controls for inference steps and image guidance scale.
+    *   The module checks image conformity and saves the generated image with relevant metadata.
+    *   This module aims to address real-world image editing demands where existing models often fall short due to training on artificial edits.
+
+
+
+
 
 ----
 

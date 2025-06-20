@@ -13,6 +13,7 @@ from colorama import init, Fore, Style
 from collections import defaultdict
 import subprocess
 import inspect 
+import re # Import re for regex operations
 from compel import Compel, ReturnedEmbeddingsType
 import gc
 import math
@@ -283,7 +284,8 @@ def enregistrer_etiquettes_image_html(chemin_image, etiquettes, translations, is
     """
     global html_contenu_buffer # Utiliser le buffer global
 
-    title_lien_html = html.escape(etiquettes.get("Prompt"))
+    prompt_value = etiquettes.get("Prompt", "") # Fournir une chaîne vide par défaut si "Prompt" n'existe pas
+    title_lien_html = html.escape(prompt_value)
 
     try:
         # Textes pour les boutons de navigation de Magnific Popup
@@ -1074,6 +1076,7 @@ class GestionModule:
         return details
 
 
+# Moved from modules/js_modules.js to be loaded directly by Gradio
 def load_modules_js():
     """
     Charge le code JavaScript depuis le fichier js_modules.js dans le dossier modules.

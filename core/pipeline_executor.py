@@ -29,6 +29,7 @@ except ImportError as e:
 def execute_pipeline_task_async(
     pipe,
     # --- Arguments sans défauts en premier ---
+    # Réorganisation: les arguments sans défauts d'abord
     num_inference_steps,
     guidance_scale,
     seed,
@@ -38,6 +39,9 @@ def execute_pipeline_task_async(
     stop_event, # Garder stop_event ici
     translations, # Garder translations ici
     progress_queue, # Garder progress_queue ici
+    # --- Arguments avec défauts ensuite ---
+    image=None, 
+    image_guidance_scale=None, 
     # --- Arguments PAG (avec défauts) ---
     pag_enabled=False,
     pag_scale=1.5,
@@ -90,7 +94,7 @@ def execute_pipeline_task_async(
                 "num_inference_steps": num_inference_steps, # Use : instead of =
                 "guidance_scale": guidance_scale,
                 "generator": generator,
-                "width": width,
+                "width": width, # Keep width
                 "height": height,
                 "callback_on_step_end": callback_combined,
                 "callback_on_step_end_tensor_inputs": ["latents"] # Nécessaire pour le callback
@@ -106,6 +110,14 @@ def execute_pipeline_task_async(
                 pipeline_args["pooled_prompt_embeds"] = pooled_prompt_embeds
                 pipeline_args["negative_prompt_embeds"] = negative_prompt_embeds
                 pipeline_args["negative_pooled_prompt_embeds"] = negative_pooled_prompt_embeds
+
+            # --- AJOUT: Passer l'image si elle est fournie ---
+            if image is not None:
+                pipeline_args["image"] = image
+
+            # --- AJOUT: Passer image_guidance_scale si elle est fournie ---
+            if image_guidance_scale is not None:
+                pipeline_args["image_guidance_scale"] = image_guidance_scale
 
             # --- AJOUT PAG ---
             if pag_enabled:

@@ -636,6 +636,23 @@
     "flux_schnell_unloading_prior_pipeline": "Déchargement du pipeline FLUX.1-Redux (prior)...",
     "flux_schnell_prior_not_loaded_nothing_to_unload": "Pipeline FLUX.1-Redux (prior) non chargé, rien à décharger.",
     "flux_schnell_prior_unloaded_successfully": "Pipeline FLUX.1-Redux (prior) déchargé avec succès.",
-    "flux_schnell_error_unloading_prior": "Erreur lors du déchargement du pipeline FLUX.1-Redux (prior)"
+    "flux_schnell_error_unloading_prior": "Erreur lors du déchargement du pipeline FLUX.1-Redux (prior)",
+    "loading_starvector_model_console": "Chargement du modèle StarVector (ID: {model_name})...",
+    "error_loading_starvector_model_console": "Erreur lors du chargement du modèle StarVector (ID: {model_name}): {error}",
+    "starvector_processor_not_found_log": "Processeur StarVector non trouvé sur l'instance de modèle chargée.",
+    "starvector_processor_not_found_append_error": " Erreur: Processeur StarVector non trouvé.",
+    "vae_integrated_with_model_type": " (VAE intégré à {model_type})",
+    "uses_internal_vae": "utilise son VAE interne.",
+    "vae_not_applicable_for_starvector": " (N/A pour StarVector)",
+    "error_applying_loras_final": "Erreur lors de l'application finale des LoRAs: {error}",
+    "all_loras_unloaded_log": "Tous les LoRAs déchargés (via unload_lora_weights).",
+    "all_loras_disabled_log": "Tous les LoRAs désactivés (via set_adapters).",
+    "applying_peft_adapters_log": "Application des adaptateurs (PEFT): {adapters} avec poids {weights}",
+    "attempting_adapter_delete_after_fail_log": "Tentative de suppression de l'adaptateur '{adapter_name}' après échec de chargement.",
+    "lora_cleanup_failed_after_error_log": "Échec du nettoyage après erreur chargement LoRA {adapter_name}: {error}",
+    "unloading_lora_weights_log": "Déchargement des poids LoRA (unload_lora_weights): {adapter_name}",
+    "reapplying_remaining_loras_log": "Réapplication des LoRAs restants après déchargement de {adapter_name}: {lora_list}",
+    "deleting_lora_adapter_log": "Suppression de l'adaptateur LoRA (delete_adapter): {adapter_name}",
+    "lora_unload_method_not_found_log": "Méthode de déchargement LoRA non trouvée pour ce pipeline ({pipeline_class})."
 
 }

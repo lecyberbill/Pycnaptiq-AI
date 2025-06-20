@@ -25,3 +25,4 @@ sortedcontainers==2.4.0
 scikit-image==0.25.2
 addict==2.4.0
 bitsandbytes==0.46.0
+vtracer==0.6.11

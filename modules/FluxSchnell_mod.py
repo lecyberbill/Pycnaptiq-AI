@@ -32,7 +32,7 @@ from core.image_prompter import generate_prompt_from_image, FLORENCE2_TASKS # AJ
 from Utils import llm_prompter_util # <-- AJOUT pour l'amélioration du prompt
 
 
-MODULE_NAME = "flux_schnell"
+MODULE_NAME = "FluxSchnell"
 
 module_json_path = os.path.join(os.path.dirname(__file__), f"{MODULE_NAME}_mod.json")
 

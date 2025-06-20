@@ -629,5 +629,22 @@
     "flux_schnell_unloading_prior_pipeline": "Unloading FLUX.1-Redux (prior) pipeline...",
     "flux_schnell_prior_not_loaded_nothing_to_unload": "FLUX.1-Redux (prior) pipeline not loaded, nothing to unload.",
     "flux_schnell_prior_unloaded_successfully": "FLUX.1-Redux (prior) pipeline unloaded successfully.",
-    "flux_schnell_error_unloading_prior": "Error unloading FLUX.1-Redux (prior) pipeline"
+    "flux_schnell_error_unloading_prior": "Error unloading FLUX.1-Redux (prior) pipeline",
+    "loading_starvector_model_console": "Loading StarVector model (ID: {model_name})...",
+    "error_loading_starvector_model_console": "Error loading StarVector model (ID: {model_name}): {error}",
+    "starvector_processor_not_found_log": "StarVector processor not found on loaded model instance.",
+    "starvector_processor_not_found_append_error": " Error: StarVector processor not found.",
+    "vae_integrated_with_model_type": " (VAE integrated with {model_type})",
+    "uses_internal_vae": "uses its internal VAE.",
+    "vae_not_applicable_for_starvector": " (N/A for StarVector)",
+    "error_applying_loras_final": "Error during final LoRA application: {error}",
+    "all_loras_unloaded_log": "All LoRAs unloaded (via unload_lora_weights).",
+    "all_loras_disabled_log": "All LoRAs disabled (via set_adapters).",
+    "applying_peft_adapters_log": "Applying adapters (PEFT): {adapters} with weights {weights}",
+    "attempting_adapter_delete_after_fail_log": "Attempting to delete adapter '{adapter_name}' after load failure.",
+    "lora_cleanup_failed_after_error_log": "Cleanup failed after LoRA load error {adapter_name}: {error}",
+    "unloading_lora_weights_log": "Unloading LoRA weights (unload_lora_weights): {adapter_name}",
+    "reapplying_remaining_loras_log": "Reapplying remaining LoRAs after unloading {adapter_name}: {lora_list}",
+    "deleting_lora_adapter_log": "Deleting LoRA adapter (delete_adapter): {adapter_name}",
+    "lora_unload_method_not_found_log": "LoRA unload method not found for this pipeline ({pipeline_class})."
     }
