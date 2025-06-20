@@ -112,6 +112,10 @@ Console Print :
 ![image](https://github.com/user-attachments/assets/18948a1f-5d11-422d-953e-2a560520ce10)
 
 
+Image Editing with RealEdit
+![Capture d'écran 2025-06-20 133404](https://github.com/user-attachments/assets/ab00f58f-3914-4f30-bcdd-1f0bbbd423d1)
+
+
 FLUX.1-Schnell Image Generator (Tab)
 ![image](https://github.com/user-attachments/assets/63821db2-ba51-4b7a-8a64-9c745d3bfdf5)
 
