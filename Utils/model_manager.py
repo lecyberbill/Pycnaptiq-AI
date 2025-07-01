@@ -28,6 +28,7 @@ from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer # Ad
 from compel import Compel, ReturnedEmbeddingsType
 
 # Importer les fonctions utilitaires nécessaires (ajuster si besoin)
+from huggingface_hub import login 
 from .utils import txt_color, translate, lister_fichiers, str_to_bool # Importer lister_fichiers et str_to_bool
 
 # Définir les devices ici ou les passer via config/init
@@ -35,6 +36,10 @@ cpu = torch.device("cpu")
 gpu = torch.device( # Garder cette initialisation pour gpu
     f"cuda:{torch.cuda.current_device()}" if torch.cuda.is_available() else "cpu"
 )
+
+# Custom exception for Hugging Face authentication issues
+class HuggingFaceAuthError(Exception):
+    """Custom exception for Hugging Face authentication/access issues."""
 
 # Ajouter le répertoire 'modules' au sys.path pour permettre l'importation de bibliothèques locales
 project_root_dir = Path(__file__).resolve().parent.parent # Remonte au dossier principal du projet (cyberbill_image_generator)
@@ -302,6 +307,15 @@ class ModelManager:
                     trust_remote_code=True
                 )
                 pipe = model_instance # Store the model instance as 'pipe' for consistency
+            elif model_type in [FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY]: # AJOUT pour FLUX
+                try:
+                    pipe = pipeline_loader(chemin_modele, torch_dtype=specific_torch_dtype)
+                except Exception as e:
+                    error_message = str(e)
+                    if "restricted" in error_message.lower() or "authentication" in error_message.lower() or "login" in error_message.lower():
+                        raise HuggingFaceAuthError(error_message)
+                    else:
+                        raise # Re-raise other general exceptions
             elif is_from_single_file:
                 # Handles standard, inpainting, img2img if they are single files
                 pipeline_kwargs = {
@@ -399,10 +413,17 @@ class ModelManager:
                     if hasattr(pipe, 'enable_attention_slicing'):
                         pipe.enable_attention_slicing()
                 if self.device.type == "cuda":
-                    try:
-                        pipe.enable_xformers_memory_efficient_attention()
-                    except Exception as e_xformers:
-                        print(txt_color("[AVERTISSEMENT]", "warning"), f"Failed to enable xformers: {e_xformers}")
+                    # --- MODIFICATION: Gérer xformers spécifiquement pour Sana Sprint ---
+                    if model_type == SANA_MODEL_TYPE_KEY:
+                        # Sana Sprint's attention head dimension (72) is not compatible with xformers.
+                        # We must explicitly disable it to prevent errors on compatible hardware.
+                        pipe.disable_xformers_memory_efficient_attention()
+                        print(txt_color("[INFO]", "info"), "xformers memory efficient attention disabled for Sana Sprint pipeline due to incompatibility.")
+                    else:
+                        try:
+                            pipe.enable_xformers_memory_efficient_attention()
+                        except Exception as e_xformers:
+                            print(txt_color("[AVERTISSEMENT]", "warning"), f"Failed to enable xformers: {e_xformers}")
 
 
             # Compel initialization for non-StarVector models that use it
@@ -441,6 +462,13 @@ class ModelManager:
             if gradio_mode: gr.Info(final_message, duration=3.0)
             return True, final_message
 
+        except HuggingFaceAuthError as e: # AJOUT: Gérer l'erreur d'authentification Hugging Face
+            print(txt_color("[ERREUR]", "erreur"), f"{translate('error_hf_auth_required', self.translations)}: {e}")
+            traceback.print_exc()
+            self.unload_model() # Nettoyer tout chargement partiel
+            error_msg = f"{translate('error_hf_auth_required', self.translations)}: {e}"
+            if gradio_mode: gr.Error(error_msg)
+            return False, error_msg
         except Exception as e:
             print(txt_color("[ERREUR]", "erreur"), f"{translate('erreur_generale_chargement_modele', self.translations)}: {e}")
             traceback.print_exc()

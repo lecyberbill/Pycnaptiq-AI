@@ -653,6 +653,25 @@
     "unloading_lora_weights_log": "Déchargement des poids LoRA (unload_lora_weights): {adapter_name}",
     "reapplying_remaining_loras_log": "Réapplication des LoRAs restants après déchargement de {adapter_name}: {lora_list}",
     "deleting_lora_adapter_log": "Suppression de l'adaptateur LoRA (delete_adapter): {adapter_name}",
-    "lora_unload_method_not_found_log": "Méthode de déchargement LoRA non trouvée pour ce pipeline ({pipeline_class})."
+    "lora_unload_method_not_found_log": "Méthode de déchargement LoRA non trouvée pour ce pipeline ({pipeline_class}).",
+    "error_hf_auth_required": "Authentification Hugging Face requise. Veuillez vous connecter avec votre jeton.",
+    "hf_login_instructions_title": "Instructions de connexion Hugging Face :",
+    "hf_login_instructions_step1": "1. Allez sur le site Hugging Face : https://huggingface.co/",
+    "hf_login_instructions_step2": "2. Connectez-vous à votre compte.",
+    "hf_login_instructions_step3": "3. Cliquez sur l'icône de votre profil (en haut à droite), puis sélectionnez \"Access Tokens\".",
+    "hf_login_instructions_step4": "4. Cliquez sur \"New token\".",
+    "hf_login_instructions_step5": "5. Donnez un nom à votre jeton (ex: 'Cyberbill_SDXL').",
+    "hf_login_instructions_step6": "6. Pour \"Role\", choisissez \"Read\".",
+    "hf_login_instructions_step7": "7. (Optionnel mais recommandé pour certains modèles) Sous \"Repositories permissions\", cliquez sur \"Search for repos\" et entrez \"black-forest-labs/FLUX.1-schnell\". Cochez \"Read access to contents of selected repos\".",
+    "hf_login_instructions_step8": "8. Cliquez sur \"Generate a token\".",
+    "hf_login_instructions_step9": "9. Copiez la valeur du jeton généré et collez-la dans le champ ci-dessous.",
+    "hf_token_label": "Jeton d'accès Hugging Face",
+    "hf_token_placeholder": "hf_VOTRE_JETON_D_ACCES_ICI",
+    "hf_login_button": "Se connecter à Hugging Face et Réessayer",
+    "hf_token_empty_warn": "Veuillez entrer votre jeton Hugging Face.",
+    "hf_logging_in": "Connexion à Hugging Face...",
+    "hf_login_success": "Connexion à Hugging Face réussie !",
+    "hf_login_failed": "Échec de la connexion Hugging Face",
+    "flux_schnell_model_not_loaded_auth_needed": "Modèle FLUX non chargé. Authentification requise. Veuillez vous connecter."
 
 }

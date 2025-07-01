@@ -24,8 +24,8 @@ from Utils.utils import (
     ImageSDXLchecker, # <-- AJOUT pour vérifier l'image d'entrée
     styles_fusion, # <-- AJOUT POUR LES STYLES
 )
-from Utils.callback_diffuser import create_inpainting_callback
-from Utils.model_manager import ModelManager, FLUX_SCHNELL_MODEL_ID, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY # <-- AJOUT FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY
+from Utils.callback_diffuser import create_inpainting_callback # <-- MODIFIÉ
+from Utils.model_manager import ModelManager, FLUX_SCHNELL_MODEL_ID, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY, HuggingFaceAuthError # <-- AJOUT HuggingFaceAuthError
 from core.translator import translate_prompt
 from diffusers.utils import load_image # Bien que non utilisé directement ici, c'est dans l'exemple
 from core.image_prompter import generate_prompt_from_image, FLORENCE2_TASKS # AJOUT pour image_prompter
@@ -66,6 +66,11 @@ class FluxSchnellModule:
         self.llm_prompter_model_path = self.global_config.get("LLM_PROMPTER_MODEL_PATH", "Qwen/Qwen3-0.6B")
         # Les états pour l'amélioration du prompt seront initialisés dans create_tab
         # --- FIN AJOUT ---
+
+        # --- AJOUT: UI components for Hugging Face login ---
+        self.hf_token_textbox = None
+        self.hf_login_button = None
+        self.hf_login_group = None # To control visibility of all login elements
         
         # Dimensions spécifiques à FLUX.1-schnell
         self.flux_dimensions = [
@@ -249,6 +254,30 @@ class FluxSchnellModule:
                         value=translate("flux_schnell_model_not_loaded", self.module_translations),
                         interactive=False,
                     )
+                    # --- AJOUT: Hugging Face Login UI ---
+                    with gr.Group(visible=False) as self.hf_login_group:
+                        gr.Markdown(
+                            f"**{translate('hf_login_instructions_title', self.module_translations)}**\n"
+                            f"{translate('hf_login_instructions_step1', self.module_translations)}\n"
+                            f"{translate('hf_login_instructions_step2', self.module_translations)}\n"
+                            f"{translate('hf_login_instructions_step3', self.module_translations)}\n"
+                            f"{translate('hf_login_instructions_step4', self.module_translations)}\n"
+                            f"{translate('hf_login_instructions_step5', self.module_translations)}\n"
+                            f"{translate('hf_login_instructions_step6', self.module_translations)}\n"
+                            f"{translate('hf_login_instructions_step7', self.module_translations)}\n"
+                            f"{translate('hf_login_instructions_step8', self.module_translations)}\n"
+                            f"{translate('hf_login_instructions_step9', self.module_translations)}"
+                        )
+                        self.hf_token_textbox = gr.Textbox(
+                            label=translate("hf_token_label", self.module_translations),
+                            type="password", # Masque le texte saisi
+                            placeholder=translate("hf_token_placeholder", self.module_translations)
+                        )
+                        self.hf_login_button = gr.Button(
+                            translate("hf_login_button", self.module_translations),
+                            variant="primary"
+                        )
+                    # --- FIN AJOUT ---
                     self.flux_bouton_charger = gr.Button(
                         translate("flux_schnell_load_button", self.module_translations)
                     )
@@ -271,7 +300,12 @@ class FluxSchnellModule:
             self.flux_bouton_charger.click(
                 fn=self.load_flux_schnell_model_ui,
                 inputs=None,
-                outputs=[self.flux_message_chargement, self.flux_bouton_gen],
+                outputs=[
+                    self.flux_message_chargement,
+                    self.flux_bouton_gen,
+                    self.hf_login_group, # Output pour le groupe d'UI de login
+                    self.hf_token_textbox, # Output pour la textbox du token (pour la vider)
+                ],
             )
             
             flux_gen_inputs = [
@@ -293,6 +327,18 @@ class FluxSchnellModule:
                 self.flux_seed_input,
             ]
             # Ajouter les inputs LoRA
+            # AJOUT: Liaison pour le bouton de login Hugging Face
+            self.hf_login_button.click(
+                fn=self.login_and_retry_load_flux_model_ui,
+                inputs=[self.hf_token_textbox],
+                outputs=[
+                    self.flux_message_chargement,
+                    self.flux_bouton_gen,
+                    self.hf_login_group,
+                    self.hf_token_textbox,
+                ]
+            )
+
             for chk in self.flux_lora_checks: flux_gen_inputs.append(chk)
             for dd in self.flux_lora_dropdowns: flux_gen_inputs.append(dd)
             for sc in self.flux_lora_scales: flux_gen_inputs.append(sc)
@@ -380,33 +426,100 @@ class FluxSchnellModule:
             self.flux_bouton_stop.click(fn=self.stop_generation, inputs=None, outputs=None)
         return tab
 
-    def load_flux_schnell_model_ui(self):
-        yield gr.update(value=translate("flux_schnell_loading_model", self.module_translations)), gr.update(interactive=False)
+    def load_flux_schnell_model_ui(self): # MODIFIÉ pour gérer l'UI de login
+        # Initial state: hide login UI
+        hf_login_group_update = gr.update(visible=False)
+        hf_token_textbox_update = gr.update(value="") # Clear any previous token
 
-        success, message = self.model_manager.load_model(
-            model_name=FLUX_SCHNELL_MODEL_ID, # Utiliser l'ID HF
-            vae_name="Auto", 
-            model_type=FLUX_SCHNELL_MODEL_TYPE_KEY,
-            gradio_mode=True,
+        # First yield: show loading message, disable generate button, hide login UI
+        yield (
+            gr.update(value=translate("flux_schnell_loading_model", self.module_translations)),
+            gr.update(interactive=False),
+            hf_login_group_update, # Assurez-vous que ce groupe est masqué initialement
+            hf_token_textbox_update, # Assurez-vous que la textbox est vide initialement
         )
 
-        if success:
+        try: # <--- AJOUTÉ
+            success, message = self.model_manager.load_model(
+                model_name=FLUX_SCHNELL_MODEL_ID, # Utiliser l'ID HF
+                vae_name="Auto", 
+                model_type=FLUX_SCHNELL_MODEL_TYPE_KEY,
+                gradio_mode=True,
+            )
+        except HuggingFaceAuthError as e: # <--- INDENTÉ
+            gr.Warning(translate("error_hf_auth_required", self.module_translations), 5.0)
+            hf_login_group_update = gr.update(visible=True) # Show login UI
+            return (
+                gr.update(value=translate("flux_schnell_model_not_loaded_auth_needed", self.module_translations)), # New message
+                gr.update(interactive=False), # Keep generate button disabled
+                hf_login_group_update,
+                hf_token_textbox_update,
+            )
+        except Exception as e: # Catch other loading errors
+            gr.Error(f"{translate('flux_schnell_error_loading_model', self.module_translations)}: {e}")
+            return (
+                gr.update(value=f"{translate('flux_schnell_model_not_loaded', self.module_translations)}: {e}"),
+                gr.update(interactive=False),
+                hf_login_group_update,
+                hf_token_textbox_update,
+            )
+
+        # If successful
+        if success: # If model loaded successfully
             pipe = self.model_manager.get_current_pipe()
             if pipe and isinstance(pipe, FluxPipeline):
                 message += f" {translate('flux_schnell_model_config_applied', self.module_translations)}"
                 gr.Info(translate('flux_schnell_model_config_applied', self.module_translations))
-            yield gr.update(value=message), gr.update(interactive=True)
+            yield (
+                gr.update(value=message),
+                gr.update(interactive=True),
+                hf_login_group_update,
+                hf_token_textbox_update,
+            )
         else:
-            yield gr.update(value=message), gr.update(interactive=False)
+            # If load_model returned False for other reasons (not auth error)
+            yield (
+                gr.update(value=message),
+                gr.update(interactive=False),
+                hf_login_group_update,
+                hf_token_textbox_update,
+            )
 
-    def update_prompt_from_image_flux(self, image_pil, use_image_flag, current_module_translations):
+    # AJOUT: Nouvelle fonction pour le login et le rechargement
+    def login_and_retry_load_flux_model_ui(self, hf_token):
+        if not hf_token:
+            gr.Warning(translate("hf_token_empty_warn", self.module_translations), 3.0)
+            return (
+                gr.update(value=translate("hf_token_empty_warn", self.module_translations)),
+                gr.update(interactive=False),
+                gr.update(visible=True), # Keep login UI visible
+                gr.update(value=hf_token), # Keep token in textbox
+            )
+
+        gr.Info(translate("hf_logging_in", self.module_translations), 3.0)
+        try:
+            from huggingface_hub import login # Ensure login is imported here
+            login(token=hf_token)
+            gr.Info(translate("hf_login_success", self.module_translations), 3.0)
+            # After successful login, attempt to load the model again
+            # This will trigger the load_flux_schnell_model_ui logic
+            # and hide the login UI if successful.
+            return self.load_flux_schnell_model_ui()
+        except Exception as e:
+            gr.Error(f"{translate('hf_login_failed', self.module_translations)}: {e}")
+            return (
+                gr.update(value=f"{translate('hf_login_failed', self.module_translations)}: {e}"),
+                gr.update(interactive=False),
+                gr.update(visible=True), # Keep login UI visible
+                gr.update(value=hf_token), # Keep token in textbox
+            )
+
+    def update_prompt_from_image_flux(self, image_pil, use_image_flag, current_module_translations): # MODIFIÉ
         """Génère un prompt si l'image est fournie et le checkbox est coché pour FLUX."""
         if use_image_flag and image_pil is not None:
             task_for_florence = "<DETAILED_CAPTION>" 
             print(txt_color("[INFO]", "info"), translate("flux_schnell_generating_prompt_from_image", current_module_translations)) 
-            
             generated_prompt = generate_prompt_from_image(image_pil, current_module_translations, task=task_for_florence)
-            
             if generated_prompt.startswith(f"[{translate('erreur', current_module_translations).upper()}]"):
                 gr.Warning(generated_prompt, duration=5.0)
                 return gr.update() 
@@ -414,7 +527,7 @@ class FluxSchnellModule:
                 return gr.update(value=generated_prompt) 
         elif not use_image_flag: 
             return gr.update()
-        return gr.update() 
+        return gr.update()
 
     def flux_schnell_gen(
         self,
