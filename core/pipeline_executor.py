@@ -52,7 +52,8 @@ def execute_pipeline_task_async(
     pooled_prompt_embeds=None,
     negative_prompt_embeds=None,
     negative_pooled_prompt_embeds=None,
-    preview_queue=None
+    preview_queue=None,
+    **kwargs # Accepter les arguments supplémentaires
  ):
     """
     Exécute une seule tâche de génération dans un thread séparé,
@@ -125,6 +126,9 @@ def execute_pipeline_task_async(
                 if pag_applied_layers: # S'assurer que la liste n'est pas vide
                     pipeline_args["pag_applied_layers_index"] = pag_applied_layers # Nom du paramètre de l'exemple
                 # Si PAG modifie guidance_scale, ajustez-le ici ou assurez-vous que le pipeline le fait.
+            
+            # Ajouter les arguments supplémentaires (comme max_sequence_length)
+            pipeline_args.update(kwargs)
             # --- FIN AJOUT PAG ---
             # Vérifier l'arrêt APRÈS l'appel au pipeline
             if not stop_event.is_set():

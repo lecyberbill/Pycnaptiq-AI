@@ -32,8 +32,8 @@ from core.image_prompter import generate_prompt_from_image # <-- Importer la fon
 
 # --- Configuration et Constantes ---
 MODULE_NAME = "sana_sprint"
-SANA_MODEL_ID = "Efficient-Large-Model/Sana_Sprint_0.6B_1024px_diffusers"
-SANA_MODEL_TYPE_KEY = "sana_sprint" # Clé pour ModelManager
+# --- SUPPRESSION: Le dictionnaire SANA_MODELS sera initialisé dans la classe pour permettre la traduction ---
+SANA_MODEL_TYPE_KEY = "sana_sprint" # Clé générique pour ce type de modèle
 FIXED_OUTPUT_SIZE = 1024 # Taille de sortie fixe pour Sana Sprint
 
 # JSON associé à ce module
@@ -65,9 +65,18 @@ class SanaSprintModule:
         self.default_negative_prompt = self.global_config.get("NEGATIVE_PROMPT", "")
         self.stop_event = threading.Event()
         self.module_translations = {} # Initialiser
+
+        # --- AJOUT: Initialisation du dictionnaire de modèles traduisibles ---
+        self.sana_models = {
+            translate("sana_model_0_6b_fast", self.global_translations): "Efficient-Large-Model/Sana_Sprint_0.6B_1024px_diffusers",
+            translate("sana_model_1_6b_quality", self.global_translations): "Efficient-Large-Model/Sana_Sprint_1.6B_1024px_diffusers"
+        }
+        # --- FIN AJOUT ---
         # --- AJOUT: Gérer le pipeline Sana localement pour éviter les conflits ---
         self.pipe = None
         self.models_loaded = False
+        # --- AJOUT: Suivre le modèle actuellement chargé ---
+        self.current_sana_model_id = None
         self.device = model_manager_instance.device if model_manager_instance else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
@@ -151,6 +160,12 @@ class SanaSprintModule:
                         value=translate("sana_model_not_loaded", self.module_translations),
                         interactive=False,
                     )
+                    # --- AJOUT: Sélecteur de modèle ---
+                    self.sana_model_selector = gr.Radio(
+                        choices=list(self.sana_models.keys()), # --- MODIFICATION: Utiliser self.sana_models ---
+                        value=list(self.sana_models.keys())[0], # Défaut sur le premier (0.6B)
+                        label=translate("sana_model_version_label", self.module_translations) # Nouvelle clé de traduction
+                    )
                     self.sana_bouton_charger = gr.Button(
                         translate("sana_load_button", self.module_translations)
                     )
@@ -175,10 +190,18 @@ class SanaSprintModule:
             # --- Logique des boutons ---
             self.sana_bouton_charger.click(
                 fn=self.load_sana_model_ui,
-                inputs=None,
+                inputs=[self.sana_model_selector], # --- MODIFICATION: Passer le sélecteur en input ---
                 # --- MODIFICATION: Mettre aussi à jour le bouton de chargement lui-même ---
                 outputs=[self.sana_message_chargement, self.sana_bouton_gen, self.sana_bouton_charger],
             )
+
+            # --- AJOUT: Réactiver le bouton de chargement si on change de modèle ---
+            self.sana_model_selector.change(
+                fn=self.on_model_selection_change,
+                inputs=[self.sana_model_selector],
+                outputs=[self.sana_bouton_charger]
+            )
+            # --- FIN AJOUT ---
 
             self.sana_bouton_gen.click(
                 fn=self.sana_sprint_gen,
@@ -202,15 +225,22 @@ class SanaSprintModule:
 
         return tab
 
-    def load_sana_model_ui(self):
+    def load_sana_model_ui(self, selected_model_name):
         """Charge le pipeline Sana Sprint de manière isolée pour éviter les conflits de composants."""
-        if self.models_loaded:
+        # --- MODIFICATION: Logique de chargement améliorée ---
+        model_id_to_load = self.sana_models.get(selected_model_name) # --- MODIFICATION: Utiliser self.sana_models ---
+        if not model_id_to_load:
+            error_msg = f"Nom de modèle inconnu: {selected_model_name}"
+            yield gr.update(value=error_msg), gr.update(interactive=False), gr.update(interactive=True)
+            return
+
+        if self.models_loaded and self.current_sana_model_id == model_id_to_load:
             msg = translate("sana_model_already_loaded", self.module_translations)
             yield gr.update(value=msg), gr.update(interactive=True), gr.update(interactive=False)
             return
 
         # Décharger le modèle principal s'il existe pour libérer de la VRAM
-        if self.model_manager.get_current_pipe() is not None:
+        if self.model_manager.get_current_pipe() is not None or (self.models_loaded and self.current_sana_model_id != model_id_to_load):
             unload_msg = translate("unloading_main_model_before_sana", self.module_translations)
             print(txt_color("[INFO]", "info"), unload_msg)
             yield gr.update(value=unload_msg), gr.update(interactive=False), gr.update(interactive=False)
@@ -222,13 +252,23 @@ class SanaSprintModule:
         yield gr.update(value=loading_msg), gr.update(interactive=False), gr.update(interactive=False)
 
         try:
+            # --- AJOUT: Déterminer le dtype optimal pour la stabilité numérique ---
+            # Le modèle 1.6B peut produire des NaN (résultant en une image noire) en float16.
+            # bfloat16 est recommandé pour la stabilité s'il est supporté.
+            if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+                compute_dtype = torch.bfloat16
+                print(txt_color("[INFO]", "info"), "Le GPU supporte bfloat16. Utilisation pour une meilleure stabilité.")
+            else:
+                compute_dtype = torch.float16
+                print(txt_color("[AVERTISSEMENT]", "info"), "Le GPU ne supporte pas bfloat16. Utilisation de float16 (peut être instable avec le modèle 1.6B).")
             # Charger le pipeline complet directement garantit la compatibilité de tous ses composants (VAE, Transformer, etc.)
             self.pipe = SanaSprintPipeline.from_pretrained(
-                SANA_MODEL_ID,
-                torch_dtype=torch.float16
+                model_id_to_load, # Utiliser l'ID du modèle sélectionné
+                torch_dtype=compute_dtype
             )
             self.pipe.to(self.device)
             self.models_loaded = True
+            self.current_sana_model_id = model_id_to_load # Stocker l'ID du modèle chargé
             
             success_msg = translate("sana_model_loaded_success", self.module_translations)
             print(txt_color("[OK]", "ok"), success_msg)
@@ -238,6 +278,7 @@ class SanaSprintModule:
         except Exception as e:
             self.pipe = None
             self.models_loaded = False
+            self.current_sana_model_id = None
             error_msg = f"{translate('sana_error_loading_model', self.module_translations)}: {e}"
             print(txt_color("[ERREUR]", "erreur"), error_msg)
             traceback.print_exc()
@@ -262,6 +303,22 @@ class SanaSprintModule:
             return gr.update()
         # Si la case est cochée mais l'image est effacée (image_pil is None), ne rien faire non plus pour l'instant.
         return gr.update()
+    # --- FIN AJOUT ---
+
+    # --- AJOUT: Gérer l'interactivité du bouton de chargement ---
+    def on_model_selection_change(self, selected_model_name):
+        """Réactive le bouton de chargement si un modèle différent est sélectionné."""
+        selected_model_id = self.sana_models.get(selected_model_name) # --- MODIFICATION: Utiliser self.sana_models ---
+
+        # Si un modèle est chargé et qu'il est différent de celui sélectionné, on active le bouton
+        if self.models_loaded and self.current_sana_model_id != selected_model_id:
+            return gr.update(interactive=True)
+        # Si aucun modèle n'est chargé, le bouton doit être actif
+        elif not self.models_loaded:
+            return gr.update(interactive=True)
+        # Sinon (modèle chargé est le même que celui sélectionné), le bouton reste inactif
+        else:
+            return gr.update(interactive=False)
     # --- FIN AJOUT ---
     def sana_sprint_gen(
         self,
@@ -412,7 +469,7 @@ class SanaSprintModule:
                 xmp_data = {
                     "Module": "Sana Sprint",
                     "Creator": self.global_config.get("AUTHOR", "CyberBill"),
-                    "Model": SANA_MODEL_ID,
+                    "Model": self.current_sana_model_id, # --- MODIFICATION: Utiliser le modèle actuellement chargé ---
                     "Steps": steps, # Toujours 2
                     "Styles": ", ".join(style_names_used) if style_names_used else "None",
                     "Prompt": final_prompt_text,

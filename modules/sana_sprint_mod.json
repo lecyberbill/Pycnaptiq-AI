@@ -39,7 +39,15 @@
             "generer_en": "générée en",
             "batch_complete": "Génération de {num_images} images terminée en {time} sec",
             "sana_generating_prompt_from_image": "Génération du prompt à partir de l'image pour Sana Sprint...",
-            "stop_requested": "Arrêt demandé"
+            "stop_requested": "Arrêt demandé",
+            "sana_model_version_label": "Version du modèle Sana",
+            "sana_model_already_loaded": "Ce modèle Sana est déjà chargé.",
+            "unloading_main_model_before_sana": "Déchargement du modèle actuel pour charger Sana Sprint...",
+            "main_model_unloaded_sana": "Modèle précédent déchargé.",
+            "sana_model_loaded_success": "Modèle Sana Sprint chargé avec succès.",
+            "sana_error_loading_model": "Erreur lors du chargement du modèle Sana Sprint",
+            "sana_model_0_6b_fast": "Sana Sprint 0.6B (Rapide)",
+            "sana_model_1_6b_quality": "Sana Sprint 1.6B (Qualité)"
         },
         "en": {
             "sana_tab_name": "⚡ Sana Sprint",
@@ -74,7 +82,15 @@
             "generer_en": "generated in",
             "batch_complete": "Batch generation of {num_images} images finished in {time} sec",
             "sana_generating_prompt_from_image": "Generating prompt from image for Sana Sprint...",
-            "stop_requested": "Stop requested"
+            "stop_requested": "Stop requested",
+            "sana_model_version_label": "Sana Model Version",
+            "sana_model_already_loaded": "This Sana model is already loaded.",
+            "unloading_main_model_before_sana": "Unloading current model to load Sana Sprint...",
+            "main_model_unloaded_sana": "Previous model unloaded.",
+            "sana_model_loaded_success": "Sana Sprint model loaded successfully.",
+            "sana_error_loading_model": "Error while loading Sana Sprint model",
+            "sana_model_0_6b_fast": "Sana Sprint 0.6B (Fast)",
+            "sana_model_1_6b_quality": "Sana Sprint 1.6B (Quality)"
         }
     }
 }

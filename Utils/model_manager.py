@@ -20,11 +20,13 @@ from diffusers import (
     FluxPipeline,
     FluxImg2ImgPipeline, # <-- AJOUT POUR FLUX Img2Img
     CogView3PlusPipeline,
-    StableDiffusionInstructPix2PixPipeline, # <-- AJOUT POUR REALEDIT
+    StableDiffusionInstructPix2PixPipeline,
 )
+# --- AJOUT POUR SD3.5 TURBO ---
+from diffusers import BitsAndBytesConfig, SD3Transformer2DModel, StableDiffusion3Pipeline
 from diffusers import EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler, LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler, DPMSolverSinglestepScheduler
 from diffusers.models.attention_processor import AttnProcessor2_0
-from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer # Added for StarVector
+from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer, T5EncoderModel # AJOUT T5EncoderModel pour SD3.5
 from compel import Compel, ReturnedEmbeddingsType
 
 # Importer les fonctions utilitaires nécessaires (ajuster si besoin)
@@ -57,6 +59,7 @@ FLUX_SCHNELL_MODEL_TYPE_KEY = "flux_schnell"
 FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY = "flux_schnell_img2img" # <-- NOUVEAU pour FLUX Img2Img
 STARVECTOR_MODEL_TYPE_KEY = "starvector" # New model type key
 REALEDIT_MODEL_TYPE_KEY = "realedit_instructpix2pix" # <-- AJOUT POUR REALEDIT
+SD3_5_TURBO_MODEL_TYPE_KEY = "sd3_5_turbo" # <-- AJOUT POUR SD3.5 TURBO
 
 class ModelManager:
     def __init__(self, config, translations, device, torch_dtype, vram_total_gb):
@@ -256,6 +259,11 @@ class ModelManager:
             is_from_single_file = False
             specific_torch_dtype = torch.bfloat16
             chemin_modele = model_name
+        elif model_type == SD3_5_TURBO_MODEL_TYPE_KEY:
+            is_from_single_file = False # Chargement personnalisé depuis HF
+            chemin_modele = model_name
+            specific_torch_dtype = torch.bfloat16 # Recommandé pour SD3.5
+            pipeline_loader = None # Pas de loader simple, logique custom
         elif model_type == REALEDIT_MODEL_TYPE_KEY:
             pipeline_class = StableDiffusionInstructPix2PixPipeline
             is_from_single_file = False
@@ -316,6 +324,29 @@ class ModelManager:
                         raise HuggingFaceAuthError(error_message)
                     else:
                         raise # Re-raise other general exceptions
+            elif model_type == SD3_5_TURBO_MODEL_TYPE_KEY:
+                # Logique de chargement personnalisée pour SD3.5 Turbo avec quantification
+                nf4_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.bfloat16
+                )
+                transformer = SD3Transformer2DModel.from_pretrained(
+                    chemin_modele,
+                    subfolder="transformer",
+                    quantization_config=nf4_config,
+                    torch_dtype=specific_torch_dtype
+                )
+                text_encoder_3 = T5EncoderModel.from_pretrained(
+                    "diffusers/t5-nf4", torch_dtype=specific_torch_dtype
+                )
+                pipe = StableDiffusion3Pipeline.from_pretrained(
+                    chemin_modele, 
+                    transformer=transformer,
+                    text_encoder_3=text_encoder_3,
+                    torch_dtype=specific_torch_dtype,
+                    
+                )
             elif is_from_single_file:
                 # Handles standard, inpainting, img2img if they are single files
                 pipeline_kwargs = {
@@ -350,7 +381,7 @@ class ModelManager:
             vae_message = ""
             loaded_vae_name = "Auto"
             # VAE loading logic for non-StarVector, non-integrated VAE models
-            if model_type not in [SANA_MODEL_TYPE_KEY, COGVIEW4_MODEL_TYPE_KEY, COGVIEW3PLUS_MODEL_TYPE_KEY, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY, STARVECTOR_MODEL_TYPE_KEY]:
+            if model_type not in [SANA_MODEL_TYPE_KEY, COGVIEW4_MODEL_TYPE_KEY, COGVIEW3PLUS_MODEL_TYPE_KEY, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY, STARVECTOR_MODEL_TYPE_KEY, SD3_5_TURBO_MODEL_TYPE_KEY]:
                 if chemin_vae and os.path.exists(chemin_vae):
                     print(txt_color("[INFO]", "info"), f"{translate('chargement_vae', self.translations)}: {vae_name}")
                     try:
@@ -373,7 +404,7 @@ class ModelManager:
                 else: # "Auto" or no VAE specified, use built-in
                     vae_message = f" + VAE: {translate('auto_label', self.translations)}"
                     print(txt_color("[INFO]", "info"), translate("utilisation_vae_integre", self.translations))
-            elif model_type in [COGVIEW4_MODEL_TYPE_KEY, COGVIEW3PLUS_MODEL_TYPE_KEY, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY]:
+            elif model_type in [COGVIEW4_MODEL_TYPE_KEY, COGVIEW3PLUS_MODEL_TYPE_KEY, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY, SD3_5_TURBO_MODEL_TYPE_KEY]:
                 vae_message = translate("vae_integrated_with_model_type", self.translations).format(model_type=model_type)
                 print(txt_color("[INFO]", "info"), f"{model_type} {translate('uses_internal_vae', self.translations)}")
             elif model_type == STARVECTOR_MODEL_TYPE_KEY:
@@ -399,6 +430,12 @@ class ModelManager:
                 if hasattr(pipe, 'vae') and pipe.vae is not None:
                     pipe.vae.enable_slicing()
                     pipe.vae.enable_tiling()
+            elif model_type == SD3_5_TURBO_MODEL_TYPE_KEY and pipe is not None:
+                # SD3.5 Turbo a sa propre gestion mémoire et ne possède pas enable_vae_slicing/tiling.
+                # Il supporte enable_model_cpu_offload.
+                pipe.enable_model_cpu_offload()
+                # --- AJOUT TEST: Désactiver le safety checker ---
+                pipe.safety_checker = None
             elif pipe is not None: # Standard SDXL, Inpainting, Img2Img
                 force_cpu_offload_config = str_to_bool(str(self.config.get("FORCE_CPU_OFFLOAD", "False")))
                 automatic_offload_condition = self.device.type == "cuda" and self.vram_total_gb < 8
@@ -427,7 +464,7 @@ class ModelManager:
 
 
             # Compel initialization for non-StarVector models that use it
-            if model_type not in [STARVECTOR_MODEL_TYPE_KEY, COGVIEW4_MODEL_TYPE_KEY, COGVIEW3PLUS_MODEL_TYPE_KEY, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY] and pipe is not None:
+            if model_type not in [STARVECTOR_MODEL_TYPE_KEY, COGVIEW4_MODEL_TYPE_KEY, COGVIEW3PLUS_MODEL_TYPE_KEY, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY, SD3_5_TURBO_MODEL_TYPE_KEY] and pipe is not None:
                 has_tokenizer_2 = hasattr(pipe, 'tokenizer_2') and pipe.tokenizer_2 is not None
                 has_encoder_2 = hasattr(pipe, 'text_encoder_2') and pipe.text_encoder_2 is not None
                 compel_returned_embeddings_type = ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED
@@ -510,7 +547,7 @@ class ModelManager:
         try:
             print(txt_color("[INFO]", "info"), f"{translate('lora_charge_depuis_chemin', self.translations)} {lora_full_path}")
             self.current_pipe.load_lora_weights(lora_full_path, adapter_name=adapter_name)
-            self.loaded_loras[adapter_name] = scale
+            self.loaded_loras[adapter_name] = {'filename': lora_item_name, 'scale': scale}
             msg = f"{translate('lora_charge', self.translations)}: {adapter_name} (Scale: {scale})"
             print(txt_color("[OK]", "ok"), msg)
             return True, msg
@@ -534,20 +571,29 @@ class ModelManager:
                 print(txt_color("[INFO]", "info"), f"Déchargement des poids LoRA (unload_lora_weights): {adapter_name}")
                 print(txt_color("[INFO]", "info"), translate("unloading_lora_weights_log", self.translations).format(adapter_name=adapter_name))
                 self.current_pipe.unload_lora_weights() # This unloads ALL LoRAs
-                # We need to re-apply other LoRAs if any were active
-                temp_loaded_loras = self.loaded_loras.copy()
-                if adapter_name in temp_loaded_loras:
-                    del temp_loaded_loras[adapter_name]
-                self.loaded_loras.clear() # Clear all
 
-                # Re-apply remaining LoRAs
-                if temp_loaded_loras:
-                    print(txt_color("[INFO]", "info"), translate("reapplying_remaining_loras_log", self.translations).format(adapter_name=adapter_name, lora_list=list(temp_loaded_loras.keys())))
-                    self.current_pipe.set_adapters(list(temp_loaded_loras.keys()), adapter_weights=list(temp_loaded_loras.values()))
-                    self.loaded_loras = temp_loaded_loras # Restore state
-                else: # No other LoRAs were active
-                    self.current_pipe.set_adapters([], adapter_weights=[])
+                temp_loaded_loras_info = self.loaded_loras.copy()
+                if adapter_name in temp_loaded_loras_info:
+                    del temp_loaded_loras_info[adapter_name]
 
+                self.loaded_loras.clear() # Clear all before re-applying
+
+                # Re-apply remaining LoRAs using load_lora_weights
+                if temp_loaded_loras_info:
+                    print(txt_color("[INFO]", "info"), translate("reapplying_remaining_loras_log", self.translations).format(adapter_name=adapter_name, lora_list=list(temp_loaded_loras_info.keys())))
+                    for remaining_adapter_name, lora_info in temp_loaded_loras_info.items():
+                        lora_filename = lora_info['filename']
+                        scale = lora_info['scale']
+                        lora_full_path = os.path.join(self.loras_dir, lora_filename)
+                        try:
+                            self.current_pipe.load_lora_weights(lora_full_path, adapter_name=remaining_adapter_name)
+                            self.loaded_loras[remaining_adapter_name] = {'filename': lora_filename, 'scale': scale} # Store back with filename
+                        except Exception as e_reapply:
+                            print(txt_color("[WARN]", "warning"), f"Failed to re-apply LoRA {remaining_adapter_name}: {e_reapply}")
+                            # If re-application fails, it's better to remove it from loaded_loras
+                            if remaining_adapter_name in self.loaded_loras:
+                                del self.loaded_loras[remaining_adapter_name]
+                
             elif hasattr(self.current_pipe, 'delete_adapter'): # PEFT way
                 print(txt_color("[INFO]", "info"), translate("deleting_lora_adapter_log", self.translations).format(adapter_name=adapter_name))
                 self.current_pipe.delete_adapter(adapter_name)
@@ -586,58 +632,30 @@ class ModelManager:
                     adapter_name = os.path.splitext(lora_filename)[0].replace(".", "_").replace(" ", "_")
                     requested_loras_config[adapter_name] = (lora_filename, scale)
         
-        # Determine LoRAs to unload (currently loaded but not in requested_loras_config)
-        loras_to_unload_names = [name for name in self.loaded_loras if name not in requested_loras_config]
+        # Unload all existing LoRAs first to ensure a clean state
+        if hasattr(self.current_pipe, "unload_lora_weights"):
+            self.current_pipe.unload_lora_weights()
+            print(txt_color("[INFO]", "info"), translate("all_loras_unloaded_log", self.translations))
+        elif hasattr(self.current_pipe, "set_adapters"): # For PEFT-compatible pipelines that might not have unload_lora_weights
+            self.current_pipe.set_adapters([], adapter_weights=[])
+            print(txt_color("[INFO]", "info"), translate("all_loras_disabled_log", self.translations))
         
-        # Unload LoRAs that are no longer requested or if their filename changed
-        # This part is tricky because unload_lora_weights unloads ALL LoRAs.
-        # A more robust approach might be to unload all, then load only the requested ones.
-        
-        # If any LoRA needs to be unloaded, or if the set of active LoRAs changes,
-        # it's often safest to unload all and then reload the desired ones.
-        # However, diffusers' `load_lora_weights` can stack. `set_adapters` is for PEFT.
-        # Let's try to manage them individually if possible, then use set_adapters.
+        self.loaded_loras.clear() # Clear internal tracking
 
-        # Unload LoRAs that are no longer checked
-        for adapter_name_to_unload in loras_to_unload_names:
-            success_unload, msg_unload = self.unload_lora(adapter_name_to_unload) # unload_lora now handles PEFT too
-            messages.append(msg_unload)
-            # self.loaded_loras should be updated by unload_lora
-
-        # Load or update scales for requested LoRAs
+        # Load or re-load only the requested LoRAs
         for adapter_name, (lora_filename, scale) in requested_loras_config.items():
-            if adapter_name not in self.loaded_loras:
-                success_load, msg_load = self.load_lora(lora_filename, scale) # load_lora adds to self.loaded_loras
-                messages.append(msg_load)
-            elif self.loaded_loras[adapter_name] != scale:
-                self.loaded_loras[adapter_name] = scale # Update scale
-                messages.append(f"{translate('lora_poids_maj', self.translations)}: {adapter_name} -> {scale}")
-                print(txt_color("[INFO]", "info"), f"Mise à jour poids LoRA {adapter_name} -> {scale}")
-
-        # Finally, apply the current state of self.loaded_loras to the pipeline
-        try:
-            active_adapters_final = list(self.loaded_loras.keys())
-            active_weights_final = list(self.loaded_loras.values())
-
-            if not active_adapters_final: # If no LoRAs are active
-                if hasattr(self.current_pipe, "unload_lora_weights"): # Diffusers standard
-                    self.current_pipe.unload_lora_weights() # Unload all
-                    print(txt_color("[INFO]", "info"), translate("all_loras_unloaded_log", self.translations))
-                elif hasattr(self.current_pipe, "set_adapters"): # PEFT
-                    self.current_pipe.set_adapters([], adapter_weights=[])
-                    print(txt_color("[INFO]", "info"), translate("all_loras_disabled_log", self.translations))
-            elif hasattr(self.current_pipe, "set_adapters"): # If PEFT-compatible pipeline
-                print(txt_color("[INFO]", "info"), translate("applying_peft_adapters_log", self.translations).format(adapters=active_adapters_final, weights=active_weights_final))
-                self.current_pipe.set_adapters(active_adapters_final, adapter_weights=active_weights_final)
-            # For non-PEFT diffusers pipelines, load_lora_weights already applies them.
-            # The logic above ensures only necessary loads/unloads happen.
-            # If `unload_lora_weights` was called, `set_adapters` re-applies the correct set.
-
-        except Exception as e_set_adapters:
-            msg = translate("error_applying_loras_final", self.translations).format(error=e_set_adapters)
-            print(txt_color("[ERREUR]", "erreur"), msg)
-            messages.append(msg)
-            traceback.print_exc()
+            lora_full_path = os.path.join(self.loras_dir, lora_filename)
+            try:
+                print(txt_color("[INFO]", "info"), f"{translate('lora_charge_depuis_chemin', self.translations)} {lora_full_path}")
+                self.current_pipe.load_lora_weights(lora_full_path, adapter_name=adapter_name)
+                self.loaded_loras[adapter_name] = {'filename': lora_filename, 'scale': scale} # Store with filename
+                messages.append(f"{translate('lora_charge', self.translations)}: {adapter_name} (Scale: {scale})")
+                print(txt_color("[OK]", "ok"), f"{translate('lora_charge', self.translations)}: {adapter_name} (Scale: {scale})")
+            except Exception as e_load:
+                msg_load_fail = f"{translate('erreur_lora_chargement', self.translations)}: {e_load}"
+                print(txt_color("[ERREUR]", "erreur"), msg_load_fail)
+                messages.append(msg_load_fail)
+                traceback.print_exc()
 
         final_message = "\n".join(filter(None, messages))
         return final_message if final_message else translate("loras_geres_succes", self.translations)
