@@ -65,6 +65,11 @@ class SanaSprintModule:
         self.default_negative_prompt = self.global_config.get("NEGATIVE_PROMPT", "")
         self.stop_event = threading.Event()
         self.module_translations = {} # Initialiser
+        # --- AJOUT: Gérer le pipeline Sana localement pour éviter les conflits ---
+        self.pipe = None
+        self.models_loaded = False
+        self.device = model_manager_instance.device if model_manager_instance else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
     def load_styles(self):
         """Charge les styles depuis styles.json."""
@@ -171,7 +176,8 @@ class SanaSprintModule:
             self.sana_bouton_charger.click(
                 fn=self.load_sana_model_ui,
                 inputs=None,
-                outputs=[self.sana_message_chargement, self.sana_bouton_gen],
+                # --- MODIFICATION: Mettre aussi à jour le bouton de chargement lui-même ---
+                outputs=[self.sana_message_chargement, self.sana_bouton_gen, self.sana_bouton_charger],
             )
 
             self.sana_bouton_gen.click(
@@ -197,20 +203,46 @@ class SanaSprintModule:
         return tab
 
     def load_sana_model_ui(self):
-        """Wrapper UI pour charger le modèle Sana Sprint."""
-        yield gr.update(value=translate("sana_loading_model", self.module_translations)), gr.update(interactive=False)
+        """Charge le pipeline Sana Sprint de manière isolée pour éviter les conflits de composants."""
+        if self.models_loaded:
+            msg = translate("sana_model_already_loaded", self.module_translations)
+            yield gr.update(value=msg), gr.update(interactive=True), gr.update(interactive=False)
+            return
 
-        success, message = self.model_manager.load_model(
-            model_name=SANA_MODEL_ID,
-            vae_name="Auto", # Ignoré mais requis par la fonction
-            model_type=SANA_MODEL_TYPE_KEY, # Type spécifique pour Sana
-            gradio_mode=True # Pour les messages gr.Info/Warning
-        )
+        # Décharger le modèle principal s'il existe pour libérer de la VRAM
+        if self.model_manager.get_current_pipe() is not None:
+            unload_msg = translate("unloading_main_model_before_sana", self.module_translations)
+            print(txt_color("[INFO]", "info"), unload_msg)
+            yield gr.update(value=unload_msg), gr.update(interactive=False), gr.update(interactive=False)
+            self.model_manager.unload_model(gradio_mode=False)
+            print(txt_color("[OK]", "ok"), translate("main_model_unloaded_sana", self.module_translations))
 
-        if success:
-            yield gr.update(value=message), gr.update(interactive=True)
-        else:
-            yield gr.update(value=message), gr.update(interactive=False)
+        loading_msg = translate("sana_loading_model", self.module_translations)
+        print(txt_color("[INFO]", "info"), loading_msg)
+        yield gr.update(value=loading_msg), gr.update(interactive=False), gr.update(interactive=False)
+
+        try:
+            # Charger le pipeline complet directement garantit la compatibilité de tous ses composants (VAE, Transformer, etc.)
+            self.pipe = SanaSprintPipeline.from_pretrained(
+                SANA_MODEL_ID,
+                torch_dtype=torch.float16
+            )
+            self.pipe.to(self.device)
+            self.models_loaded = True
+            
+            success_msg = translate("sana_model_loaded_success", self.module_translations)
+            print(txt_color("[OK]", "ok"), success_msg)
+            # UI: message de succès, activer le bouton de génération, désactiver le bouton de chargement
+            yield gr.update(value=success_msg), gr.update(interactive=True), gr.update(interactive=False)
+
+        except Exception as e:
+            self.pipe = None
+            self.models_loaded = False
+            error_msg = f"{translate('sana_error_loading_model', self.module_translations)}: {e}"
+            print(txt_color("[ERREUR]", "erreur"), error_msg)
+            traceback.print_exc()
+            # UI: message d'erreur, désactiver le bouton de génération, réactiver le bouton de chargement
+            yield gr.update(value=error_msg), gr.update(interactive=False), gr.update(interactive=True)
 
     # --- AJOUT: Fonction pour mettre à jour le prompt depuis l'image ---
     def update_prompt_from_image(self, image_pil, use_image_flag, global_translations):
@@ -255,16 +287,17 @@ class SanaSprintModule:
         yield initial_gallery, initial_progress, btn_gen_off, btn_stop_on
 
         # --- Vérifications ---
-        pipe = self.model_manager.get_current_pipe()
-        # compel = self.model_manager.get_current_compel() # Compel n'est plus utilisé
-
-        if pipe is None or self.model_manager.current_model_type != SANA_MODEL_TYPE_KEY:
+        # --- MODIFICATION: Utiliser le pipeline géré localement ---
+        if not self.models_loaded or self.pipe is None:
             msg = translate("sana_error_no_model", module_translations)
             print(txt_color("[ERREUR] ", "erreur"), msg)
             gr.Warning(msg, duration=4.0)
             yield [], "", gr.update(interactive=True), gr.update(interactive=False)
             return
-
+        
+        pipe = self.pipe
+        # --- FIN MODIFICATION ---
+        
         # --- Préparation du Prompt (simplifié) ---
         # Utiliser directement le prompt du champ texte
         if prompt_libre and prompt_libre.strip():
