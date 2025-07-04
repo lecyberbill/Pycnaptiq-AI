@@ -8,13 +8,13 @@ set "REQUIREMENTS_FILE=requirements.txt"
 set "MAIN_APP_SCRIPT=Pycnaptiq-AI.py"
 set "locales_dir=%~dp0locales\"
 
-:: --- Début du Script ---
+:: --- Dï¿½but du Script ---
 goto :main
 
 ::-------------------------------------------------
 :: Fonction: load_language
-:: Charge les chaînes de caractères depuis un fichier de langue.
-:: Paramètre %1: Nom du fichier de langue (ex: install_fr.txt)
+:: Charge les chaï¿½nes de caractï¿½res depuis un fichier de langue.
+:: Paramï¿½tre %1: Nom du fichier de langue (ex: install_fr.txt)
 ::-------------------------------------------------
 :load_language
 set "lang_file=%~1"
@@ -36,8 +36,8 @@ goto :eof
 
 ::-------------------------------------------------
 :: Fonction: check_error
-:: Vérifie le code d'erreur précédent et affiche un message si > 0.
-:: Paramètre %1: Message d'erreur à afficher (clé de langue)
+:: Vï¿½rifie le code d'erreur prï¿½cï¿½dent et affiche un message si > 0.
+:: Paramï¿½tre %1: Message d'erreur ï¿½ afficher (clï¿½ de langue)
 ::-------------------------------------------------
 :check_error
 if errorlevel 1 (
@@ -51,7 +51,7 @@ goto :eof
 :: Flux Principal
 ::-------------------------------------------------
 :main
-:: Définir le dossier courant du script d'installation
+:: Dï¿½finir le dossier courant du script d'installation
 :: %~dp0 se termine par un backslash, pas besoin d'en ajouter un.
 set "script_dir=%~dp0"
 
@@ -70,7 +70,7 @@ if errorlevel 2 (
 chcp 65001 > nul
 echo !INFO_WELCOME!
 
-:: --- Définition des chemins absolus ---
+:: --- Dï¿½finition des chemins absolus ---
 set "python_embed_dir=%script_dir%%PYTHON_DIR_NAME%"
 set "python_exe=%python_embed_dir%\python.exe"
 set "venv_dir=%script_dir%%VENV_DIR_NAME%"
@@ -80,7 +80,7 @@ set "req_file_path=%script_dir%%REQUIREMENTS_FILE%"
 set "start_script_path=%script_dir%start.bat"
 set "main_app_path=%script_dir%%MAIN_APP_SCRIPT%"
 
-:: --- Vérifications Préliminaires ---
+:: --- Vï¿½rifications Prï¿½liminaires ---
 echo !INFO_CHECK_PYTHON_EMBED!
 if not exist "%python_exe%" (
     echo !ERROR_PYTHON_NOT_FOUND! "%python_exe%"
@@ -97,7 +97,7 @@ if not exist "%req_file_path%" (
 )
 echo !OK_REQUIREMENTS_FOUND! "%req_file_path%"
 
-:: --- Vérification CUDA ---
+:: --- Vï¿½rification CUDA ---
 echo !INFO_VERIFY_CUDA!
 nvcc --version > nul 2>&1
 if errorlevel 9009 (
@@ -117,7 +117,7 @@ if errorlevel 9009 (
     )
 )
 
-:: --- Création de l'Environnement Virtuel ---
+:: --- Crï¿½ation de l'Environnement Virtuel ---
 echo !INFO_CREATE_VENV! "%venv_dir%"
 if exist "%venv_dir%" (
     echo !WARN_VENV_EXISTS!
@@ -135,7 +135,7 @@ call :check_error ERROR_CREATE_VENV
 echo !OK_CREATE_VENV!
 :skip_venv_creation
 
-:: --- Installation des Dépendances ---
+:: --- Installation des Dï¿½pendances ---
 echo !INFO_INSTALL_DEP!
 
 echo !INFO_UPGRADE_PIP!
@@ -144,16 +144,22 @@ call :check_error ERROR_UPGRADE_PIP
 echo !OK_UPGRADE_PIP!
 
 echo !INFO_INSTALL_TORCH!
-"%venv_pip_exe%" install --no-cache-dir -U xformers torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+"%venv_pip_exe%" install --no-cache-dir -U torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 call :check_error ERROR_INSTALL_TORCH
 echo !OK_INSTALL_TORCH!
+
+echo !INFO_INSTALL_XFORMER!
+"%venv_pip_exe%" install --no-cache-dir -U xformers==0.0.30 --index-url https://download.pytorch.org/whl/cu128
+call :check_error ERROR_INSTALL_XFORMER
+echo !OK_INSTALL_XFORMER!
+
 
 echo !INFO_INSTALL_REQUIREMENTS! "%REQUIREMENTS_FILE%"
 "%venv_pip_exe%" install --no-cache-dir -r "%req_file_path%"
 call :check_error ERROR_INSTALL_REQUIREMENTS
 echo !OK_INSTALL_REQUIREMENTS!
 
-:: --- Création du script de démarrage start.bat ---
+:: --- Crï¿½ation du script de dï¿½marrage start.bat ---
 echo !INFO_CREATE_START_SCRIPT! "%start_script_path%"
 (
     echo @echo off
@@ -208,7 +214,7 @@ echo !INFO_CREATE_START_SCRIPT! "%start_script_path%"
     echo ENDLOCAL
 ) > "%start_script_path%"
 
-:: Ajout d'une vérification explicite pour être sûr
+:: Ajout d'une vï¿½rification explicite pour ï¿½tre sï¿½r
 if not exist "%start_script_path%" (
     echo [ERREUR CRITIQUE] Le fichier start.bat n'a pas pu etre cree. Verifiez les permissions d'ecriture ou des caracteres speciaux dans le script.
     echo [CRITICAL ERROR] The start.bat file could not be created. Check write permissions or special characters in the script.

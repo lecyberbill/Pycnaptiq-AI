@@ -34,3 +34,6 @@ ERROR_CREATE_START_SCRIPT=[ERROR] Failed to create the start.bat script.
 OK_CREATE_START_SCRIPT=[OK] start.bat script created successfully.
 INFO_INSTALL_DONE=Installation completed successfully!
 INFO_HOW_TO_START=To launch the application, run the file:
+INFO_INSTALL_XFORMER=Installing Xformer (this may take a while)...
+ERROR_INSTALL_XFORMER=[ERROR] Failed to install Xformer. Check your internet connection and CUDA compatibility.
+OK_INSTALL_XFORMER=[OK] Xformer installed successfully.
