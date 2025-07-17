@@ -92,7 +92,16 @@
             "hf_login_success": "Connexion à Hugging Face réussie.",
             "hf_login_failed": "Échec de la connexion à Hugging Face",
             "flux_schnell_use_fp8_label": "Utiliser la quantification FP8 (pour modèles locaux FP8)",
-            "flux_schnell_use_fp8_info": "Cochez si vous chargez un modèle .safetensors local qui a été quantifié en FP8. Nécessite 'optimum-quanto'."
+            "flux_schnell_use_fp8_info": "Cochez si vous chargez un modèle .safetensors local qui a été quantifié en FP8. Nécessite 'optimum-quanto'.",
+            "refresh_lora_list": "Rafraîchir la liste des LoRAs",
+            "lora_list_refreshed": "Liste des LoRAs rafraîchie ({count} trouvés).",
+            "flux_schnell_load_default_button": "Charger Modèle (Défaut)",
+            "flux_schnell_load_local_button": "Charger Modèle (Local)",
+            "flux_schnell_load_img2img_button": "Charger Modèle (Img2Img)",
+            "flux_schnell_select_local_model_warning": "Veuillez sélectionner un fichier .safetensors local à charger.",
+            "flux_schnell_error_wrong_model_type": "Erreur: Le type de modèle chargé ({mode_charge}) ne correspond pas à l'opération demandée ({mode_attendu}).",
+            "flux_schnell_error_no_image_for_img2img": "Erreur: Le mode Image-to-Image est activé mais aucune image n'a été fournie.",
+            "flux_schnell_generating_prompt_from_image": "Génération du prompt à partir de l'image pour FLUX..."
         },
         "en": {
             "flux_schnell_tab_name": "FLUX.1 Schnell",
@@ -169,7 +178,16 @@
             "hf_login_success": "Successfully logged into Hugging Face.",
             "hf_login_failed": "Hugging Face login failed",
             "flux_schnell_use_fp8_label": "Use FP8 Quantization (for local FP8 models)",
-            "flux_schnell_use_fp8_info": "Check this if you are loading a local .safetensors model that has been quantized to FP8. Requires 'optimum-quanto'."
+            "flux_schnell_use_fp8_info": "Check this if you are loading a local .safetensors model that has been quantized to FP8. Requires 'optimum-quanto'.",
+            "refresh_lora_list": "Refresh LoRA List",
+            "lora_list_refreshed": "LoRA list refreshed ({count} found).",
+            "flux_schnell_load_default_button": "Load Model (Default)",
+            "flux_schnell_load_local_button": "Load Model (Local)",
+            "flux_schnell_load_img2img_button": "Load Model (Img2Img)",
+            "flux_schnell_select_local_model_warning": "Please select a local .safetensors file to load.",
+            "flux_schnell_error_wrong_model_type": "Error: The loaded model type ({mode_charge}) does not match the requested operation ({mode_attendu}).",
+            "flux_schnell_error_no_image_for_img2img": "Error: Image-to-Image mode is enabled but no image was provided.",
+            "flux_schnell_generating_prompt_from_image": "Generating prompt from image for FLUX..."
         }
     }
 }

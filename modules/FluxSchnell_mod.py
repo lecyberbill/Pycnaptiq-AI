@@ -698,22 +698,18 @@ class FluxSchnellModule:
         self,
         prompt_libre,
         traduire_flag,
-        selected_styles, 
+        selected_styles,
         num_images,
-        use_img2img_checkbox_value, # <-- AJOUT DU PARAMÈTRE
+        use_img2img_checkbox_value,
         steps,
         resolution_str,
-        guidance_scale, 
-        img2img_input_pil, 
-        img2img_strength,  
+        guidance_scale,
+        img2img_input_pil,
+        img2img_strength,
         seed_input,
-        selected_model, # <-- AJOUT
-        use_fp8, # <-- AJOUT
-        # --- AJOUT: Paramètres d'amélioration du prompt (déplacés pour la robustesse) ---
         original_user_prompt_for_cycle,
         prompt_is_currently_enhanced,
         enhancement_cycle_is_active,
-        # --- FIN AJOUT ---
         *loras_all_inputs
     ):
         module_translations = self.module_translations

@@ -539,6 +539,10 @@
     "erreur_verif_lora": "Error during LoRA verification",
     "ok_loras_invalides_nettoyes": "Invalid LoRAs successfully cleaned",
     "ok_aucun_lora_a_nettoyer": "All LoRAs are valid, no cleaning needed.",
+    "metadonnees_webp_preparees": "WebP XMP metadata prepared.",
+    "erreur_preparation_metadonnees_webp": "Error preparing WebP XMP metadata",
+    "injection_xmp_webp": "Injecting WebP XMP metadata.",
+    "avertissement_meta_incompatible_webp": "Warning: Metadata provided is incompatible with WebP XMP format.",
     "deplacement_modele_device" : "Moving model to device",
     "utilisation_vae_integre": "Using integrated VAE",
     "generer_en": "generated in",
@@ -683,5 +687,13 @@
     "flux_schnell_load_local_button": "Load Local Model",
     "flux_schnell_load_img2img_button": "Load Image-to-Image Model",
     "flux_schnell_select_local_model_warning": "Please select a local model file (.safetensors) for local loading.",
-    "loading_fp8_model_log": "Loading and FP8 quantizing model..."
+    "loading_fp8_model_log": "Loading and FP8 quantizing model...",
+    "loras_unloaded_before_new_config": "All LoRAs were unloaded before applying the new configuration.",
+    "no_lora_selected_all_disabled": "No LoRA selected. All LoRAs are disabled.",
+    "lora_loaded_name": "LoRA loaded: {name}",
+    "lora_load_error_name": "Error loading LoRA {name}: {e}",
+    "lora_weight_log_part": " (weight: {weight:.2f})",
+    "loras_activated_details": "LoRAs activated: {details}",
+    "loras_activation_error": "Error activating LoRAs: {e}",
+    "no_lora_to_apply": "No LoRA to apply."
 }

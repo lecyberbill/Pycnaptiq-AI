@@ -5,6 +5,7 @@ import time
 import os
 import gc
 import traceback
+from contextlib import contextmanager
 from pathlib import Path
 import safetensors
 import gradio as gr
@@ -44,6 +45,17 @@ gpu = torch.device( # Garder cette initialisation pour gpu
 # Custom exception for Hugging Face authentication issues
 class HuggingFaceAuthError(Exception):
     """Custom exception for Hugging Face authentication/access issues."""
+
+@contextmanager
+def suppress_stderr():
+    """A context manager that redirects stderr to devnull."""
+    with open(os.devnull, 'w') as fnull:
+        old_stderr = sys.stderr
+        sys.stderr = fnull
+        try:
+            yield
+        finally:
+            sys.stderr = old_stderr
 
 # Ajouter le répertoire 'modules' au sys.path pour permettre l'importation de bibliothèques locales
 project_root_dir = Path(__file__).resolve().parent.parent # Remonte au dossier principal du projet (cyberbill_image_generator)
@@ -724,44 +736,73 @@ class ModelManager:
             msg = translate("erreur_pas_modele_pour_lora", self.translations)
             if gradio_mode: gr.Warning(msg, duration=4.0)
             return msg
+        
         messages = []
+        
+        # 1. Analyser les LoRAs demandés depuis l'interface utilisateur
+        requested_loras_config = {} # adapter_name: {'filename': str, 'scale': float}
         lora_checks = lora_ui_config.get('lora_checks', [])
         lora_dropdowns = lora_ui_config.get('lora_dropdowns', [])
         lora_scales = lora_ui_config.get('lora_scales', [])
-        requested_loras_config = {} # adapter_name: (lora_filename, scale)
 
         for i, is_checked in enumerate(lora_checks):
             if is_checked and i < len(lora_dropdowns) and i < len(lora_scales):
                 lora_filename = lora_dropdowns[i]
                 scale = lora_scales[i]
-                if lora_filename and lora_filename != translate("aucun_lora_disponible", self.translations) and lora_filename != translate("aucun_modele_trouve", self.translations) and lora_filename != translate("repertoire_not_found", self.translations):
+                if lora_filename and lora_filename not in [
+                    translate("aucun_lora_disponible", self.translations),
+                    translate("aucun_modele_trouve", self.translations),
+                    translate("repertoire_not_found", self.translations)
+                ]:
                     adapter_name = os.path.splitext(lora_filename)[0].replace(".", "_").replace(" ", "_")
-                    requested_loras_config[adapter_name] = (lora_filename, scale)
-        
-        # Unload all existing LoRAs first to ensure a clean state
+                    requested_loras_config[adapter_name] = {'filename': lora_filename, 'scale': scale}
+
+        # 2. Décharger tous les LoRAs existants pour garantir un état propre.
         if hasattr(self.current_pipe, "unload_lora_weights"):
             self.current_pipe.unload_lora_weights()
-            print(txt_color("[INFO]", "info"), translate("all_loras_unloaded_log", self.translations))
-        elif hasattr(self.current_pipe, "set_adapters"): # For PEFT-compatible pipelines that might not have unload_lora_weights
+            print(txt_color("[INFO]", "info"), translate("loras_unloaded_before_new_config", self.translations))
+        elif hasattr(self.current_pipe, "set_adapters"):
             self.current_pipe.set_adapters([], adapter_weights=[])
-            print(txt_color("[INFO]", "info"), translate("all_loras_disabled_log", self.translations))
-        
-        self.loaded_loras.clear() # Clear internal tracking
+        self.loaded_loras.clear()
 
-        # Load or re-load only the requested LoRAs
-        for adapter_name, (lora_filename, scale) in requested_loras_config.items():
-            lora_full_path = os.path.join(self.loras_dir, lora_filename)
+        # 3. Charger tous les LoRAs demandés
+        if not requested_loras_config:
+            return translate("no_lora_selected_all_disabled", self.translations)
+
+        for name, config in requested_loras_config.items():
+            lora_path = os.path.join(self.loras_dir, config['filename'])
             try:
-                print(txt_color("[INFO]", "info"), f"{translate('lora_charge_depuis_chemin', self.translations)} {lora_full_path}")
-                self.current_pipe.load_lora_weights(lora_full_path, adapter_name=adapter_name)
-                self.loaded_loras[adapter_name] = {'filename': lora_filename, 'scale': scale} # Store with filename
-                messages.append(f"{translate('lora_charge', self.translations)}: {adapter_name} (Scale: {scale})")
-                print(txt_color("[OK]", "ok"), f"{translate('lora_charge', self.translations)}: {adapter_name} (Scale: {scale})")
-            except Exception as e_load:
-                msg_load_fail = f"{translate('erreur_lora_chargement', self.translations)}: {e_load}"
-                print(txt_color("[ERREUR]", "erreur"), msg_load_fail)
-                messages.append(msg_load_fail)
+                # Suppress the harmless "No LoRA keys associated to CLIPTextModel" warning
+                with suppress_stderr():
+                    self.current_pipe.load_lora_weights(lora_path, adapter_name=name)
+                self.loaded_loras[name] = config
+                messages.append(translate("lora_loaded_name", self.translations).format(name=name))
+            except Exception as e:
+                msg = translate("lora_load_error_name", self.translations).format(name=name, e=e)
+                print(txt_color("[ERREUR]", "erreur"), msg)
+                messages.append(msg)
+                if name in self.loaded_loras:
+                    del self.loaded_loras[name]
+        
+        # 4. Activer l'ensemble final d'adaptateurs sur le pipeline
+        final_adapters_to_activate = list(self.loaded_loras.keys())
+        final_weights = [self.loaded_loras[name]['scale'] for name in final_adapters_to_activate]
+
+        if final_adapters_to_activate:
+            try:
+                self.current_pipe.set_adapters(final_adapters_to_activate, adapter_weights=final_weights)
+                
+                weight_part_str = translate("lora_weight_log_part", self.translations)
+                activated_loras_details = [f"{name}{weight_part_str.format(weight=self.loaded_loras[name]['scale'])}" for name in final_adapters_to_activate]
+                
+                msg = translate("loras_activated_details", self.translations).format(details=', '.join(activated_loras_details))
+                print(txt_color("[OK]", "ok"), msg)
+                messages.append(msg)
+            except Exception as e:
+                msg = translate("loras_activation_error", self.translations).format(e=e)
+                print(txt_color("[ERREUR]", "erreur"), msg)
+                messages.append(msg)
                 traceback.print_exc()
 
-        final_message = "\n".join(filter(None, messages))
-        return final_message if final_message else translate("loras_geres_succes", self.translations)
+        final_message = "\n".join(messages)
+        return final_message if final_message else translate("no_lora_to_apply", self.translations)
