@@ -6,6 +6,7 @@ import os
 import gc
 import traceback
 from pathlib import Path
+import safetensors
 import gradio as gr
 from diffusers import (
     StableDiffusionXLPipeline,
@@ -16,7 +17,8 @@ from diffusers import (
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
     SanaSprintPipeline,
-    CogView4Pipeline,
+    CogView4Pipeline, 
+    FluxTransformer2DModel,
     FluxPipeline,
     FluxImg2ImgPipeline, # <-- AJOUT POUR FLUX Img2Img
     CogView3PlusPipeline,
@@ -26,7 +28,7 @@ from diffusers import (
 from diffusers import BitsAndBytesConfig, SD3Transformer2DModel, StableDiffusion3Pipeline
 from diffusers import EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler, LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler, DPMSolverSinglestepScheduler
 from diffusers.models.attention_processor import AttnProcessor2_0
-from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer, T5EncoderModel # AJOUT T5EncoderModel pour SD3.5
+from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer, T5EncoderModel, T5TokenizerFast, CLIPTextModelWithProjection, CLIPTokenizer, SiglipVisionModel, SiglipImageProcessor
 from compel import Compel, ReturnedEmbeddingsType
 
 # Importer les fonctions utilitaires nécessaires (ajuster si besoin)
@@ -76,6 +78,8 @@ class ModelManager:
         self.current_model_type = None
         self.current_sampler_key = None
         self.loaded_loras = {}
+        self.current_fp8_state = False # <-- AJOUT: Mémoriser l'état FP8
+        self.is_ip_adapter_loaded = False # Pour suivre l'état de l'IP-Adapter
         self.current_vae_pipe = None # Pour stocker le VAE chargé séparément
 
         # StarVector specific
@@ -86,6 +90,10 @@ class ModelManager:
         self.vae_dir = self._get_absolute_path(config.get("VAE_DIR", "models/vae"))
         self.loras_dir = self._get_absolute_path(config.get("LORAS_DIR", "models/loras"))
         self.inpaint_models_dir = self._get_absolute_path(config.get("INPAINT_MODELS_DIR", "models/inpainting"))
+        self.sd3_models_dir = self._get_absolute_path(config.get("SD3_MODELS_DIR", "models/Stable-diffusion-3"))
+        self.flux_models_dir = self._get_absolute_path(config.get("FLUX_MODELS_DIR", "models/flux"))
+        self.flux_models_dir = self._get_absolute_path(config.get("FLUX_MODELS_DIR", "models/flux"))
+
 
     def _get_absolute_path(self, path_from_config):
         root_dir = Path(__file__).parent.parent
@@ -110,6 +118,11 @@ class ModelManager:
                 return model_files_raw
         else:
             return filtered_model_files
+
+    def list_sd3_models(self, gradio_mode=False):
+        """Liste les fichiers de modèles dans le répertoire SD3."""
+        model_files = lister_fichiers(self.sd3_models_dir, self.translations, ext=".safetensors", gradio_mode=gradio_mode)
+        return model_files
 
     def list_vaes(self, gradio_mode=False):
         return ["Auto"] + lister_fichiers(self.vae_dir, self.translations, ext=".safetensors", gradio_mode=gradio_mode)
@@ -181,7 +194,9 @@ class ModelManager:
             self.current_model_type = None
             self.current_sampler_key = None
             self.loaded_loras.clear()
+            self.current_fp8_state = False # <-- AJOUT: Réinitialiser l'état FP8
             self.current_vae_pipe = None # Clear separate VAE
+            self.is_ip_adapter_loaded = False # Réinitialiser l'état de l'IP-Adapter
             # Clear StarVector specific components
             self.current_processor = None
             # self.current_tokenizer = None
@@ -205,6 +220,8 @@ class ModelManager:
             self.current_model_type = None
             self.current_sampler_key = None
             self.loaded_loras.clear()
+            self.current_fp8_state = False # <-- AJOUT: Réinitialiser l'état FP8
+            self.is_ip_adapter_loaded = False
             self.current_vae_pipe = None
             self.current_processor = None
             # self.current_tokenizer = None
@@ -214,15 +231,30 @@ class ModelManager:
             if gradio_mode: gr.Error(error_message)
             return False, error_message
 
-    def load_model(self, model_name, vae_name="Auto", model_type="standard", gradio_mode=False, custom_pipeline_id=None):
+
+    def load_model(self, model_name, vae_name="Auto", model_type="standard", gradio_mode=False, custom_pipeline_id=None, from_single_file=False, use_ip_adapter=False, use_fp8=False):
+        # --- GARDE-FOU pour éviter de recharger un modèle déjà chargé avec les mêmes paramètres ---
+        if (self.current_pipe is not None and
+            self.current_model_name == model_name and
+            self.current_model_type == model_type and
+            self.current_vae_name == vae_name and
+            self.is_ip_adapter_loaded == use_ip_adapter and
+            self.current_fp8_state == use_fp8):
+            
+            msg = translate("modele_deja_charge", self.translations).format(model_name=model_name)
+            print(txt_color("[INFO]", "info"), msg)
+            if gradio_mode:
+                gr.Info(msg, duration=2.0)
+            return True, msg
+        # --- FIN DU GARDE-FOU ---
+
         if not model_name or model_name == translate("aucun_modele", self.translations) or model_name == translate("aucun_modele_trouve", self.translations):
             msg = translate("aucun_modele_selectionne", self.translations)
             print(txt_color("[ERREUR]", "erreur"), msg)
             if gradio_mode: gr.Warning(msg, duration=4.0)
             return False, msg
 
-        if self.current_pipe is not None and \
-           (self.current_model_name != model_name or self.current_model_type != model_type or self.current_vae_name != vae_name):
+        if self.current_pipe is not None and (self.current_model_name != model_name or self.current_model_type != model_type or self.current_vae_name != vae_name or self.is_ip_adapter_loaded != use_ip_adapter or self.current_fp8_state != use_fp8):
             print(txt_color("[INFO]", "info"), translate("dechargement_modele_precedent_avant_chargement", self.translations))
             unload_success, unload_msg = self.unload_model(gradio_mode=gradio_mode)
             if not unload_success:
@@ -249,18 +281,9 @@ class ModelManager:
             is_from_single_file = False
             specific_torch_dtype = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
             chemin_modele = model_name
-        elif model_type == FLUX_SCHNELL_MODEL_TYPE_KEY:
-            pipeline_loader = FluxPipeline.from_pretrained
-            is_from_single_file = False
-            specific_torch_dtype = torch.bfloat16
-            chemin_modele = model_name
-        elif model_type == FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY:
-            pipeline_loader = FluxImg2ImgPipeline.from_pretrained
-            is_from_single_file = False
-            specific_torch_dtype = torch.bfloat16
-            chemin_modele = model_name
+
         elif model_type == SD3_5_TURBO_MODEL_TYPE_KEY:
-            is_from_single_file = False # Chargement personnalisé depuis HF
+            is_from_single_file = from_single_file # Utiliser l'argument passé
             chemin_modele = model_name
             specific_torch_dtype = torch.bfloat16 # Recommandé pour SD3.5
             pipeline_loader = None # Pas de loader simple, logique custom
@@ -285,7 +308,7 @@ class ModelManager:
             pipeline_class = StableDiffusionXLPipeline
             model_dir = self.models_dir
 
-        if is_from_single_file and model_type not in [STARVECTOR_MODEL_TYPE_KEY]:
+        if is_from_single_file and model_type not in [STARVECTOR_MODEL_TYPE_KEY, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY]:
             chemin_modele = os.path.join(model_dir, model_name)
             if not os.path.exists(chemin_modele):
                 msg = f"{translate('modele_non_trouve', self.translations)}: {chemin_modele}"
@@ -308,46 +331,129 @@ class ModelManager:
         try:
             if model_type == STARVECTOR_MODEL_TYPE_KEY:
                 print(txt_color("[INFO]", "info"), translate("loading_starvector_model_console", self.translations).format(model_name=chemin_modele))
-                # StarVector specific loading
+                # Chargement spécifique à StarVector
                 model_instance = AutoModelForCausalLM.from_pretrained(
                     chemin_modele, # chemin_modele is model_name (HF ID)
                     torch_dtype=specific_torch_dtype,
                     trust_remote_code=True
                 )
                 pipe = model_instance # Store the model instance as 'pipe' for consistency
-            elif model_type in [FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY]: # AJOUT pour FLUX
-                try:
-                    pipe = pipeline_loader(chemin_modele, torch_dtype=specific_torch_dtype)
-                except Exception as e:
-                    error_message = str(e)
-                    if "restricted" in error_message.lower() or "authentication" in error_message.lower() or "login" in error_message.lower():
-                        raise HuggingFaceAuthError(error_message)
-                    else:
-                        raise # Re-raise other general exceptions
-            elif model_type == SD3_5_TURBO_MODEL_TYPE_KEY:
-                # Logique de chargement personnalisée pour SD3.5 Turbo avec quantification
-                nf4_config = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_quant_type="nf4",
-                    bnb_4bit_compute_dtype=torch.bfloat16
-                )
-                transformer = SD3Transformer2DModel.from_pretrained(
-                    chemin_modele,
-                    subfolder="transformer",
-                    quantization_config=nf4_config,
+            elif model_type in [FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY]:
+                chemin_modele = model_name
+                is_local_file = from_single_file
+
+                if is_local_file:
+                    # Logique pour les fichiers locaux .safetensors
+                    pipeline_class_flux = FluxImg2ImgPipeline if model_type == FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY else FluxPipeline
+                    bfl_repo = "black-forest-labs/FLUX.1-schnell"
+                    local_model_path = os.path.join(self.flux_models_dir, chemin_modele)
+
+                    if not os.path.exists(local_model_path):
+                        raise FileNotFoundError(f"{translate('modele_non_trouve', self.translations)}: {local_model_path}")
+
+                    # For local files, we now prioritize loading without FP8 due to persistent errors.
+                    # The FP8 logic is commented out but kept for future reference if the underlying library issues are resolved.
+                    
+                    # if use_fp8:
+                    #     from optimum.quanto import qfloat8, quantize, freeze
+                    #     print(txt_color("[INFO]", "info"), translate("loading_fp8_model_log", self.translations))
+                    #     # The following block is the source of the errors and is disabled.
+                    #     # ... (previous FP8 attempts) ...
+                    #     gr.Warning("FP8 quantization for local FLUX models is currently disabled due to loading errors.", 5.0)
+
+                    transformer = FluxTransformer2DModel.from_single_file(local_model_path, torch_dtype=specific_torch_dtype)
+                    text_encoder_2 = T5EncoderModel.from_pretrained(bfl_repo, subfolder="text_encoder_2", torch_dtype=specific_torch_dtype)
+                    
+                    if use_fp8:
+                        gr.Warning("FP8 quantization for local FLUX models is currently disabled due to persistent errors. The model will be loaded in its native precision.", 5.0)
+
+                    pipe = pipeline_class_flux.from_pretrained(bfl_repo, transformer=None, text_encoder_2=None, torch_dtype=specific_torch_dtype)
+                    pipe.transformer = transformer
+                    pipe.text_encoder_2 = text_encoder_2
+                else:
+                    # Logique pour le chargement depuis Hugging Face
+                    pipeline_loader = FluxImg2ImgPipeline.from_pretrained if model_type == FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY else FluxPipeline.from_pretrained
+                    try:
+                        pipe = pipeline_loader(chemin_modele, torch_dtype=specific_torch_dtype)
+                    except Exception as e:
+                        error_message = str(e)
+                        if "restricted" in error_message.lower() or "authentication" in error_message.lower():
+                            raise HuggingFaceAuthError(error_message)
+                        else:
+                            raise
+            elif model_type == SD3_5_TURBO_MODEL_TYPE_KEY and use_ip_adapter:
+                print(txt_color("[INFO]", "info"), "Chargement du pipeline SD3.5 Turbo avec IP-Adapter...")
+                image_encoder_id = "google/siglip-so400m-patch14-384"
+                ip_adapter_id = "InstantX/SD3.5-Large-IP-Adapter"
+                
+                print(txt_color("[INFO]", "info"), f"  -> Chargement du feature extractor (SiglipImageProcessor) depuis : {image_encoder_id}")
+                feature_extractor = SiglipImageProcessor.from_pretrained(
+                    image_encoder_id,
                     torch_dtype=specific_torch_dtype
                 )
-                text_encoder_3 = T5EncoderModel.from_pretrained(
-                    "diffusers/t5-nf4", torch_dtype=specific_torch_dtype
-                )
+                print(txt_color("[INFO]", "info"), f"  -> Chargement de l'encodeur d'image (SiglipVisionModel) depuis : {image_encoder_id}")
+                image_encoder = SiglipVisionModel.from_pretrained(
+                    image_encoder_id,
+                    torch_dtype=specific_torch_dtype
+                ).to(self.device)
+
+                print(txt_color("[INFO]", "info"), f"  -> Chargement du pipeline de base 'stabilityai/stable-diffusion-3.5-large-turbo' avec les composants image...")
                 pipe = StableDiffusion3Pipeline.from_pretrained(
-                    chemin_modele, 
-                    transformer=transformer,
-                    text_encoder_3=text_encoder_3,
+                    "stabilityai/stable-diffusion-3.5-large-turbo",
                     torch_dtype=specific_torch_dtype,
-                    
+                    feature_extractor=feature_extractor,
+                    image_encoder=image_encoder,
                 )
-            elif is_from_single_file:
+                print(txt_color("[INFO]", "info"), f"  -> Chargement des poids de l'IP-Adapter depuis : {ip_adapter_id}")
+                # CORRECTION: Le nom du fichier est 'ip-adapter.bin' et non '.safetensors' pour ce modèle.
+                pipe.load_ip_adapter(
+                    ip_adapter_id, subfolder="", weight_name="ip-adapter.bin"
+                )
+                pipe.safety_checker = None
+            elif model_type == SD3_5_TURBO_MODEL_TYPE_KEY:
+                base_model_id = "stabilityai/stable-diffusion-3.5-large-turbo"
+                if from_single_file:
+                    # LOGIQUE EXISTANTE POUR LES MODÈLES LOCAUX NON-QUANTIFIÉS
+                    print(txt_color("[INFO]", "info"), f"Chargement du transformateur SD3 (full precision) depuis le fichier local...")
+                    transformer = SD3Transformer2DModel.from_single_file(
+                        chemin_modele,
+                        torch_dtype=specific_torch_dtype
+                    )
+                    # Charger le reste du pipeline depuis le modèle de base, en remplaçant le transformateur
+                    pipe = StableDiffusion3Pipeline.from_pretrained(
+                        base_model_id,
+                        transformer=transformer,
+                        torch_dtype=specific_torch_dtype,
+                    )
+                    pipe.safety_checker = None
+                    
+
+                else:
+                    # Logique existante pour charger depuis Hugging Face avec quantification
+                    print(txt_color("[INFO]", "info"), f"Chargement du pipeline SD3 depuis Hugging Face : {chemin_modele}")
+                    nf4_config = BitsAndBytesConfig(
+                        load_in_4bit=True,
+                        bnb_4bit_quant_type="nf4",
+                        bnb_4bit_compute_dtype=torch.bfloat16
+                    )
+                    transformer = SD3Transformer2DModel.from_pretrained(
+                        chemin_modele,
+                        subfolder="transformer",
+                        quantization_config=nf4_config,
+                        torch_dtype=specific_torch_dtype
+                    )
+                    text_encoder_3 = T5EncoderModel.from_pretrained(
+                        "diffusers/t5-nf4", torch_dtype=specific_torch_dtype
+                    )
+
+                    pipe = StableDiffusion3Pipeline.from_pretrained(
+                        chemin_modele, 
+                        transformer=transformer,
+                        text_encoder_3=text_encoder_3,
+                        torch_dtype=specific_torch_dtype,
+                    )
+                    pipe.safety_checker = None
+            elif is_from_single_file and model_type not in [FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY]:
                 # Handles standard, inpainting, img2img if they are single files
                 pipeline_kwargs = {
                     "torch_dtype": specific_torch_dtype,
@@ -431,10 +537,8 @@ class ModelManager:
                     pipe.vae.enable_slicing()
                     pipe.vae.enable_tiling()
             elif model_type == SD3_5_TURBO_MODEL_TYPE_KEY and pipe is not None:
-                # SD3.5 Turbo a sa propre gestion mémoire et ne possède pas enable_vae_slicing/tiling.
                 # Il supporte enable_model_cpu_offload.
                 pipe.enable_model_cpu_offload()
-                # --- AJOUT TEST: Désactiver le safety checker ---
                 pipe.safety_checker = None
             elif pipe is not None: # Standard SDXL, Inpainting, Img2Img
                 force_cpu_offload_config = str_to_bool(str(self.config.get("FORCE_CPU_OFFLOAD", "False")))
@@ -490,6 +594,8 @@ class ModelManager:
             self.current_model_name = model_name
             self.current_vae_name = loaded_vae_name
             self.current_model_type = model_type
+            self.current_fp8_state = use_fp8 # <-- AJOUT: Sauvegarder l'état FP8
+            self.is_ip_adapter_loaded = use_ip_adapter # Mettre à jour l'état de l'IP-Adapter
             self.current_vae_pipe = vae_pipe_instance # Store separate VAE
             self.loaded_loras.clear()
             self.current_sampler_key = None

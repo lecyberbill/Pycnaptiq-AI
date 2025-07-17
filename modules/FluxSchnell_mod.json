@@ -10,7 +10,11 @@
         "diffusers",
         "transformers",
         "torch",
-        "accelerate"
+        "accelerate",
+        {
+            "package": "optimum-quanto",
+            "import": "optimum"
+        }
     ],
     "language": {
         "fr": {
@@ -61,7 +65,34 @@
             "flux_schnell_img2img_strength_label": "Force (Img2Img)",
             "flux_schnell_img2img_strength_info": "Contrôle l'influence de l'image d'entrée (0.0 = image originale, 1.0 = ignore l'image).",
             "flux_schnell_use_img2img_label": "Activer Image-to-Image",
-            "flux_schnell_use_img2img_info": "Cochez pour utiliser une image d'entrée pour la génération Image-to-Image."
+            "flux_schnell_use_img2img_info": "Cochez pour utiliser une image d'entrée pour la génération Image-to-Image.",
+            "refreshing_flux_model_list_log": "Rafraîchissement de la liste des modèles FLUX demandé.",
+            "flux_model_list_refreshed": "Liste des modèles FLUX mise à jour ({count} trouvés).",
+            "flux_schnell_model_select_label": "Sélection du modèle FLUX",
+            "flux_schnell_model_select_info": "Choisissez un modèle depuis HuggingFace ou un fichier local (.safetensors).",
+            "flux_schnell_loading_img2img_model": "Chargement du modèle FLUX.1-Schnell (Img2Img)...",
+            "error_hf_auth_required": "Erreur d'authentification Hugging Face. Un token est requis.",
+            "flux_schnell_model_not_loaded_auth_needed": "Modèle non chargé. Authentification requise.",
+            "flux_schnell_error_loading_model": "Erreur lors du chargement du modèle FLUX",
+            "hf_login_instructions_title": "Authentification Hugging Face Requise",
+            "hf_login_instructions_step1": "1. Allez sur huggingface.co/settings/tokens.",
+            "hf_login_instructions_step2": "2. Créez un nouveau token d'accès (Access Token) avec le rôle 'read'.",
+            "hf_login_instructions_step3": "3. Copiez le token.",
+            "hf_login_instructions_step4": "4. Collez-le dans le champ ci-dessous.",
+            "hf_login_instructions_step5": "5. Cliquez sur 'Login & Recharger'.",
+            "hf_login_instructions_step6": "6. Le token sera utilisé pour cette session uniquement.",
+            "hf_login_instructions_step7": "7. L'accès est nécessaire pour télécharger le modèle de base de Black Forest Labs.",
+            "hf_login_instructions_step8": "8. Assurez-vous d'avoir accepté les termes du modèle sur sa page Hugging Face.",
+            "hf_login_instructions_step9": "9. Le modèle est : black-forest-labs/FLUX.1-schnell",
+            "hf_token_label": "Token d'accès Hugging Face",
+            "hf_token_placeholder": "Collez votre token ici (ex: hf_...)",
+            "hf_login_button": "Login & Recharger",
+            "hf_token_empty_warn": "Le champ du token est vide.",
+            "hf_logging_in": "Connexion à Hugging Face en cours...",
+            "hf_login_success": "Connexion à Hugging Face réussie.",
+            "hf_login_failed": "Échec de la connexion à Hugging Face",
+            "flux_schnell_use_fp8_label": "Utiliser la quantification FP8 (pour modèles locaux FP8)",
+            "flux_schnell_use_fp8_info": "Cochez si vous chargez un modèle .safetensors local qui a été quantifié en FP8. Nécessite 'optimum-quanto'."
         },
         "en": {
             "flux_schnell_tab_name": "FLUX.1 Schnell",
@@ -111,7 +142,34 @@
             "flux_schnell_img2img_strength_label": "Strength (Img2Img)",
             "flux_schnell_img2img_strength_info": "Controls the influence of the input image (0.0 = original image, 1.0 = ignore image).",
             "flux_schnell_use_img2img_label": "Enable Image-to-Image",
-            "flux_schnell_use_img2img_info": "Check to use an input image for Image-to-Image generation."
+            "flux_schnell_use_img2img_info": "Check to use an input image for Image-to-Image generation.",
+            "refreshing_flux_model_list_log": "Refreshing FLUX model list.",
+            "flux_model_list_refreshed": "FLUX model list updated ({count} found).",
+            "flux_schnell_model_select_label": "FLUX Model Selection",
+            "flux_schnell_model_select_info": "Choose a model from HuggingFace or a local file (.safetensors).",
+            "flux_schnell_loading_img2img_model": "Loading FLUX.1-Schnell model (Img2Img)...",
+            "error_hf_auth_required": "Hugging Face authentication error. A token is required.",
+            "flux_schnell_model_not_loaded_auth_needed": "Model not loaded. Authentication required.",
+            "flux_schnell_error_loading_model": "Error loading FLUX model",
+            "hf_login_instructions_title": "Hugging Face Authentication Required",
+            "hf_login_instructions_step1": "1. Go to huggingface.co/settings/tokens.",
+            "hf_login_instructions_step2": "2. Create a new Access Token with the 'read' role.",
+            "hf_login_instructions_step3": "3. Copy the token.",
+            "hf_login_instructions_step4": "4. Paste it in the field below.",
+            "hf_login_instructions_step5": "5. Click 'Login & Reload'.",
+            "hf_login_instructions_step6": "6. The token will be used for this session only.",
+            "hf_login_instructions_step7": "7. Access is required to download the base model from Black Forest Labs.",
+            "hf_login_instructions_step8": "8. Make sure you have accepted the model's terms on its Hugging Face page.",
+            "hf_login_instructions_step9": "9. The model is: black-forest-labs/FLUX.1-schnell",
+            "hf_token_label": "Hugging Face Access Token",
+            "hf_token_placeholder": "Paste your token here (e.g., hf_...)",
+            "hf_login_button": "Login & Reload",
+            "hf_token_empty_warn": "The token field is empty.",
+            "hf_logging_in": "Logging into Hugging Face...",
+            "hf_login_success": "Successfully logged into Hugging Face.",
+            "hf_login_failed": "Hugging Face login failed",
+            "flux_schnell_use_fp8_label": "Use FP8 Quantization (for local FP8 models)",
+            "flux_schnell_use_fp8_info": "Check this if you are loading a local .safetensors model that has been quantized to FP8. Requires 'optimum-quanto'."
         }
     }
 }

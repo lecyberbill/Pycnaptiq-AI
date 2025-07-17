@@ -19,6 +19,7 @@ from Utils.utils import (
     enregistrer_image,
     preparer_metadonnees_image,
     enregistrer_etiquettes_image_html,
+    ImageSDXLchecker,
     create_progress_bar_html,
     styles_fusion,
 )
@@ -26,10 +27,13 @@ from Utils.callback_diffuser import create_inpainting_callback
 from Utils.model_manager import ModelManager, HuggingFaceAuthError
 from core.translator import translate_prompt
 from core.pipeline_executor import execute_pipeline_task_async
+from core.image_prompter import generate_prompt_from_image # AJOUT
 from Utils import llm_prompter_util # <-- AJOUT pour l'amélioration du prompt
+# --- AJOUT SAMPLER ---
+from Utils.sampler_utils import get_sampler_choices, get_sampler_key_from_display_name, apply_sampler_to_pipe
 
 MODULE_NAME = "SD3-5-TURBO"
-SD3_5_TURBO_MODEL_ID = "stabilityai/stable-diffusion-3.5-large-turbo"
+SD3_5_TURBO_MODEL_ID = "stabilityai/stable-diffusion-3.5-large-turbo" # Corrigé pour correspondre aux text encoders
 SD3_5_TURBO_MODEL_TYPE_KEY = "sd3_5_turbo"
 
 module_json_path = os.path.join(os.path.dirname(__file__), f"{MODULE_NAME}_mod.json")
@@ -65,6 +69,9 @@ class SD3_5_TURBO_Module:
         self.lora_choices_for_ui = self.available_loras if self.has_loras else [translate("aucun_lora_disponible", self.module_translations)]
         # --- FIN AJOUT ---
         
+        # --- AJOUT: Logique pour les modèles SD3 locaux ---
+        self.sd3_models_dir = self.model_manager.sd3_models_dir
+        self.available_sd3_models = self.list_sd3_models()
         # Utiliser les résolutions standard de la configuration globale
         self.allowed_resolutions = [f"{format['dimensions'].replace('*', 'x')}" for format in self.global_config.get("FORMATS", [])]
         if not self.allowed_resolutions:
@@ -82,6 +89,27 @@ class SD3_5_TURBO_Module:
             print(txt_color("[ERREUR]", "erreur"), f"Erreur chargement styles.json pour {MODULE_NAME}: {e}")
             return []
 
+    def list_sd3_models(self):
+        """Scanne le répertoire des modèles SD3 et retourne une liste de modèles disponibles."""
+        models = [SD3_5_TURBO_MODEL_ID]  # Modèle par défaut de Hugging Face
+        if not os.path.isdir(self.sd3_models_dir):
+            print(f"[AVERTISSEMENT] Le répertoire des modèles SD3 n'a pas été trouvé : {self.sd3_models_dir}")
+            os.makedirs(self.sd3_models_dir, exist_ok=True)
+        try:
+            for f in os.listdir(self.sd3_models_dir):
+                if f.endswith(".safetensors"):
+                    models.append(f)
+        except Exception as e:
+            print(txt_color("[ERREUR]", "erreur"), f"Erreur lors du scan du répertoire des modèles SD3 : {e}")
+        return models
+
+    def refresh_sd3_models_ui(self):
+        """Scanne à nouveau le répertoire des modèles et met à jour le dropdown."""
+        print(txt_color("[INFO]", "info"), translate("refreshing_sd3_model_list_log", self.module_translations))
+        self.available_sd3_models = self.list_sd3_models()
+        gr.Info(translate("sd3_model_list_refreshed", self.module_translations).format(count=len(self.available_sd3_models)))
+        return gr.update(choices=self.available_sd3_models)
+
     def stop_generation(self):
         self.stop_event.set()
         print(txt_color("[INFO]", "info"), translate("stop_requested", self.module_translations))
@@ -92,12 +120,10 @@ class SD3_5_TURBO_Module:
         with gr.Tab(translate("sd3_5_turbo_tab_name", self.module_translations)) as tab:
             gr.Markdown(f"## {translate('sd3_5_turbo_tab_title', self.module_translations)}")
 
-            # --- AJOUT: États pour l'amélioration du prompt ---
             sd3_original_user_prompt_state = gr.State(value="")
             sd3_current_prompt_is_enhanced_state = gr.State(value=False)
             sd3_enhancement_cycle_active_state = gr.State(value=False)
             sd3_last_ai_enhanced_output_state = gr.State(value=None)
-            # --- FIN AJOUT ---
 
             with gr.Row():
                 with gr.Column(scale=2):
@@ -107,7 +133,6 @@ class SD3_5_TURBO_Module:
                         placeholder=translate("sd3_5_turbo_prompt_placeholder", self.module_translations),
                         lines=3,
                     )
-                    # --- AJOUT: Boutons d'amélioration du prompt ---
                     with gr.Row():
                         self.sd3_enhance_or_redo_button = gr.Button(
                             translate("ameliorer_prompt_ia_btn", self.module_translations),
@@ -118,7 +143,6 @@ class SD3_5_TURBO_Module:
                             interactive=False,
                             visible=False
                         )
-                    # --- FIN AJOUT ---
                     self.sd3_traduire_checkbox = gr.Checkbox(
                         label=translate("traduire_en_anglais", self.module_translations),
                         value=False,
@@ -129,6 +153,33 @@ class SD3_5_TURBO_Module:
                         choices=[style["name"] for style in self.styles if style["name"] != translate("Aucun_style", self.global_translations)],
                         value=[], multiselect=True,
                     )
+                    # --- AJOUT: Génération de prompt par image ---
+                    self.sd3_use_image_prompt_checkbox = gr.Checkbox(
+                        label=translate("generer_prompt_image", self.global_translations),
+                        value=False
+                    )
+                    self.sd3_image_input_for_prompt = gr.Image(
+                        label=translate("telechargez_image", self.global_translations),
+                        type="pil",
+                        visible=False # Masqué par défaut
+                    )
+                    # --- AJOUT: Options pour l'IP-Adapter (Image-to-Image) ---
+                    self.sd3_use_ip_adapter_checkbox = gr.Checkbox(
+                        label=translate("sd3_5_turbo_use_ip_adapter_label", self.module_translations),
+                        value=False,
+                        info=translate("sd3_5_turbo_use_ip_adapter_info", self.module_translations)
+                    )
+                    with gr.Row(visible=False) as self.sd3_ip_adapter_options:
+                        self.sd3_ip_adapter_image_input = gr.Image(
+                            type="pil",
+                            label=translate("sd3_5_turbo_ip_adapter_image_label", self.module_translations)
+                        )
+                        self.sd3_ip_adapter_scale_slider = gr.Slider(
+                            minimum=0.0, maximum=1.0, value=0.6, step=0.05,
+                            label=translate("sd3_5_turbo_ip_adapter_scale_label", self.module_translations)
+                        )
+                    # --- FIN AJOUT ---
+
                     with gr.Row():
                         self.sd3_resolution_dropdown = gr.Dropdown(
                             label=translate("resolution_label", self.global_translations),
@@ -136,8 +187,9 @@ class SD3_5_TURBO_Module:
                             value="1024x1024",
                             info=translate("resolution_info_sd3_5_turbo", self.module_translations),
                         )
+                    with gr.Row():
                         self.sd3_steps_slider = gr.Slider(
-                            minimum=1, maximum=20, value=4, step=1,
+                            minimum=1, maximum=50, value=4, step=1, # Augmenté le max pour les schedulers non-turbo
                             label=translate("sd3_5_turbo_steps_label", self.module_translations)
                         )
                         self.sd3_guidance_scale_slider = gr.Slider(
@@ -153,12 +205,11 @@ class SD3_5_TURBO_Module:
                             minimum=1, maximum=20, value=1, step=1,
                             label=translate("nombre_images", self.module_translations),
                         )
-                    # --- AJOUT: LoRA Accordion ---
                     with gr.Accordion(translate("lora_section_title", self.module_translations), open=False) as lora_accordion_sd3:
                         self.sd3_lora_checks = []
                         self.sd3_lora_dropdowns = []
                         self.sd3_lora_scales = []
-                        for i in range(1, 3): # Start with 2 LoRA slots
+                        for i in range(1, 3):
                             with gr.Group():
                                 lora_check = gr.Checkbox(label=f"LoRA {i}", value=False)
                                 lora_dropdown = gr.Dropdown(
@@ -170,7 +221,6 @@ class SD3_5_TURBO_Module:
                                 self.sd3_lora_checks.append(lora_check)
                                 self.sd3_lora_dropdowns.append(lora_dropdown)
                                 self.sd3_lora_scales.append(lora_scale_slider)
-
                                 lora_check.change(
                                     fn=lambda chk, has_loras_flag: gr.update(interactive=chk and has_loras_flag),
                                     inputs=[lora_check, gr.State(self.has_loras)],
@@ -180,9 +230,19 @@ class SD3_5_TURBO_Module:
                         self.sd3_refresh_lora_button = gr.Button(
                             translate("refresh_lora_list", self.module_translations),
                             variant="secondary")
-                    # --- FIN AJOUT ---
 
                 with gr.Column(scale=1):
+                    with gr.Row():
+                        self.sd3_model_dropdown = gr.Dropdown(
+                            label=translate("sd3_5_turbo_model_select_label", self.module_translations),
+                            choices=self.available_sd3_models,
+                            value=SD3_5_TURBO_MODEL_ID,
+                            info=translate("sd3_5_turbo_model_select_info", self.module_translations),
+                            scale=10,
+                        )
+                        self.sd3_refresh_models_button = gr.Button(
+                            value="🔄", min_width=80, scale=1, elem_id="sd3_refresh_models_button"
+                        )
                     self.sd3_message_chargement = gr.Textbox(
                         label=translate("sd3_5_turbo_model_status", self.module_translations),
                         value=translate("sd3_5_turbo_model_not_loaded", self.module_translations),
@@ -203,7 +263,7 @@ class SD3_5_TURBO_Module:
 
             self.sd3_bouton_charger.click(
                 fn=self.load_sd3_model_ui,
-                inputs=None,
+                inputs=[self.sd3_model_dropdown, self.sd3_use_ip_adapter_checkbox],
                 outputs=[self.sd3_message_chargement, self.sd3_bouton_gen],
             )
 
@@ -211,12 +271,13 @@ class SD3_5_TURBO_Module:
                 self.sd3_prompt, self.sd3_traduire_checkbox, self.sd3_style_dropdown,
                 self.sd3_num_images_slider, self.sd3_steps_slider, self.sd3_resolution_dropdown,
                 self.sd3_guidance_scale_slider, self.sd3_seed_input,
-                # --- AJOUT: États d'amélioration du prompt ---
                 sd3_original_user_prompt_state,
                 sd3_current_prompt_is_enhanced_state,
                 sd3_enhancement_cycle_active_state,
+                self.sd3_use_ip_adapter_checkbox,
+                self.sd3_ip_adapter_image_input,
+                self.sd3_ip_adapter_scale_slider,
             ]
-            # Add LoRA inputs
             for chk in self.sd3_lora_checks: sd3_gen_inputs.append(chk)
             for dd in self.sd3_lora_dropdowns: sd3_gen_inputs.append(dd)
             for sc in self.sd3_lora_scales: sd3_gen_inputs.append(sc)
@@ -227,14 +288,37 @@ class SD3_5_TURBO_Module:
                 outputs=[self.sd3_result_output, self.sd3_progress_html, self.sd3_bouton_gen, self.sd3_bouton_stop, self.sd3_lora_message],
             )
 
-            # --- AJOUT: Liaisons pour l'amélioration du prompt ---
+            self.sd3_refresh_models_button.click(
+                fn=self.refresh_sd3_models_ui,
+                inputs=None,
+                outputs=[self.sd3_model_dropdown]
+            )
+
+            # --- AJOUT: Logique pour le prompt par image ---
+            self.sd3_use_image_prompt_checkbox.change(
+                fn=lambda use_image: gr.update(visible=use_image),
+                inputs=self.sd3_use_image_prompt_checkbox,
+                outputs=self.sd3_image_input_for_prompt
+            )
+            self.sd3_image_input_for_prompt.change(
+                fn=self.update_prompt_from_image_sd3,
+                inputs=[self.sd3_image_input_for_prompt, self.sd3_use_image_prompt_checkbox, gr.State(self.module_translations)],
+                outputs=self.sd3_prompt
+            )
+            # --- AJOUT: Logique pour afficher/cacher les options de l'IP-Adapter ---
+            self.sd3_use_ip_adapter_checkbox.change(
+                fn=lambda is_checked: gr.update(visible=is_checked),
+                inputs=[self.sd3_use_ip_adapter_checkbox],
+                outputs=[self.sd3_ip_adapter_options]
+            )
+            # --- FIN AJOUT ---
+            # --- FIN AJOUT ---
+
             self.sd3_enhance_or_redo_button.click(fn=self.on_sd3_enhance_or_redo_button_click, inputs=[self.sd3_prompt, sd3_original_user_prompt_state, sd3_enhancement_cycle_active_state, gr.State(self.llm_prompter_model_path), gr.State(self.module_translations)], outputs=[self.sd3_prompt, self.sd3_enhance_or_redo_button, self.sd3_validate_prompt_button, sd3_original_user_prompt_state, sd3_current_prompt_is_enhanced_state, sd3_enhancement_cycle_active_state, sd3_last_ai_enhanced_output_state])
             self.sd3_validate_prompt_button.click(fn=self.on_sd3_validate_prompt_button_click, inputs=[self.sd3_prompt, gr.State(self.module_translations)], outputs=[self.sd3_enhance_or_redo_button, self.sd3_validate_prompt_button, sd3_original_user_prompt_state, sd3_current_prompt_is_enhanced_state, sd3_enhancement_cycle_active_state, sd3_last_ai_enhanced_output_state])
             self.sd3_prompt.input(fn=self.handle_sd3_text_input_change, inputs=[self.sd3_prompt, sd3_last_ai_enhanced_output_state, sd3_enhancement_cycle_active_state, gr.State(self.llm_prompter_model_path), gr.State(self.module_translations)], outputs=[self.sd3_enhance_or_redo_button, self.sd3_validate_prompt_button, sd3_original_user_prompt_state, sd3_current_prompt_is_enhanced_state, sd3_enhancement_cycle_active_state, sd3_last_ai_enhanced_output_state])
             self.sd3_prompt.submit(fn=self.handle_sd3_text_input_change, inputs=[self.sd3_prompt, sd3_last_ai_enhanced_output_state, sd3_enhancement_cycle_active_state, gr.State(self.llm_prompter_model_path), gr.State(self.module_translations)], outputs=[self.sd3_enhance_or_redo_button, self.sd3_validate_prompt_button, sd3_original_user_prompt_state, sd3_current_prompt_is_enhanced_state, sd3_enhancement_cycle_active_state, sd3_last_ai_enhanced_output_state])
-            # --- FIN AJOUT ---
             
-            # --- AJOUT: LoRA Refresh Button Click ---
             self.sd3_refresh_lora_button.click(
                 fn=self.refresh_lora_list,
                 inputs=None,
@@ -244,40 +328,86 @@ class SD3_5_TURBO_Module:
             self.sd3_bouton_stop.click(fn=self.stop_generation, inputs=None, outputs=None)
         return tab
 
-    def load_sd3_model_ui(self):
+    def load_sd3_model_ui(self, selected_model, use_ip_adapter):
         yield gr.update(value=translate("sd3_5_turbo_loading_model", self.module_translations)), gr.update(interactive=False)
         
+        is_single_file = selected_model.endswith(".safetensors")
+        model_path_or_id = os.path.join(self.sd3_models_dir, selected_model) if is_single_file else selected_model
+
         success, message = self.model_manager.load_model(
-            model_name=SD3_5_TURBO_MODEL_ID,
+            model_name=model_path_or_id,
             model_type=SD3_5_TURBO_MODEL_TYPE_KEY,
             gradio_mode=True,
+            from_single_file=is_single_file,
+            use_ip_adapter=use_ip_adapter,
         )
 
         if success:
             message += f" {translate('sd3_5_turbo_model_config_applied', self.module_translations)}"
             gr.Info(translate('sd3_5_turbo_model_config_applied', self.module_translations))
             yield gr.update(value=message), gr.update(interactive=True)
+            if hasattr(self.model_manager, 'current_model_name'):
+                self.model_manager.current_model_name = selected_model
         else:
             yield gr.update(value=message), gr.update(interactive=False)
+
+    # --- AJOUT: Handler pour la génération de prompt par image ---
+    def update_prompt_from_image_sd3(self, image_pil, use_image_flag, current_module_translations):
+        """Génère un prompt si l'image est fournie et que la case est cochée."""
+        if use_image_flag and image_pil is not None:
+            task_for_florence = "<DETAILED_CAPTION>"
+            print(txt_color("[INFO]", "info"), translate("sd3_5_turbo_generating_prompt_from_image", current_module_translations))
+            generated_prompt = generate_prompt_from_image(image_pil, current_module_translations, task=task_for_florence)
+            if generated_prompt.startswith(f"[{translate('erreur', current_module_translations).upper()}]"):
+                gr.Warning(generated_prompt, duration=5.0)
+                return gr.update()
+            else:
+                gr.Info(translate("prompt_genere_par_image_succes", self.global_translations), 2.0)
+                return gr.update(value=generated_prompt)
+        elif not use_image_flag:
+            return gr.update()
+        return gr.update()
+    # --- FIN AJOUT ---
 
     def sd3_5_turbo_gen(
         self, prompt_libre, traduire_flag, selected_styles, num_images,
         steps, resolution_str, guidance_scale, seed_input,
-        # --- AJOUT: Paramètres d'amélioration du prompt ---
         original_user_prompt_for_cycle,
         prompt_is_currently_enhanced,
         enhancement_cycle_is_active,
+        use_ip_adapter,
+        ip_adapter_image,
+        ip_adapter_scale,
         *loras_all_inputs,
-        # --- FIN AJOUT ---
     ):
         start_time_total = time.time()
         self.stop_event.clear()
 
-        try:
-            width, height = map(int, resolution_str.split('x'))
-        except ValueError:
-            gr.Warning(f"Format de résolution invalide: {resolution_str}. Utilisation de 1024x1024.", 4.0)
-            width, height = 1024, 1024
+        # --- AJOUT: IP-Adapter Image Handling ---
+        # --- CORRECTION: Logique de dimension et validation de l'image ---
+        width, height = 0, 0
+        image_to_use_for_adapter = None
+        if use_ip_adapter:
+            if ip_adapter_image is None:
+                gr.Warning(translate("sd3_5_turbo_ip_adapter_no_image_warn", self.module_translations))
+                yield [], "", gr.update(interactive=True), gr.update(interactive=False), gr.update()
+                return
+            
+            print(txt_color("[INFO]", "info"), translate("sd3_5_turbo_ip_adapter_checking_image", self.module_translations))
+            checker = ImageSDXLchecker(ip_adapter_image, self.global_translations) 
+            image_to_use_for_adapter = checker.redimensionner_image()
+            gr.Info(translate("sd3_5_turbo_ip_adapter_image_ok", self.module_translations))
+            # Utiliser les dimensions de l'image de référence pour la sortie
+            width, height = image_to_use_for_adapter.size
+            print(txt_color("[INFO]", "info"), f"Mode IP-Adapter: Utilisation des dimensions de l'image d'entrée -> {width}x{height}")
+        else:
+            # Utiliser les dimensions du dropdown si pas en mode IP-Adapter
+            try:
+                width, height = map(int, resolution_str.split('x'))
+            except ValueError:
+                gr.Warning(f"Format de résolution invalide: {resolution_str}. Utilisation de 1024x1024.", 4.0)
+                width, height = 1024, 1024
+        # --- FIN AJOUT ---
 
         initial_progress = create_progress_bar_html(0, int(steps), 0, translate("preparation", self.module_translations))
         yield [], initial_progress, gr.update(interactive=False), gr.update(interactive=True), gr.update()
@@ -288,12 +418,10 @@ class SD3_5_TURBO_Module:
             yield [], "", gr.update(interactive=True), gr.update(interactive=False), gr.update()
             return
 
-        # --- Logique d'utilisation du prompt (original ou amélioré) ---
         prompt_to_use_for_sd3 = prompt_libre
         prompt_to_log_as_original = prompt_libre
         if enhancement_cycle_is_active or prompt_is_currently_enhanced:
             prompt_to_log_as_original = original_user_prompt_for_cycle
-        # --- FIN Logique ---
 
         if not (prompt_to_use_for_sd3 and prompt_to_use_for_sd3.strip()) and not selected_styles:
             gr.Warning(translate("sd3_5_turbo_error_no_prompt", self.module_translations), 4.0)
@@ -305,7 +433,6 @@ class SD3_5_TURBO_Module:
             selected_styles, base_user_prompt, "", self.styles, self.module_translations
         )
 
-        # --- AJOUT: LoRA Application ---
         num_lora_slots = len(self.sd3_lora_checks)
         lora_ui_config = {
             'lora_checks': loras_all_inputs[:num_lora_slots],
@@ -319,7 +446,6 @@ class SD3_5_TURBO_Module:
         elif lora_message_from_manager:
             gr.Info(lora_message_from_manager, duration=3.0)
         
-
         generated_images_gallery = []
         for i in range(int(num_images)):
             if self.stop_event.is_set():
@@ -329,48 +455,67 @@ class SD3_5_TURBO_Module:
             image_info_text = f"{translate('image', self.module_translations)} {i+1}/{num_images}"
             print(txt_color("[INFO]", "info"), f"{translate('sd3_5_turbo_generation_start', self.module_translations)} ({image_info_text}), Seed: {current_seed}")
 
-            # --- MODIFICATION: Séparation des arguments pour l'exécuteur et pour le pipeline ---
             progress_queue = queue.Queue()
+            result_container = {}
 
-            # Arguments pour la fonction execute_pipeline_task_async
-            executor_args = {
-                "pipe": pipe,
-                "num_inference_steps": int(steps),
-                "guidance_scale": float(guidance_scale),
-                "seed": current_seed,
-                "width": width,
-                "height": height,
-                "device": self.model_manager.device,
-                "stop_event": self.stop_event,
-                "translations": self.module_translations,
-                "progress_queue": progress_queue,
-                "preview_queue": None, # SD3.5 Turbo ne supporte pas les aperçus de latents
-            }
+            def progress_callback(pipe_instance, step, timestep, callback_kwargs):
+                if self.stop_event.is_set():
+                    if hasattr(pipe_instance, '_interrupt'):
+                        pipe_instance._interrupt = True
+                    return callback_kwargs
+                try:
+                    progress_queue.put_nowait((step + 1, int(steps)))
+                except queue.Full:
+                    pass
+                return callback_kwargs
 
-            # Arguments spécifiques au pipeline SD3.5 (passés via **kwargs)
-            sd3_specific_kwargs = {
-                "prompt": "",  # Laisser vide pour le premier encodeur CLIP
-                "prompt_2": "", # Laisser vide pour le deuxième encodeur CLIP
-                "prompt_3": final_prompt_text, # Passer le prompt complet à l'encodeur T5-XXL
-                "max_sequence_length": 512,
-            }
+            def run_sd3_pipeline_in_thread():
+                try:
+                    generator = torch.Generator(device=self.model_manager.device).manual_seed(current_seed)
 
-            thread, result_container = execute_pipeline_task_async(**executor_args, **sd3_specific_kwargs)
+                    # --- CORRECTION 2: Gestion des prompts pour IP-Adapter ---
+                    pipeline_kwargs = {
+                        "negative_prompt": "",
+                        "num_inference_steps": int(steps),
+                        "guidance_scale": float(guidance_scale),
+                        "width": width, # width est maintenant correctement défini
+                        "height": height, # height est maintenant correctement défini
+                        "max_sequence_length": 512,
+                        "generator": generator,
+                        "callback_on_step_end": progress_callback,
+                    }
 
-            # Boucle de mise à jour de la progression
+                    if use_ip_adapter and image_to_use_for_adapter:
+                        # En mode IP-Adapter, le prompt est passé à 'prompt' ET 'prompt_3'
+                        pipeline_kwargs.update({"prompt": final_prompt_text, "prompt_2": "", "prompt_3": final_prompt_text})
+                        pipe.set_ip_adapter_scale(ip_adapter_scale)
+                        pipeline_kwargs["ip_adapter_image"] = image_to_use_for_adapter
+                        print(f"Génération avec IP-Adapter activé (force: {ip_adapter_scale}).")
+                    else:
+                        # En mode standard, on utilise prompt_3 pour le T5-Encoder
+                        pipeline_kwargs.update({"prompt": "", "prompt_2": "", "prompt_3": final_prompt_text})
+
+                    result = pipe(**pipeline_kwargs)
+
+                    if not self.stop_event.is_set():
+                        result_container['status'] = 'success'
+                        result_container['final'] = result.images[0]
+                    else:
+                        result_container['status'] = 'stopped'
+                except Exception as e:
+                    result_container['status'] = 'error'
+                    result_container['error'] = str(e)
+                    traceback.print_exc()
+
+            pipeline_thread = threading.Thread(target=run_sd3_pipeline_in_thread)
+            pipeline_thread.start()
+
             last_progress_html = ""
-            while thread.is_alive() or not progress_queue.empty():
+            while pipeline_thread.is_alive() or not progress_queue.empty():
                 if self.stop_event.is_set():
                     break
-
-                current_step_prog, total_steps_prog = None, int(steps)
-                while not progress_queue.empty():
-                    try:
-                        current_step_prog, total_steps_prog = progress_queue.get_nowait()
-                    except queue.Empty:
-                        break
-
-                if current_step_prog is not None:
+                try:
+                    current_step_prog, total_steps_prog = progress_queue.get(timeout=0.05)
                     progress_percent = int((current_step_prog / total_steps_prog) * 100)
                     step_info_text = f"Step {current_step_prog}/{total_steps_prog}"
                     new_progress_html = create_progress_bar_html(
@@ -379,12 +524,12 @@ class SD3_5_TURBO_Module:
                     )
                     yield generated_images_gallery, new_progress_html, gr.update(interactive=False), gr.update(interactive=True), lora_status_message_update
                     last_progress_html = new_progress_html
+                except queue.Empty:
+                    continue
+            
+            pipeline_thread.join()
 
-                time.sleep(0.05)
-
-            thread.join()
-
-            if result_container["status"] == "success" and result_container["final"]:
+            if result_container.get("status") == "success" and result_container.get("final"):
                 result_image = result_container["final"]
                 generated_images_gallery.append(result_image)
                 
@@ -395,17 +540,22 @@ class SD3_5_TURBO_Module:
                 os.makedirs(save_dir, exist_ok=True)
                 chemin_image = os.path.join(save_dir, output_filename)
 
+                current_model_name = self.model_manager.current_model_name or SD3_5_TURBO_MODEL_ID
+
                 xmp_data = {
                     "Module": "SD3.5 Turbo", "Creator": self.global_config.get("AUTHOR", "CyberBill"),
-                    "Model": SD3_5_TURBO_MODEL_ID, "Steps": steps, "GuidanceScale": guidance_scale,
+                    "Model": current_model_name, "Steps": steps, "GuidanceScale": guidance_scale,
                     "Styles": ", ".join(style_names_used) if style_names_used else "None", "Size": f"{width}x{height}", "Seed": current_seed,
-                    # --- AJOUT: Métadonnées d'amélioration ---
                     "LLM_Enhanced": prompt_is_currently_enhanced,
                     "OriginalUserPrompt": prompt_to_log_as_original,
                     "FinalPrompt": final_prompt_text,
                     "LoRAs": json.dumps(self.model_manager.loaded_loras if self.model_manager.loaded_loras else "Aucun"),
-                    # --- FIN AJOUT ---
                 }
+
+                if use_ip_adapter and image_to_use_for_adapter:
+                    xmp_data["IP_Adapter_Used"] = "Oui"
+                    xmp_data["IP_Adapter_Scale"] = ip_adapter_scale
+
                 metadata_structure, prep_message = preparer_metadonnees_image(result_image, xmp_data, self.global_translations, chemin_image)
                 print(txt_color("[INFO]", "info"), prep_message)
                 enregistrer_image(result_image, chemin_image, self.global_translations, self.global_config["IMAGE_FORMAT"].upper(), metadata_to_save=metadata_structure)
