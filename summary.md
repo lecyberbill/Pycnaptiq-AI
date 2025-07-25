@@ -301,10 +301,22 @@ Here is a list of modules currently integrated into the project:
     *   **Translations:** Uses provided translations to display interface labels (e.g., `translate("test_module_tab_name", self.module_translations)`). Translation keys specific to this module should be defined in `test_module_mod.json`.
     *   **Educational Purpose:** Primarily serves to demonstrate how to create a new module, how it's integrated, and how it can access the application's shared resources. It does not perform complex image processing or heavy operations itself.
 
-### 15. Re-Lighting (Image Re-illumination)
+### 15. Image Prompt Builder
+
+*   **Module Name (internal):** `ImagePromptBuilder_mod`
+*   **Description:** A dedicated module for generating detailed image prompts using a structured approach. It allows users to build complex prompts by selecting from various predefined categories.
+*   **Key Features:**
+    *   **Comprehensive Category Selection:** Users can select elements from categories such as Main Subject & Actions (character types, creatures, clothing, attributes, actions), Visual & Artistic Style (medium, movements, effects), Environment & Atmosphere (locations, time, weather, mood), Composition & Perspective (arrangement, perspectives), Technical Details & Quality (resolution, rendering, lighting), Universe & References (franchises, artists), and Negative Prompts (undesired elements).
+    *   **Clear All Selections:** A dedicated button to quickly clear all chosen elements and reset the prompt builder.
+    *   **Random Prompt Generation:** A "Random Prompt" button provides inspiration by generating a prompt with randomly selected elements from the available categories.
+    *   **Dynamic Prompt Update:** The final prompt textbox automatically updates in real-time as users make selections, providing immediate feedback.
+
+---
+
+### 16. Re-Lighting (Image Re-illumination)
 
 *   **Module Name (internal):** `reLighting_mod`
-*   **Description:** This module allows users to adjust or completely change the lighting conditions of an existing image. It can be used to simulate different light sources, times of day, or artistic lighting effects.
+*   **Description:** This module allows users to adjust or completely change the lighting conditions of an existing image. It can be used to simulate different light sources, moments of the day, or artistic lighting effects.
 *   **Key Features:**
     *   **Light Source Control:** Ability to define virtual light sources (e.g., point, directional, spot) with parameters like position, color, and intensity.
     *   **Shadow Manipulation:** Tools to adjust existing shadows or generate new ones consistent with the new lighting setup.
@@ -313,7 +325,9 @@ Here is a list of modules currently integrated into the project:
     *   **Preview:** Real-time or quick preview of lighting changes.
     *   Resource management, potentially unloading SDXL if using a dedicated re-lighting model or heavy CPU/GPU processing.
 
-### 16. FLUX.1-Schnell Generator
+---
+
+### 17. FLUX.1-Schnell Generator
 
 *   **Module Name (internal):** `FluxSchnell_mod`
 *   **Description:** Module for ultra-fast image generation using FLUX.1-Schnell models (e.g., `black-forest-labs/FLUX.1-schnell`).
@@ -326,7 +340,7 @@ Here is a list of modules currently integrated into the project:
     *   Saves images with detailed metadata.
 ---
 
-### 17. StarVector (Image to SVG)
+### 18. StarVector (Image to SVG)
 
 *   **Module Name (internal):** `starvector_mod`
 *   **Description:** This module allows converting a raster image (like PNG or JPG) into a vector graphic (SVG) using the StarVector model.
@@ -338,7 +352,7 @@ Here is a list of modules currently integrated into the project:
     *   Saves images with detailed metadata.
 ---
 
-### 18. RealEdit Image Editor
+### 19. RealEdit Image Editor
 
 *   **Module Name (internal):** `RealEdit_mod`
 *   **Description:** This module allows users to edit images based on textual instructions using the `peter-sushko/RealEdit` model. It's designed for realistic image editing tasks.

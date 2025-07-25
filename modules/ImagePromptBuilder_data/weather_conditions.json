@@ -1,0 +1,13 @@
+[
+    "sunny", "rainy", "foggy", "snowy", "stormy", "cloudy",
+    "clear sky", "overcast", "partly cloudy", "windy", "breezy", "calm",
+    "hazy", "smoggy", "drizzling", "hailing", "sleet", "blizzard",
+    "tornado", "hurricane", "typhoon", "cyclone", "monsoon", "drought",
+    "flood", "earthquake", "volcanic eruption", "tsunami", "avalanche",
+    "landslide", "wildfire", "meteor shower", "solar eclipse", "lunar eclipse",
+    "aurora borealis", "aurora australis", "rainbow", "double rainbow",
+    "lightning storm", "thunderstorm", "dust storm", "sandstorm", "heatwave",
+    "cold snap", "frost", "dew", "haze", "mist", "fog", "smog", "pollution",
+    "clear atmosphere", "crisp air", "fresh air", "stuffy air", "humid air",
+    "dry air", "warm air", "cool air", "hot air", "cold air", "frigid air"
+]

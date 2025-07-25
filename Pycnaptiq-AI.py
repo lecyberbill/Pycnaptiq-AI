@@ -1,3 +1,14 @@
+import sys
+from pathlib import Path
+
+# --- AJOUT: Ajouter le répertoire des modules au chemin système ---
+# Cela permet d'importer des bibliothèques locales comme hi_diffusers
+project_root_dir = Path(__file__).resolve().parent
+modules_dir_abs = project_root_dir / "modules"
+if str(modules_dir_abs) not in sys.path:
+    sys.path.insert(0, str(modules_dir_abs))
+# --- FIN AJOUT ---
+
 import random
 import importlib
 import os
@@ -2637,5 +2648,3 @@ afficher_logo_ascii()
 
 print(txt_color("[INFO]", "info"), f"{translate('gradio_version_log', translations)}: {gr.__version__}")
 interface.launch(inbrowser=str_to_bool(OPEN_BROWSER), pwa=True, share=str_to_bool(SHARE), allowed_paths=[SAVE_DIR])
-
-

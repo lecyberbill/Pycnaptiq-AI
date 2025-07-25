@@ -1,0 +1,124 @@
+{
+    "name": "ImagePromptBuilder",
+    "display_name": "Image Prompt Builder",
+    "version": "1.0.0",
+    "icon": "🎨",
+    "description_en": "A tool to help build image generation prompts using various categories.",
+    "description_fr": "Un outil pour aider à construire des prompts de génération d'images en utilisant diverses catégories.",
+    "is_active": true,
+    "author": "Cline",
+    "init_function": "initialize",
+    "tab_name": "Générateur de Prompt Image",
+    "dependencies": [],
+    "language": {
+        "fr": {
+            "image_prompt_builder_tab_name": "Générateur de Prompt Image",
+            "image_prompt_builder_tab_title": "Construire un Prompt d'Image",
+            "generated_prompt_label": "Prompt Généré",
+            "generated_prompt_info": "Le prompt de génération d'image combiné.",
+            "subject_input_label": "Sujet de l'image",
+            "subject_input_info": "Décrivez le sujet principal de votre image.",
+            "subject_input_placeholder": "Ex: un chat assis sur un rebord de fenêtre",
+            "prompt_helpers_title": "Aides à la construction du Prompt",
+            "image_type_label": "Type d'image",
+            "filter_label": "Filtre / Effet",
+            "characteristic_label": "Caractéristique / Qualité",
+            "rendering_label": "Rendu / Moteur",
+            "camera_angle_label": "Angle de Caméra",
+            "style_label": "Style Artistique",
+            "license_label": "Licence / Univers",
+            "lighting_label": "Éclairage",
+            "clear_all_selections": "Effacer toutes les sélections",
+
+            "section_subject_actions_title": "I. Sujet Principal & Actions",
+            "subject_character_types_label": "Types de personnages",
+            "subject_creatures_entities_label": "Créatures & Entités",
+            "subject_clothing_styles_label": "Styles vestimentaires",
+            "subject_physical_attributes_label": "Attributs physiques",
+            "subject_visual_supernatural_attributes_label": "Attributs visuels ou surnaturels",
+            "actions_verbs_label": "Actions / Verbes",
+
+            "section_visual_artistic_style_title": "II. Style Visuel & Artistique",
+            "medium_technique_label": "Médium / Technique Artistique",
+            "artistic_movements_label": "Mouvements Artistiques",
+            "visual_effects_label": "Effets Visuels / Post-traitement",
+
+            "section_environment_atmosphere_title": "III. Environnement & Atmosphère",
+            "location_context_label": "Lieu / Contexte",
+            "time_of_day_label": "Heure de la Journée",
+            "weather_conditions_label": "Conditions Météo",
+            "mood_emotion_label": "Ambiance / Émotion",
+
+            "section_composition_perspective_title": "IV. Composition & Perspective",
+            "composition_arrangement_label": "Composition / Agencement",
+            "perspective_label": "Perspective",
+
+            "section_technical_quality_title": "V. Détails Techniques & Qualité",
+            "resolution_quality_label": "Résolution / Qualité",
+            "rendering_label": "Rendu / Moteur",
+            "lighting_label": "Éclairage",
+
+            "section_universe_references_title": "VI. Univers & Références",
+            "license_label": "Licence / Univers",
+            "artist_references_label": "Références Artiste",
+
+            "section_negative_prompts_title": "VII. Prompts Négatifs",
+            "undesired_elements_label": "Éléments Indésirables",
+            "random_prompt_button": "Générer un prompt aléatoire"
+        },
+        "en": {
+            "image_prompt_builder_tab_name": "Image Prompt Builder",
+            "image_prompt_builder_tab_title": "Build an Image Prompt",
+            "generated_prompt_label": "Generated Prompt",
+            "generated_prompt_info": "The combined image generation prompt.",
+            "subject_input_label": "Image Subject",
+            "subject_input_info": "Describe the main subject of your image.",
+            "subject_input_placeholder": "Ex: an astronaut cat exploring a colorful planet",
+            "prompt_helpers_title": "Prompt Building Helpers",
+
+            "section_subject_actions_title": "I. Main Subject & Actions",
+            "subject_character_types_label": "Character Types",
+            "subject_creatures_entities_label": "Creatures & Entities",
+            "subject_clothing_styles_label": "Clothing Styles",
+            "subject_physical_attributes_label": "Physical Attributes",
+            "subject_visual_supernatural_attributes_label": "Visual or Supernatural Attributes",
+            "actions_verbs_label": "Actions / Verbs",
+
+            "section_visual_artistic_style_title": "II. Visual & Artistic Style",
+            "medium_technique_label": "Medium / Artistic Technique",
+            "artistic_movements_label": "Artistic Movements",
+            "visual_effects_label": "Visual Effects / Post-processing",
+
+            "section_environment_atmosphere_title": "III. Environment & Atmosphere",
+            "location_context_label": "Location / Context",
+            "time_of_day_label": "Time of Day",
+            "weather_conditions_label": "Weather Conditions",
+            "mood_emotion_label": "Mood / Emotion",
+
+            "section_composition_perspective_title": "IV. Composition & Perspective",
+            "composition_arrangement_label": "Composition / Arrangement",
+            "perspective_label": "Perspective",
+
+            "section_technical_quality_title": "V. Technical Details & Quality",
+            "resolution_quality_label": "Resolution / Quality",
+            "rendering_label": "Rendering / Engine",
+            "lighting_label": "Lighting",
+
+            "section_universe_references_title": "VI. Universe & References",
+            "license_label": "License / Universe",
+            "artist_references_label": "Artist References",
+
+            "section_negative_prompts_title": "VII. Negative Prompts",
+            "undesired_elements_label": "Undesired Elements",
+
+            "image_type_label": "Image Type",
+            "filter_label": "Filter / Effect",
+            "characteristic_label": "Characteristic / Quality",
+            "camera_angle_label": "Camera Angle",
+            "style_label": "Artistic Style",
+
+            "clear_all_selections": "Clear All Selections",
+            "random_prompt_button": "Generate Random Prompt"
+        }
+    }
+}

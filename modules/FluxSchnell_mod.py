@@ -24,7 +24,7 @@ from Utils.utils import (
     ImageSDXLchecker, # <-- AJOUT pour vérifier l'image d'entrée
     styles_fusion, # <-- AJOUT POUR LES STYLES
 )
-from Utils.callback_diffuser import create_inpainting_callback # <-- MODIFIÉ
+from Utils.callback_diffuser import create_inpainting_callback
 from Utils.model_manager import ModelManager, FLUX_SCHNELL_MODEL_ID, FLUX_SCHNELL_MODEL_TYPE_KEY, FLUX_SCHNELL_IMG2IMG_MODEL_TYPE_KEY, HuggingFaceAuthError # <-- AJOUT HuggingFaceAuthError
 from core.translator import translate_prompt
 from diffusers.utils import load_image # Bien que non utilisé directement ici, c'est dans l'exemple
@@ -119,7 +119,7 @@ class FluxSchnellModule:
 
     def list_flux_models(self):
         """Scanne le répertoire des modèles FLUX et retourne une liste de modèles disponibles."""
-        models = [FLUX_SCHNELL_MODEL_ID]  # Modèle par défaut de Hugging Face
+        models = [] # On ne met plus le modèle HF par défaut ici
         if not os.path.isdir(self.flux_models_dir):
             print(f"[AVERTISSEMENT] Le répertoire des modèles FLUX n'a pas été trouvé : {self.flux_models_dir}")
             os.makedirs(self.flux_models_dir, exist_ok=True)
@@ -208,7 +208,7 @@ class FluxSchnellModule:
                         elem_id="flux_schnell_img2img_input",
                         visible=False # Masqué par défaut
                     )
-                    self.flux_img2img_strength_slider = gr.Slider( # <-- AJOUT: Slider pour Strength
+                    self.flux_img2img_strength_slider = gr.Slider( 
                         minimum=0.0, maximum=1.0, value=0.6, step=0.01,
                         label=translate("flux_schnell_img2img_strength_label", self.module_translations), # Nouvelle clé de traduction
                         info=translate("flux_schnell_img2img_strength_info", self.module_translations), # Nouvelle clé de traduction
@@ -267,38 +267,33 @@ class FluxSchnellModule:
                                 )
                         self.flux_lora_message = gr.Textbox(label=translate("message_lora", self.global_translations), interactive=False)
 
-                        # --- AJOUT DU BOUTON DE RAFRAÎCHISSEMENT ---
+                        # --- BOUTON DE RAFRAÎCHISSEMENT ---
                         self.flux_refresh_lora_button = gr.Button(
                             translate("refresh_lora_list", self.module_translations), # Utilise la nouvelle clé
                             variant="secondary")
 
 
                 with gr.Column(scale=1):
-                    # --- AJOUT: Sélection du modèle FLUX ---
+                    # --- Sélection du modèle FLUX ---
                     with gr.Row():
                         self.flux_model_dropdown = gr.Dropdown(
                             label=translate("flux_schnell_model_select_label", self.module_translations), # Nouvelle clé
                             choices=self.available_flux_models,
-                            value=FLUX_SCHNELL_MODEL_ID,
+                            value=self.available_flux_models[0] if self.available_flux_models else None,
                             info=translate("flux_schnell_model_select_info", self.module_translations), # Nouvelle clé
                             scale=10,
                         )
                         self.flux_refresh_models_button = gr.Button(
                             value="🔄", min_width=80, scale=1, elem_id="flux_refresh_models_button"
                         )
-                    self.flux_fp8_quantize_checkbox = gr.Checkbox(
-                        label=translate("flux_schnell_use_fp8_label", self.module_translations), # Nouvelle clé
-                        value=False,
-                        info=translate("flux_schnell_use_fp8_info", self.module_translations) # Nouvelle clé
-                    )
-                    # --- FIN AJOUT ---
+
 
                     self.flux_message_chargement = gr.Textbox(
                         label=translate("flux_schnell_model_status", self.module_translations),
                         value=translate("flux_schnell_model_not_loaded", self.module_translations),
                         interactive=False,
                     )
-                    # --- AJOUT: Hugging Face Login UI ---
+                    # --- Hugging Face Login UI ---
                     with gr.Group(visible=False) as self.hf_login_group:
                         gr.Markdown(
                             f"**{translate('hf_login_instructions_title', self.module_translations)}**\n"
@@ -319,24 +314,19 @@ class FluxSchnellModule:
                         )
                     self.hf_login_button = gr.Button(
                         translate("hf_login_button", self.module_translations),
-                        variant="primary"
+                        
                     )
-                    # --- FIN AJOUT ---
-                    # --- NOUVEAUX BOUTONS DE CHARGEMENT ---
+
                     with gr.Row():
                         self.flux_bouton_charger_default = gr.Button(
-                            translate("flux_schnell_load_default_button", self.module_translations), # New key
-                            variant="primary"
+                            translate("flux_schnell_load_default_button", self.module_translations),                 
                         )
                         self.flux_bouton_charger_local = gr.Button(
-                            translate("flux_schnell_load_local_button", self.module_translations), # New key
-                            variant="primary"
+                            translate("flux_schnell_load_local_button", self.module_translations),               
                         )
-                    # --- FIN NOUVEAUX BOUTONS DE CHARGEMENT ---
 
                     self.flux_bouton_charger_img2img = gr.Button(
-                        translate("flux_schnell_load_img2img_button", self.module_translations), # New key
-                        variant="primary",
+                        translate("flux_schnell_load_img2img_button", self.module_translations), 
                         visible=False # Hidden by default, shown when img2img checkbox is checked
                     )
 
@@ -372,7 +362,6 @@ class FluxSchnellModule:
                 fn=self.load_local_text_to_image_model_ui,
                 inputs=[
                     self.flux_model_dropdown,
-                    self.flux_fp8_quantize_checkbox,
                 ],
                 outputs=[
                     self.flux_message_chargement,
@@ -478,7 +467,6 @@ class FluxSchnellModule:
                     gr.update(visible=use_img2img), # img2img_strength_slider
                     gr.update(visible=use_img2img), # flux_bouton_charger_img2img
                     gr.update(visible=not use_img2img), # flux_model_dropdown
-                    gr.update(visible=not use_img2img), # flux_fp8_quantize_checkbox
                     gr.update(visible=not use_img2img), # flux_bouton_charger_default
                     gr.update(visible=not use_img2img)  # flux_bouton_charger_local
                 ),
@@ -488,7 +476,6 @@ class FluxSchnellModule:
                     self.flux_img2img_strength_slider,
                     self.flux_bouton_charger_img2img,
                     self.flux_model_dropdown,
-                    self.flux_fp8_quantize_checkbox,
                     self.flux_bouton_charger_default,
                     self.flux_bouton_charger_local
                 ]
@@ -618,7 +605,7 @@ class FluxSchnellModule:
             from_single_file=False # Default model is from Hugging Face
         )
 
-    def load_local_text_to_image_model_ui(self, selected_model_from_dropdown, use_fp8_checkbox_value):
+    def load_local_text_to_image_model_ui(self, selected_model_from_dropdown):
         is_single_file = selected_model_from_dropdown.endswith(".safetensors")
         if not is_single_file: # Prevent loading HF model with this button
             gr.Warning(translate("flux_schnell_select_local_model_warning", self.module_translations), 3.0) # New translation key
@@ -634,7 +621,7 @@ class FluxSchnellModule:
         yield from self._common_load_logic(
             selected_model_name=selected_model_from_dropdown,
             model_type_key=FLUX_SCHNELL_MODEL_TYPE_KEY, # Local models are text-to-image
-            use_fp8=use_fp8_checkbox_value,
+            use_fp8=False, # FP8 is disabled
             from_single_file=True # Always true for local models
         )
 
@@ -831,6 +818,15 @@ class FluxSchnellModule:
             # --- GARDE-FOU avant exécution ---
             # Si le mode Img2Img est demandé (checkbox cochée) mais qu'aucune image n'est fournie,
             # on arrête la génération ici au lieu de causer une erreur ou un rechargement.
+            
+            # --- AJOUT: Callback pour la progression ---
+            callback_for_progress = create_inpainting_callback(
+                self.stop_event,
+                total_steps=int(steps),
+                translations=module_translations,
+                progress_queue=progress_queue
+            )
+            
             if use_img2img_checkbox_value and img2img_input_pil is None:
                 msg = translate("flux_schnell_error_no_image_for_img2img", module_translations) # Ajoutez cette clé dans votre JSON de traduction
                 print(txt_color("[ERREUR] ", "erreur"), msg)
@@ -853,7 +849,8 @@ class FluxSchnellModule:
                         "generator": generator,
                         "width": width,  # Utiliser les dimensions de l'image d'entrée
                         "height": height, # Utiliser les dimensions de l'image d'entrée
-                        "max_sequence_length": 512 
+                        "max_sequence_length": 512,
+                        "callback_on_step_end": callback_for_progress
                     }
                 else: 
                     # Mode Text-to-Image
@@ -865,9 +862,19 @@ class FluxSchnellModule:
                         "generator": generator,
                         "width":width,
                         "height":height,
-                        "max_sequence_length": 512 
+                        "max_sequence_length": 512,
+                        "callback_on_step_end": callback_for_progress
                     }
+                
+                # Thread pour écouter la progression et mettre à jour l'interface
+                progress_listener_thread = threading.Thread(
+                    target=self.progress_listener,
+                    args=(progress_queue, image_info_text, module_translations)
+                )
+                progress_listener_thread.start()
+
                 result_image = pipe(**pipeline_kwargs).images[0]
+                progress_listener_thread.join() # Attendre la fin du thread de progression
                 temps_image_gen_sec = time.time() - start_time_image
 
                 if self.stop_event.is_set(): 
@@ -1026,6 +1033,32 @@ class FluxSchnellModule:
                 gr.update(value=True),   # current_prompt_is_enhanced_state (le prompt est considéré comme "amélioré" et validé)
                 gr.update(value=False),  # enhancement_cycle_active_state (le cycle est terminé)
                 gr.update(value=None))   # last_ai_enhanced_output_state (plus d'output IA pertinent pour ce cycle)
+
+    def progress_listener(self, progress_queue, image_info_text, translations):
+        """Écoute la queue de progression et met à jour l'interface."""
+        while True:
+            try:
+                # Tente de récupérer les données de la queue avec un timeout
+                current_step, total_steps = progress_queue.get(timeout=1.0)
+                
+                # Mise à jour de l'interface
+                progress_html = create_progress_bar_html(
+                    current_step, 
+                    total_steps, 
+                    (current_step / total_steps) * 100,
+                    f"{image_info_text} - {current_step}/{total_steps} {translate('etapes', translations)}"
+                )
+                # Utiliser self.flux_progress_html qui est l'objet Gradio
+                self.flux_progress_html.update(value=progress_html)
+
+                if current_step >= total_steps:
+                    break # Sortir si la progression est terminée
+
+            except queue.Empty:
+                # La queue est vide, vérifier si la génération est terminée
+                if not self.model_manager.get_current_pipe() or self.stop_event.is_set():
+                    break
+                continue # Continuer à attendre si la génération n'est pas terminée
 
     def handle_flux_text_input_change(self, text_value, last_ai_output_val, is_cycle_active_val, llm_model_path, current_translations):
         enhance_button_interactive = bool(text_value.strip())

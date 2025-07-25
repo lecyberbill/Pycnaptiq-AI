@@ -1,0 +1,17 @@
+[
+    "running", "jumping", "flying", "swimming", "walking", "dancing", "singing",
+    "fighting", "casting a spell", "reading", "writing", "painting", "sculpting",
+    "cooking", "eating", "drinking", "meditating", "praying", "exploring",
+    "discovering", "observing", "listening", "talking", "whispering", "shouting",
+    "laughing", "crying", "sleeping", "waking up", "transforming", "teleporting",
+    "healing", "attacking", "defending", "hiding", "searching", "building",
+    "destroying", "creating", "manipulating", "controlling", "guiding", "leading",
+    "following", "waiting", "resting", "working", "playing", "training", "traveling",
+	 "climbing", "diving", "skiing", "surfing", "skating", "riding", "sailing",
+    "shooting", "dodging", "weaving", "spinning", "floating", "gliding",
+    "chanting", "summoning", "leaping", "crawling", "hugging", "kissing",
+    "rescuing", "celebrating", "conjuring", "enchanting", "charging", "retreating",
+    "negotiating", "bargaining", "crafting", "repairing", "uploading", "downloading",
+    "hacking", "debugging", "mapping", "signaling", "broadcasting", "resisting",
+    "adapting", "calculating", "telepathically communicating"
+]

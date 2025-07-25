@@ -1,0 +1,46 @@
+{
+  "character_types": [
+    "young woman", "old man", "child", "robot", "alien", "superhero", "villain",
+    "knight", "wizard", "elf", "dwarf", "orc", "angel", "demon", "historical figure",
+    "futuristic character", "baby", "teenager", "elderly woman", "android", "cyborg",
+    "witch", "sorcerer", "shaman", "hunter", "pirate", "ninja", "samurai", "monk",
+    "priest", "ranger", "mechanic", "scientist", "explorer", "soldier", "medic",
+    "queen", "king", "princess", "prince", "peasant", "noble", "worker", "artist",
+    "musician", "dancer", "athlete", "detective", "spy", "villager", "bounty hunter",
+    "pilot", "astronaut", "engineer", "alchemist", "time traveler", "robotic overlord",
+    "android servant", "gladiator", "herbalist", "bard", "beastmaster", "illusionist"
+  ],
+  "creatures_entities": [
+    "animal (cat, dog, dragon)", "ghost", "mythological creature", "golem", "mermaid",
+    "centaur", "minotaur", "faun", "satyr", "werewolf", "vampire", "zombie", "phoenix",
+    "griffin", "chimera", "kraken", "yeti", "troll", "sphinx", "elemental", "shape-shifter",
+    "giant", "fairy", "sprite", "dryad", "djinn", "shadow beast"
+  ],
+  "clothing_styles": [
+    "wearing armor", "wearing a dress", "wearing casual clothes", "wearing a suit",
+    "wearing robes", "wearing uniform", "wearing futuristic suit", "wearing space armor",
+    "tattered clothes", "camouflage outfit", "ceremonial attire", "tribal outfit",
+    "traditional costume", "steampunk outfit", "cyberpunk fashion", "casual futuristic",
+    "masked", "hooded", "caped", "royal robes", "battle gear", "space suit", "bio-suit",
+    "ritual garb", "hooded cloak", "cape with emblem", "tech armor", "eco-fashion",
+    "recycled outfit", "post-apocalyptic attire", "virtual fashion", "avant-garde costume",
+    "holographic clothing", "patched-up uniform"
+  ],
+  "physical_attributes": [
+    "beautiful", "ugly", "cute", "scary", "friendly", "menacing", "wise", "naive",
+    "brave", "cowardly", "muscular", "slender", "tall", "short", "fat", "thin",
+    "tattooed", "pierced", "scarred", "freckled", "bald", "long-haired", "curly-haired",
+    "glowing eyes", "cybernetic limbs", "mechanical arm", "crystalline skin", "extra limbs",
+    "feathered", "scaled", "furry", "shell-covered", "blind", "one-eyed", "albino",
+    "wrinkled", "mutated features"
+  ],
+  "visual_supernatural_attributes": [
+    "with wings", "with tail", "horned", "fanged", "neon glow", "fire aura", "ice aura",
+    "smoke trail", "with halo", "with aura", "transparent", "metallic", "wooden", "stone",
+    "liquid", "ethereal", "isolated", "grouped with others", "surrounded by light",
+    "enveloped in shadow", "glitch effect", "pixelated aura", "shadow cloak",
+    "crystal halo", "energy burst", "lava veins", "frosty breath", "electric spark",
+    "floating debris", "rain particle trail", "sound wave ripple", "time distortion",
+    "light bending effect", "gravity-defying stance"
+  ]
+}

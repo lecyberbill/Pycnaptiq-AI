@@ -1,5 +1,25 @@
 # Changelog
 
+## 🐓 Beta 2.0.5 The Prompt Builder Rooster 🐓 - 2025-07-25
+
+### ✨ New Features and Improvements ✨
+
+*   **New Module: Image Prompt Builder (`ImagePromptBuilder_mod.py`)**:
+    *   Introduced a dedicated tab for generating detailed image prompts using a wide range of categories.
+    *   Allows users to build prompts by selecting from predefined lists of:
+        *   **Main Subject & Actions:** Character types, creatures, clothing styles, physical/supernatural attributes, actions/verbs.
+        *   **Visual & Artistic Style:** Medium/technique, artistic movements, visual effects.
+        *   **Environment & Atmosphere:** Locations, time of day, weather conditions, mood/emotions.
+        *   **Composition & Perspective:** Composition/arrangement, perspectives.
+        *   **Technical Details & Quality:** Resolutions/quality, rendering engines, lighting options.
+        *   **Universe & References:** Franchises/universes, artist references.
+        *   **Negative Prompts:** Undesired elements.
+    *   Includes a "Clear All Selections" button to reset the prompt builder.
+    *   Features a "Random Prompt" button to generate a prompt by randomly selecting from available categories, offering creative inspiration.
+    *   Automatically updates the final prompt textbox as selections are made.
+
+---
+
 ## 🐓 Beta 2.0.4 The Editing Rooster 🐓 - 2025-06-25
 
 ### ✨ New Features and Improvements ✨
@@ -38,7 +58,7 @@
     *   Integrates **LoRA support** (up to 2 LoRAs) with weight adjustment.
     *   Includes **style selection** to influence image aesthetics.
     *   Features **Image-to-Prompt** capability using Florence-2 for generating prompts from uploaded images.
-    *   Incorporates **LLM Prompt Enhancement** (e.g., Qwen) to enrich user prompts.
+    *   Incorpore l'**Amélioration de Prompt par LLM** (ex: Qwen) pour enrichir les prompts utilisateurs.
     *   Managed by `ModelManager` for model loading, unloading, and device management.
     *   Saves generated images with comprehensive metadata.
     *   User interface includes controls for prompt, translation, styles, image-to-prompt, img2img mode (with strength), resolution, steps, guidance scale, seed, number of images, and LoRA configuration.

@@ -29,7 +29,7 @@ from diffusers import (
 from diffusers import BitsAndBytesConfig, SD3Transformer2DModel, StableDiffusion3Pipeline
 from diffusers import EulerDiscreteScheduler, DPMSolverMultistepScheduler, EulerAncestralDiscreteScheduler, LMSDiscreteScheduler, DDIMScheduler, PNDMScheduler, KDPM2DiscreteScheduler, KDPM2AncestralDiscreteScheduler, DEISMultistepScheduler, HeunDiscreteScheduler, DPMSolverSDEScheduler, DPMSolverSinglestepScheduler
 from diffusers.models.attention_processor import AttnProcessor2_0
-from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer, T5EncoderModel, T5TokenizerFast, CLIPTextModelWithProjection, CLIPTokenizer, SiglipVisionModel, SiglipImageProcessor
+from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer, T5EncoderModel, T5TokenizerFast, CLIPTextModelWithProjection, CLIPTokenizer, SiglipVisionModel, SiglipImageProcessor, PreTrainedTokenizerFast, LlamaForCausalLM
 from compel import Compel, ReturnedEmbeddingsType
 
 # Importer les fonctions utilitaires nécessaires (ajuster si besoin)
@@ -183,7 +183,12 @@ class ModelManager:
         try:
             if self.current_pipe is not None:
                 if not isinstance(self.current_pipe, dict):
-                    attrs_to_delete = ['vae', 'text_encoder', 'text_encoder_2', 'tokenizer', 'tokenizer_2', 'unet', 'scheduler', 'feature_extractor', 'safety_checker']
+                    # Add HiDream specific components to the list of attributes to delete
+                    attrs_to_delete = [
+                        'vae', 'text_encoder', 'text_encoder_2', 'tokenizer', 'tokenizer_2', 
+                        'unet', 'scheduler', 'feature_extractor', 'safety_checker', 
+                        'transformer'
+                    ]
                     for attr in attrs_to_delete:
                         if hasattr(self.current_pipe, attr):
                             try:
@@ -244,7 +249,7 @@ class ModelManager:
             return False, error_message
 
 
-    def load_model(self, model_name, vae_name="Auto", model_type="standard", gradio_mode=False, custom_pipeline_id=None, from_single_file=False, use_ip_adapter=False, use_fp8=False):
+    def load_model(self, model_name, vae_name="Auto", model_type="standard", gradio_mode=False, custom_pipeline_id=None, from_single_file=False, use_ip_adapter=False, use_fp8=False, hf_token=None):
         # --- GARDE-FOU pour éviter de recharger un modèle déjà chargé avec les mêmes paramètres ---
         if (self.current_pipe is not None and
             self.current_model_name == model_name and
@@ -494,7 +499,6 @@ class ModelManager:
                 print(txt_color("[ERREUR]", "erreur"), msg)
                 if gradio_mode: gr.Error(msg)
                 return False, msg
-
 
             vae_message = ""
             loaded_vae_name = "Auto"
