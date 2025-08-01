@@ -181,30 +181,18 @@ class ModelManager:
         if gradio_mode: gr.Info(translate("dechargement_modele_en_cours", self.translations), duration=2.0)
 
         try:
-            if self.current_pipe is not None:
-                if not isinstance(self.current_pipe, dict):
-                    # Add HiDream specific components to the list of attributes to delete
-                    attrs_to_delete = [
-                        'vae', 'text_encoder', 'text_encoder_2', 'tokenizer', 'tokenizer_2', 
-                        'unet', 'scheduler', 'feature_extractor', 'safety_checker', 
-                        'transformer'
-                    ]
-                    for attr in attrs_to_delete:
-                        if hasattr(self.current_pipe, attr):
-                            try:
-                                component_to_delete = getattr(self.current_pipe, attr)
-                                delattr(self.current_pipe, attr)
-                                del component_to_delete
-                            except Exception as e_del:
-                                print(txt_color("[WARN]", "warning"), f"Impossible de supprimer l'attribut {attr}: {e_del}")
-                del self.current_pipe
-                self.current_pipe = None
+            # Déplacer le pipeline vers le CPU avant de supprimer les références
+            if self.current_pipe is not None and hasattr(self.current_pipe, 'to'):
+                try:
+                    self.current_pipe.to(cpu)
+                except Exception as e_cpu:
+                    print(txt_color("[WARN]", "warning"), f"Impossible de déplacer le pipeline vers le CPU avant de le décharger: {e_cpu}")
 
-            if self.current_compel is not None:
-                if hasattr(self.current_compel, 'tokenizer'): del self.current_compel.tokenizer
-                if hasattr(self.current_compel, 'text_encoder'): del self.current_compel.text_encoder
-                del self.current_compel
-                self.current_compel = None
+            # Supprimer les références principales
+            del self.current_pipe
+            del self.current_compel
+            self.current_pipe = None
+            self.current_compel = None
 
             self.current_model_name = None
             self.current_vae_name = None

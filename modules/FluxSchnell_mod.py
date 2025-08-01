@@ -795,87 +795,99 @@ class FluxSchnellModule:
         generated_images_gallery = []
         final_message_text = ""
 
-        for i in range(int(num_images)):
-            if self.stop_event.is_set():
-                final_message_text = translate("generation_arretee", module_translations)
-                print(txt_color("[INFO]", "info"), final_message_text)
-                gr.Info(final_message_text, 3.0)
-                break
-
-            current_seed_val = random.randint(0, 2**32 - 1) if seed_input == -1 else int(seed_input) + i
-            generator = torch.Generator(device=self.model_manager.device).manual_seed(current_seed_val)
-            
-            image_info_text = f"{translate('image', module_translations)} {i+1}/{num_images}"
-            print(txt_color("[INFO]", "info"), f"{translate('flux_schnell_generation_start', module_translations)} ({image_info_text}), Seed: {current_seed_val}")
-
-            while not progress_queue.empty():
-                try: progress_queue.get_nowait()
-                except queue.Empty: break
-            
-            current_progress_html = create_progress_bar_html(0, int(steps), 0, f"{image_info_text} - {translate('en_cours', module_translations)}")
-            yield generated_images_gallery, current_progress_html, btn_gen_off, btn_stop_on, lora_status_message_update
-
-            # --- GARDE-FOU avant exécution ---
-            # Si le mode Img2Img est demandé (checkbox cochée) mais qu'aucune image n'est fournie,
-            # on arrête la génération ici au lieu de causer une erreur ou un rechargement.
-            
-            # --- AJOUT: Callback pour la progression ---
-            callback_for_progress = create_inpainting_callback(
-                self.stop_event,
-                total_steps=int(steps),
-                translations=module_translations,
-                progress_queue=progress_queue
-            )
-            
-            if use_img2img_checkbox_value and img2img_input_pil is None:
-                msg = translate("flux_schnell_error_no_image_for_img2img", module_translations) # Ajoutez cette clé dans votre JSON de traduction
-                print(txt_color("[ERREUR] ", "erreur"), msg)
-                gr.Warning(msg, duration=4.0)
-                yield generated_images_gallery, msg, gr.update(interactive=True), gr.update(interactive=False), lora_status_message_update
-                return # Arrête la fonction de génération
-            
+        def pipeline_thread_target(pipe, kwargs, result_queue):
             try:
-                start_time_image = time.time()
-                
-                if is_img2img_mode:
-                    # Mode Image-to-Image avec FluxPipeline
-                    pipeline_kwargs = {
-                        "prompt": "", 
-                        "prompt_2": final_prompt_text_for_flux, # Utiliser le prompt final
-                        "image": processed_input_image, # Image d'entrée
-                        "strength": float(img2img_strength), # Force du img2img
-                        "num_inference_steps": int(steps),
-                        "guidance_scale": float(guidance_scale), 
-                        "generator": generator,
-                        "width": width,  # Utiliser les dimensions de l'image d'entrée
-                        "height": height, # Utiliser les dimensions de l'image d'entrée
-                        "max_sequence_length": 512,
-                        "callback_on_step_end": callback_for_progress
-                    }
-                else: 
-                    # Mode Text-to-Image
-                    pipeline_kwargs = {
-                        "prompt": "",  
-                        "prompt_2": final_prompt_text_for_flux, # Utiliser le prompt final
-                        "num_inference_steps": int(steps),
-                        "guidance_scale": float(guidance_scale),
-                        "generator": generator,
-                        "width":width,
-                        "height":height,
-                        "max_sequence_length": 512,
-                        "callback_on_step_end": callback_for_progress
-                    }
-                
-                # Thread pour écouter la progression et mettre à jour l'interface
-                progress_listener_thread = threading.Thread(
-                    target=self.progress_listener,
-                    args=(progress_queue, image_info_text, module_translations)
-                )
-                progress_listener_thread.start()
+                result = pipe(**kwargs).images[0]
+                result_queue.put(result)
+            except Exception as e:
+                result_queue.put(e)
 
-                result_image = pipe(**pipeline_kwargs).images[0]
-                progress_listener_thread.join() # Attendre la fin du thread de progression
-                temps_image_gen_sec = time.time() - start_time_image
+        try:
+            for i in range(int(num_images)):
+                if self.stop_event.is_set():
+                    final_message_text = translate("generation_arretee", module_translations)
+                    print(txt_color("[INFO]", "info"), final_message_text)
+                    gr.Info(final_message_text, 3.0)
+                    break
+
+                current_seed_val = random.randint(0, 2**32 - 1) if seed_input == -1 else int(seed_input) + i
+                generator = torch.Generator(device=self.model_manager.device).manual_seed(current_seed_val)
+                
+                image_info_text = f"{translate('image', module_translations)} {i+1}/{num_images}"
+                print(txt_color("[INFO]", "info"), f"{translate('flux_schnell_generation_start', module_translations)} ({image_info_text}), Seed: {current_seed_val}")
+
+                result_queue = queue.Queue()
+                
+                # Vider la queue de progression avant de commencer
+                while not progress_queue.empty():
+                    try: progress_queue.get_nowait()
+                    except queue.Empty: break
+
+                callback_for_progress = create_inpainting_callback(
+                    self.stop_event,
+                    total_steps=int(steps),
+                    translations=module_translations,
+                    progress_queue=progress_queue
+                )
+
+                if use_img2img_checkbox_value and img2img_input_pil is None:
+                    msg = translate("flux_schnell_error_no_image_for_img2img", module_translations)
+                    print(txt_color("[ERREUR] ", "erreur"), msg)
+                    gr.Warning(msg, duration=4.0)
+                    yield generated_images_gallery, msg, gr.update(interactive=True), gr.update(interactive=False), lora_status_message_update
+                    return
+
+                pipeline_kwargs = {
+                    "prompt": "",  
+                    "prompt_2": final_prompt_text_for_flux,
+                    "num_inference_steps": int(steps),
+                    "guidance_scale": float(guidance_scale),
+                    "generator": generator,
+                    "max_sequence_length": 512,
+                    "callback_on_step_end": callback_for_progress
+                }
+
+                if is_img2img_mode:
+                    pipeline_kwargs.update({
+                        "image": processed_input_image,
+                        "strength": float(img2img_strength),
+                        "width": width,
+                        "height": height,
+                    })
+                else:
+                    pipeline_kwargs.update({"width": width, "height": height})
+
+                start_time_image = time.time()
+                thread = threading.Thread(target=pipeline_thread_target, args=(pipe, pipeline_kwargs, result_queue))
+                thread.start()
+
+                while thread.is_alive():
+                    try:
+                        progress_step, total_steps_from_cb = progress_queue.get_nowait()
+                        progress_percent = (progress_step / total_steps_from_cb) * 100
+                        progress_text = f"{image_info_text} - {progress_step}/{total_steps_from_cb} {translate('etapes', module_translations)}"
+                        current_progress_html = create_progress_bar_html(progress_step, total_steps_from_cb, progress_percent, progress_text)
+                        yield generated_images_gallery, current_progress_html, btn_gen_off, btn_stop_on, lora_status_message_update
+                    except queue.Empty:
+                        time.sleep(0.1) # Attendre un peu si la queue est vide
+
+                thread.join()
+                
+                try:
+                    result = result_queue.get_nowait()
+                    if isinstance(result, Exception):
+                        raise result
+                    result_image = result
+                    temps_image_gen_sec = time.time() - start_time_image
+                except (queue.Empty, Exception) as e_gen:
+                    error_msg = f"{translate('flux_schnell_error_generation', module_translations)} ({image_info_text}): {e_gen}"
+                    print(txt_color("[ERREUR]", "erreur"), error_msg)
+                    traceback.print_exc()
+                    final_message_text = f'<p style="color:red;">{error_msg}</p>'
+                    gr.Error(error_msg)
+                    current_progress_html = create_progress_bar_html(0, int(steps), 0, f"{image_info_text} - {translate('erreur', module_translations)}")
+                    yield generated_images_gallery, current_progress_html, btn_gen_off, btn_stop_on, lora_status_message_update
+                    continue
 
                 if self.stop_event.is_set(): 
                     final_message_text = translate("generation_arretee_apres_image_courante", module_translations)
@@ -900,24 +912,20 @@ class FluxSchnellModule:
                     "Size": f"{output_width}x{output_height}", 
                     "Seed": current_seed_val,
                     "GenerationTimeSeconds": f"{temps_image_gen_sec:.2f}",
-                    "LLM_Enhanced": prompt_is_currently_enhanced, # <-- AJOUT
-                    "OriginalUserPrompt": prompt_to_log_as_original, # <-- AJOUT
-                    "FinalPromptForFlux": final_prompt_text_for_flux, # <-- AJOUT
-                    "TranslatedToEnglish": "Oui" if traduire_flag and base_user_prompt != prompt_to_use_for_flux else "Non", # Log de traduction
-                    "StylesUsed": ", ".join(style_names_used) if style_names_used else "None" # Log des styles
+                    "LLM_Enhanced": prompt_is_currently_enhanced,
+                    "OriginalUserPrompt": prompt_to_log_as_original,
+                    "FinalPromptForFlux": final_prompt_text_for_flux,
+                    "TranslatedToEnglish": "Oui" if traduire_flag and base_user_prompt != prompt_to_use_for_flux else "Non",
+                    "StylesUsed": ", ".join(style_names_used) if style_names_used else "None"
                 }
-                if is_img2img_mode: # Plus besoin de vérifier prior_pipe_instance
-                    xmp_data["InputImageType"] = "Image" # Type d'entrée standard img2img
+                if is_img2img_mode:
+                    xmp_data["InputImageType"] = "Image"
                     xmp_data["Strength"] = f"{img2img_strength:.2f}"
                     xmp_data["InputImageSize"] = f"{input_image_width}x{input_image_height}"
-                    # Les champs Prompt, OriginalUserPrompt, Translated, Styles sont déjà gérés ci-dessus
                 else: 
-                    # Les champs Prompt, OriginalUserPrompt, Translated, Styles sont déjà gérés ci-dessus
                     xmp_data["MaxSequenceLength"] = 512
 
-                # S'assurer que les champs de prompt sont bien ceux attendus
-                xmp_data["Prompt"] = final_prompt_text_for_flux # Le prompt final utilisé par FLUX
-
+                xmp_data["Prompt"] = final_prompt_text_for_flux
                 xmp_data["LoRAs"] = json.dumps(self.model_manager.loaded_loras if self.model_manager.loaded_loras else "Aucun")
                 
                 metadata_structure, prep_message = preparer_metadonnees_image(result_image, xmp_data, self.global_translations, chemin_image)
@@ -932,36 +940,26 @@ class FluxSchnellModule:
                     int(steps), int(steps), 100, f"{progress_text_info_done} - {translate('termine', module_translations)}"
                 )
                 yield generated_images_gallery, current_progress_html, btn_gen_off, btn_stop_on, lora_status_message_update
-
-            except Exception as e_gen:
-                error_msg = f"{translate('flux_schnell_error_generation', module_translations)} ({image_info_text}): {e_gen}"
-                print(txt_color("[ERREUR]", "erreur"), error_msg)
-                traceback.print_exc()
-                final_message_text = f'<p style="color:red;">{error_msg}</p>'
-                gr.Error(error_msg)
-                progress_text_info_error = f"{image_info_text}"
-                if not is_img2img_mode: 
-                    progress_text_info_error += f" ({width}x{height})"
-
-                current_progress_html = create_progress_bar_html(0, int(steps), 0, f"{image_info_text} - {translate('erreur', module_translations)}")
-                yield generated_images_gallery, current_progress_html, btn_gen_off, btn_stop_on, lora_status_message_update
-
-
-        if not self.stop_event.is_set() and not final_message_text.startswith('<p style="color:red;">'):
-            temps_total_final = f"{(time.time() - start_time_total):.2f}"
-            if int(num_images) > 1:
-                final_message_text = translate("batch_complete", module_translations).format(num_images=num_images, time=temps_total_final)
-            else:
-                final_message_text = translate("flux_schnell_generation_complete", module_translations).format(time=temps_total_final)
-            print(txt_color("[OK]", "ok"), final_message_text)
-            gr.Info(final_message_text, duration=3.0)
-        elif not final_message_text: 
-             final_message_text = translate("generation_arretee", module_translations)
-
-        gc.collect()
-        if self.model_manager.device.type == 'cuda':
-            torch.cuda.empty_cache()
-        yield generated_images_gallery, final_message_text, gr.update(interactive=True), gr.update(interactive=False), lora_status_message_update
+            
+            if not self.stop_event.is_set() and not final_message_text.startswith('<p style="color:red;">'):
+                temps_total_final = f"{(time.time() - start_time_total):.2f}"
+                if int(num_images) > 1:
+                    final_message_text = translate("batch_complete", module_translations).format(num_images=num_images, time=temps_total_final)
+                else:
+                    final_message_text = translate("flux_schnell_generation_complete", module_translations).format(time=temps_total_final)
+                print(txt_color("[OK]", "ok"), final_message_text)
+                gr.Info(final_message_text, duration=3.0)
+            elif not final_message_text: 
+                 final_message_text = translate("generation_arretee", module_translations)
+        finally:
+            # --- NETTOYAGE EXPLICITE POUR LIBÉRER LA MÉMOIRE ---
+            # Forcer le garbage collector à nettoyer les objets non référencés.
+            gc.collect()
+            # Vider le cache CUDA si un GPU est utilisé.
+            if self.model_manager.device.type == 'cuda':
+                torch.cuda.empty_cache()
+                
+            yield generated_images_gallery, final_message_text, gr.update(interactive=True), gr.update(interactive=False), lora_status_message_update
 
     # --- AJOUT: Fonctions pour l'amélioration du prompt (adaptées de Pycnaptiq-AI.py) ---
     def on_flux_enhance_or_redo_button_click(self, current_text_in_box, original_prompt_for_cycle, cycle_is_active, llm_model_path, current_translations):
@@ -1034,31 +1032,6 @@ class FluxSchnellModule:
                 gr.update(value=False),  # enhancement_cycle_active_state (le cycle est terminé)
                 gr.update(value=None))   # last_ai_enhanced_output_state (plus d'output IA pertinent pour ce cycle)
 
-    def progress_listener(self, progress_queue, image_info_text, translations):
-        """Écoute la queue de progression et met à jour l'interface."""
-        while True:
-            try:
-                # Tente de récupérer les données de la queue avec un timeout
-                current_step, total_steps = progress_queue.get(timeout=1.0)
-                
-                # Mise à jour de l'interface
-                progress_html = create_progress_bar_html(
-                    current_step, 
-                    total_steps, 
-                    (current_step / total_steps) * 100,
-                    f"{image_info_text} - {current_step}/{total_steps} {translate('etapes', translations)}"
-                )
-                # Utiliser self.flux_progress_html qui est l'objet Gradio
-                self.flux_progress_html.update(value=progress_html)
-
-                if current_step >= total_steps:
-                    break # Sortir si la progression est terminée
-
-            except queue.Empty:
-                # La queue est vide, vérifier si la génération est terminée
-                if not self.model_manager.get_current_pipe() or self.stop_event.is_set():
-                    break
-                continue # Continuer à attendre si la génération n'est pas terminée
 
     def handle_flux_text_input_change(self, text_value, last_ai_output_val, is_cycle_active_val, llm_model_path, current_translations):
         enhance_button_interactive = bool(text_value.strip())

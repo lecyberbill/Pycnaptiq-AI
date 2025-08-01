@@ -3,6 +3,7 @@ import threading
 import queue
 import time
 import traceback
+import gc
 
 # --- Définir les fallbacks AVANT le try ---
 def _dummy_callback(*a, **kw): pass
@@ -158,7 +159,21 @@ def execute_pipeline_task_async(
                  # Utiliser translate pour le message d'info
                  print(txt_color("[INFO]", "info"), f"{translate('info_pipeline_arrete_exception', translations)}: {e_pipe}")
         finally:
-             if result_container["status"] == "running":
+            # --- NETTOYAGE EXPLICITE POUR LIBÉRER LA MÉMOIRE ---
+            # Supprimer les références aux objets volumineux qui ne sont plus nécessaires.
+            if 'result' in locals():
+                del result
+            if 'pipeline_args' in locals():
+                del pipeline_args
+            
+            # Forcer le garbage collector à nettoyer les objets non référencés.
+            gc.collect()
+            
+            # Vider le cache CUDA si un GPU est utilisé.
+            if device.type == 'cuda':
+                torch.cuda.empty_cache()
+
+            if result_container["status"] == "running":
                  if stop_event.is_set():
                      result_container["status"] = "stopped"
                  else:
