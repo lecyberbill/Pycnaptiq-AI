@@ -4,6 +4,7 @@ import queue
 import time
 import traceback
 import gc
+from Utils.gest_mem import empty_working_set # Import empty_working_set
 
 # --- Définir les fallbacks AVANT le try ---
 def _dummy_callback(*a, **kw): pass
@@ -172,6 +173,9 @@ def execute_pipeline_task_async(
             # Vider le cache CUDA si un GPU est utilisé.
             if device.type == 'cuda':
                 torch.cuda.empty_cache()
+
+            # Vider le working set après l'inférence
+            empty_working_set(translations)
 
             if result_container["status"] == "running":
                  if stop_event.is_set():

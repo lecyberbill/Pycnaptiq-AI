@@ -47,9 +47,10 @@ from io import BytesIO
 from presets.presets_Manager import PresetManager
 import functools
 from functools import partial # Keep functools import
-from Utils.gest_mem import create_memory_accordion_ui, update_memory_stats # Import memory management functions
+from Utils.gest_mem import create_memory_accordion_ui, update_memory_stats, empty_working_set
 from core.batch_runner import run_batch_from_json
 from core.pipeline_executor import execute_pipeline_task_async
+import gc
 
 
 
@@ -388,7 +389,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
 
         selected_format_parts = selected_format.split(":")[0].strip() # Utiliser selected_format ici
         width, height = map(int, selected_format_parts.split("*"))
-        images = [] # Initialize a list to store all generated images
+        image_paths = [] # Changed from `images` to store paths
         seed_strings = []
         formatted_seeds = ""
         current_data_for_preset = None
@@ -481,7 +482,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                     last_preview_index += 1
                     last_yielded_preview = preview_img_to_yield
                     yield (
-                        images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
+                        image_paths, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
                         preview_img_to_yield, new_progress_html, 
                         bouton_charger_update_off, btn_generate_update_off,
                         gr.update(interactive=False), 
@@ -492,7 +493,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 
                 if not preview_yielded_in_loop and new_progress_html != last_progress_html:
                      yield (
-                         images, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
+                         image_paths, formatted_seeds, f"{idx+1}/{num_images}...", html_message_result,
                          last_yielded_preview, 
                          new_progress_html, 
                          bouton_charger_update_off, btn_generate_update_off,
@@ -520,7 +521,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 gr.Info(translate("generation_arretee_pas_sauvegarde", translations), 3.0)
                 final_message = translate("generation_arretee", translations)
                 yield (
-                    images, " ".join(seed_strings), translate("generation_arretee", translations),
+                    image_paths, " ".join(seed_strings), translate("generation_arretee", translations),
                     translate("generation_arretee_pas_sauvegarde", translations), None, final_progress_html,
                     bouton_charger_update_off, btn_generate_update_off, 
                     gr.update(interactive=False), 
@@ -533,7 +534,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 print(txt_color("[ERREUR] ", "erreur"), f"{translate('erreur_pipeline', translations)}: {error_msg}")
                 gr.Warning(f"{translate('erreur_pipeline', translations)}: {error_msg}", 4.0)
                 yield (
-                    images, " ".join(seed_strings), translate("erreur_pipeline", translations),
+                    image_paths, " ".join(seed_strings), translate("erreur_pipeline", translations),
                     error_msg, None, final_progress_html,
                     bouton_charger_update_off, btn_generate_update_off, 
                     gr.update(interactive=False), 
@@ -545,7 +546,7 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                 print(txt_color("[ERREUR] ", "erreur"), translate("erreur_pas_image_genere", translations))
                 gr.Warning(translate("erreur_pas_image_genere", translations), 4.0)
                 yield (
-                    images, " ".join(seed_strings), translate("erreur_pas_image_genere", translations),
+                    image_paths, " ".join(seed_strings), translate("erreur_pas_image_genere", translations),
                     translate("erreur_pas_image_genere", translations), None, final_progress_html,
                     bouton_charger_update_off, btn_generate_update_off, 
                     gr.update(interactive=False), 
@@ -622,8 +623,14 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
             html_future = html_executor.submit(enregistrer_etiquettes_image_html, chemin_image, donnees_xmp, translations, is_last_image=(idx == num_images - 1))
 
             print(txt_color("[OK] ","ok"),translate("image_sauvegarder", translations), txt_color(f"{filename}","ok"))
-            images.append(final_image)
-            torch.cuda.empty_cache()
+            image_paths.append(chemin_image)
+            
+            # Aggressive memory cleanup
+            del final_image
+            gc.collect()
+            if device.type == 'cuda':
+                torch.cuda.empty_cache()
+            empty_working_set(translations)
 
             seed_strings.append(f"[{seed}]")
             formatted_seeds = " ".join(seed_strings)
@@ -635,15 +642,15 @@ def generate_image(text, style_selection, guidance_scale, num_steps, selected_fo
                  html_message_result = translate("erreur_lors_generation_html", translations)
 
             yield (
-                images, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}",
-                html_message_result, final_image, final_progress_html, 
+                image_paths, formatted_seeds, f"{idx+1}{translate('image_sur', translations)} {num_images} {translate('images_generees', translations)}",
+                html_message_result, None, final_progress_html, # Do not yield the image object again
                 bouton_charger_update_off, btn_generate_update_off,
                 gr.update(interactive=False), 
                 output_gen_data_json,
                 output_preview_image
             )
 
-        final_images = images
+        final_images = image_paths
         final_seeds = formatted_seeds
         final_html_msg = html_message_result
         final_preview_img = None 
@@ -996,6 +1003,7 @@ def generate_inpainted_image(text, original_image_pil, image_mask_editor_dict, n
     finally:
         if 'pipe' in locals() and hasattr(pipe, '_interrupt'):
             pipe._interrupt = False
+        empty_working_set(translations) # Add this line
         yield final_slider_output_result, final_msg_load_result, final_msg_status_result, final_progress_result, btn_load_inp_on, btn_gen_inp_on
 
 

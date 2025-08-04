@@ -5,6 +5,8 @@ import traceback
 import gc
 import math
 import time
+import ctypes
+import os
 
 # Importations nécessaires depuis utils.py
 from .utils import txt_color, translate
@@ -272,6 +274,7 @@ def create_memory_accordion_ui(translations, model_manager_instance):
                 torch.cuda.empty_cache()
                 print(txt_color("[INFO]", "info"), translate_action("cuda_cache_emptied_after_unload_fallback", "CUDA cache emptied (fallback check)."))
             gc.collect()
+            empty_working_set(translations_dict) # Add this line
         except Exception as e_cleanup:
             print(f"{txt_color('[WARN]', 'warning')} Error during explicit memory cleanup: {e_cleanup}")
             # Append warning to status message if it's not already an error
@@ -311,3 +314,21 @@ def update_memory_stats(translations_dict, device):
     """
     combined_html_updated = _create_combined_memory_html(translations_dict, device)
     return gr.update(value=combined_html_updated)
+
+def empty_working_set(translations):
+    """
+    Attempts to free up memory on Windows by calling SetProcessWorkingSetSize.
+    """
+    if os.name == 'nt':
+        try:
+            process_handle = ctypes.windll.kernel32.OpenProcess(0x1F0FFF, False, os.getpid())
+            
+            # Appelle la fonction SetProcessWorkingSetSize pour vider le working set
+            ctypes.windll.kernel32.SetProcessWorkingSetSize(process_handle, -1, -1)
+            
+            # Ferme le handle
+            ctypes.windll.kernel32.CloseHandle(process_handle)
+
+        except Exception as e:
+            error_message = translate("error_emptying_working_set", translations).format(error=e)
+            print(f"{txt_color('[WARN]', 'warning')} {error_message}")
