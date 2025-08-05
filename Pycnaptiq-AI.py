@@ -2299,8 +2299,8 @@ with gr.Blocks(**block_kwargs) as interface:
             last_successful_preview_image
         ]
     )
-    btn_stop.click(stop_generation_process, outputs=time_output)
-    btn_stop_after_gen.click(stop_generation, outputs=time_output)
+    btn_stop.click(stop_generation, outputs=time_output)
+    btn_stop_after_gen.click(stop_generation_process, outputs=time_output)
 
 
     bouton_save_current_preset.click(
