@@ -1860,7 +1860,7 @@ with gr.Blocks(**block_kwargs) as interface:
                     )
 
                 seed_input = gr.Number(label=translate("seed", translations), value=-1, elem_id="seed_input_main_gen")
-                num_images_slider = gr.Slider(1, 200, value=1, label=translate("nombre_images_generer", translations), step=1)
+                num_images_slider = gr.Slider(1, 30, value=1, label=translate("nombre_images_generer", translations), step=1)
 
 
             with gr.Column(scale=1, min_width=200):
@@ -2656,3 +2656,4 @@ afficher_logo_ascii()
 
 print(txt_color("[INFO]", "info"), f"{translate('gradio_version_log', translations)}: {gr.__version__}")
 interface.launch(inbrowser=str_to_bool(OPEN_BROWSER), pwa=True, share=str_to_bool(SHARE), allowed_paths=[SAVE_DIR])
+
