@@ -1,0 +1,26 @@
+{
+    "name": "Éditeur OpenPose",
+    "description": "Éditeur de pose interactif",
+    "dependencies": [],
+    "tab_name": "Éditeur OpenPose",
+    "language": {
+        "fr": {
+            "openpose_editor_label": "Éditeur OpenPose",
+            "openpose_editor_btn": "Ouvrir l'Éditeur de Pose",
+            "openpose_editor_apply": "Appliquer la Pose",
+            "openpose_editor_clear": "Effacer",
+            "openpose_editor_reset": "Réinitialiser (Debout)",
+            "openpose_editor_add_person": "Ajouter Personne",
+            "openpose_editor_bg_label": "Image de fond (Arrière-plan)"
+        },
+        "en": {
+            "openpose_editor_label": "OpenPose Editor",
+            "openpose_editor_btn": "Open Pose Editor",
+            "openpose_editor_apply": "Apply Pose",
+            "openpose_editor_clear": "Clear",
+            "openpose_editor_reset": "Reset (Standing)",
+            "openpose_editor_add_person": "Add Person",
+            "openpose_editor_bg_label": "Background Image"
+        }
+    }
+}

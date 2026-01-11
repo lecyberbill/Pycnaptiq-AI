@@ -1,0 +1,62 @@
+{
+  "name": "VTracer SVG Converter",
+  "version": "1.0.0",
+  "description_key": "vtracer_module_description",
+  "init_function": "initialize",
+  "tab_name_key": "vtracer_tab_name",
+  "dependencies": [
+    "vtracer"
+  ],
+  "language": {
+    "fr": {
+      "vtracer_tab_name": "Vectoriseur SVG (VTracer)",
+      "vtracer_tab_title": "Convertisseur d'Image en SVG (VTracer)",
+      "vtracer_module_description": "Convertit les images raster en graphiques vectoriels SVG en utilisant VTracer.",
+      "vtracer_upload_image_label": "Téléverser une Image",
+      "vtracer_color_mode_label": "Mode Couleur",
+      "vtracer_hierarchical_label": "Hiérarchique",
+      "vtracer_mode_label": "Mode de Vectorisation",
+      "vtracer_filter_speckle_label": "Filtrer les Petits Points (Speckle)",
+      "vtracer_color_precision_label": "Précision des Couleurs",
+      "vtracer_layer_difference_label": "Différence de Couche",
+      "vtracer_corner_threshold_label": "Seuil de Coin",
+      "vtracer_length_threshold_label": "Seuil de Longueur",
+      "vtracer_max_iterations_label": "Itérations Max",
+      "vtracer_splice_threshold_label": "Seuil de Raccord (Splice)",
+      "vtracer_path_precision_label": "Précision du Chemin",
+      "vtracer_svg_output_label": "Sortie SVG (Aperçu)",
+      "vtracer_download_svg_label": "Télécharger le SVG",
+      "vtracer_interface_title": "",
+      "vtracer_interface_description": "",
+      "vtracer_error_no_image": "Veuillez téléverser une image à convertir.",
+      "vtracer_settings_label": "Réglages de Vectorisation",
+      "vtracer_submit_button_label": "Convertir en SVG",
+      "vtracer_clear_button_label": "Effacer"
+    },
+    "en": {
+      "vtracer_tab_name": "SVG Vectorizer (VTracer)",
+      "vtracer_tab_title": "Image to SVG Converter (VTracer)",
+      "vtracer_module_description": "Converts raster images to SVG vector graphics using VTracer.",
+      "vtracer_upload_image_label": "Upload Image",
+      "vtracer_color_mode_label": "Color Mode",
+      "vtracer_hierarchical_label": "Hierarchical",
+      "vtracer_mode_label": "Vectorization Mode",
+      "vtracer_filter_speckle_label": "Filter Speckle",
+      "vtracer_color_precision_label": "Color Precision",
+      "vtracer_layer_difference_label": "Layer Difference",
+      "vtracer_corner_threshold_label": "Corner Threshold",
+      "vtracer_length_threshold_label": "Length Threshold",
+      "vtracer_max_iterations_label": "Max Iterations",
+      "vtracer_splice_threshold_label": "Splice Threshold",
+      "vtracer_path_precision_label": "Path Precision",
+      "vtracer_svg_output_label": "SVG Output (Preview)",
+      "vtracer_download_svg_label": "Download SVG",
+      "vtracer_interface_title": "",
+      "vtracer_interface_description": "",
+      "vtracer_error_no_image": "Please upload an image to convert.",
+      "vtracer_settings_label": "Vectorization Settings",
+      "vtracer_submit_button_label": "Convert to SVG",
+      "vtracer_clear_button_label": "Clear"
+    }
+  }
+}

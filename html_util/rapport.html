@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Récapitulatif des images</title>
+<link rel='stylesheet' href='magnific-popup.css'>
+
+<script src='jquery.min.js'></script>
+
+<script src='jquery.magnific-popup.min.js'></script>
+<style>
+body {
+  background-color: black;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+.image-item {
+  margin-bottom: 20px;
+}
+.image-container {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: #222;
+  border-radius: 8px;
+}
+img {
+  max-width: 300px;
+  height: auto;
+  margin-right: 20px;
+  cursor: pointer; /* Ajoute un curseur de type pointeur pour indiquer que l'image est cliquable */
+}
+.etiquettes {
+  flex: 1;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+</style>
+
+<script>
+$(document).ready(function() {
+  $('.image-popup').magnificPopup({
+    type: 'image',
+    closeOnContentClick: true,  // Ferme la popup en cliquant sur l'image
+    closeBtnInside: false,      // Affiche le bouton de fermeture à l'extérieur de l'image
+    mainClass: 'mfp-with-zoom', // Ajoute une classe pour une animation de zoom
+    image: {
+      verticalFit: true, // Ajuste l'image à la hauteur de la fenêtre
+      titleSrc: 'title' // Affiche l'attribut 'title' comme titre de l'image dans la popup
+    },
+    zoom: {
+      enabled: true, // Active l'animation de zoom
+      duration: 300 // Durée de l'animation de zoom en millisecondes
+    }
+  });
+});
+</script>
+</head>
+
+<body>
+
+<div class='image-item'>
+    <div class='image-container'>
+        <a href='image_sur_le_site.jpg' title='The Cleaner' class="image-popup"> <img src='image_sur_le_site.jpg' alt='Image'></a>
+        <div class='etiquettes'>
+            <table>
+                <tr><td>IMAGE</td><td>1 sur 1</td></tr>
+                <tr><td>Creator</td><td>William GODEFROID</td></tr>
+                <tr><td>Seed</td><td>5365571485655289805</td></tr>
+                <tr><td>Inference</td><td>30</td></tr>
+                <tr><td>Guidance</td><td>7</td></tr>
+                <tr><td>Prompt</td><td>portrait of a beautiful young woman with melancholic green eyes, sensual, realistic, psychedelic</td></tr>
+                <tr><td>Dimension</td><td>768*1280</td></tr>
+                <tr><td>Model</td><td>realismByStableYogi_v5XLFP16.safetensors</td></tr>
+                <tr><td>Sampler</td><td>DPMSolverMultistepScheduler</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class='image-item'>
+    <div class='image-container'>
+        <a href='source_immanens.jpg' title='The Cleaner' class="image-popup"><img src='source_immanens.jpg' alt='Image'></a>
+        <div class='etiquettes'>
+            <table>
+                <tr><td>IMAGE</td><td>1 sur 1</td></tr>
+                <tr><td>Creator</td><td>William GODEFROID</td></tr>
+                <tr><td>Seed</td><td>5365571485655289805</td></tr>
+                <tr><td>Inference</td><td>30</td></tr>
+                <tr><td>Guidance</td><td>7</td></tr>
+                <tr><td>Prompt</td><td>portrait of a beautiful young woman with melancholic green eyes, sensual, realistic, psychedelic</td></tr>
+                <tr><td>Dimension</td><td>768*1280</td></tr>
+                <tr><td>Model</td><td>realismByStableYogi_v5XLFP16.safetensors</td></tr>
+                <tr><td>Sampler</td><td>DPMSolverMultistepScheduler</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+</body>
+</html>

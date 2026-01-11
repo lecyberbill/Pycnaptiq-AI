@@ -1,0 +1,31 @@
+# Python virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Project specific
+models/*
+!models/placeholder.txt
+outputs/
+temp/
+.pytest_cache/
+config/config.json
+config.js
+logs/
+python-3.10.11-embed-amd64/

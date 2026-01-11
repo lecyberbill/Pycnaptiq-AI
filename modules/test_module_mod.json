@@ -1,0 +1,34 @@
+{
+    "name": "Module de Test",
+    "version": "0.1.0",
+    "description": "Un module squelette pour tester l'intégration avec GestionModule.",
+    "tab_name": "Test Module",
+    "init_function": "initialize",
+    "dependencies": [],
+    "language": {
+        "fr": {
+            "test_module_tab_name": "Module Test",
+            "test_module_tab_title": "Module de Test",
+            "test_module_description": "Ceci est un exemple de module.",
+            "test_input_label": "Entrée",
+            "test_output_label": "Sortie",
+            "test_process_button": "Traiter",
+            "test_pipe_disponible": "Le pipeline global est disponible.",
+            "test_pipe_non_disponible": "Le pipeline global n'est PAS disponible.",
+            "test_processed_prefix": "Traité",
+            "test_erreur_pipe_inaccessible": "Erreur : Impossible d'accéder au pipeline global via le gestionnaire."
+        },
+        "en": {
+            "test_module_tab_name": "Test Module",
+            "test_module_tab_title": "Test Module",
+            "test_module_description": "This is an example module.",
+            "test_input_label": "Input",
+            "test_output_label": "Output",
+            "test_process_button": "Process",
+            "test_pipe_disponible": "Global pipeline is available.",
+            "test_pipe_non_disponible": "Global pipeline is NOT available.",
+            "test_processed_prefix": "Processed",
+            "test_erreur_pipe_inaccessible": "Error: Cannot access global pipeline via manager."
+        }
+    }
+}
