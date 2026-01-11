@@ -25,7 +25,7 @@ models/*
 outputs/
 temp/
 .pytest_cache/
-config/config.json
+config/config_local.json
 config.js
 logs/
 .agent/

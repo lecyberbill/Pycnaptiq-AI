@@ -1,0 +1,94 @@
+{
+    "AUTHOR": "Default_User",
+    "MODELS_DIR": "models/checkpoints",
+    "VAE_DIR": "models/vae",
+    "INPAINT_MODELS_DIR": "models/inpaint",
+    "LORAS_DIR": "models/loras",
+    "FLUX_MODELS_DIR": "models/flux",
+    "SD3_MODELS_DIR": "models/SD3",
+    "CONTROLNET_DIR": "models/controlnet",
+    "IP_ADAPTER_DIR": "models/ip_adapter",
+    "SAVE_DIR": "outputs",
+    "IC_LIGHT_MODEL_DIR": "models/ic_light_model",
+    "SAVE_BATCH_JSON_PATH": "outputs/json_batch_files",
+    "LLM_PROMPTER_MODEL_PATH": "Qwen/Qwen2.5-0.5B-Instruct",
+    "FLORENCE2_MODEL_ID_CONFIG": "microsoft/Florence-2-base",
+    "FORCE_CPU_OFFLOAD": "yes",
+    "LLM_PROMPTER_N_GPU_LAYERS": 0,
+    "CIVITAI_API_KEY": "",
+    "IMAGE_FORMAT": "webp",
+    "DEFAULT_MODEL": "your_default_modele.safetensors",
+    "RESOLUTIONS": [
+        {
+            "dimensions": "1024*1024",
+            "orientation": "Carré"
+        },
+        {
+            "dimensions": "832*1216",
+            "orientation": "Portrait"
+        },
+        {
+            "dimensions": "896*1152",
+            "orientation": "Portrait"
+        },
+        {
+            "dimensions": "768*1280",
+            "orientation": "Portrait"
+        },
+        {
+            "dimensions": "768*1344",
+            "orientation": "Portrait"
+        },
+        {
+            "dimensions": "704*1344",
+            "orientation": "Portrait"
+        },
+        {
+            "dimensions": "704*1408",
+            "orientation": "Portrait"
+        },
+        {
+            "dimensions": "1024*1024",
+            "orientation": "Carré"
+        },
+        {
+            "dimensions": "1088*896",
+            "orientation": "Paysage"
+        },
+        {
+            "dimensions": "1408*704",
+            "orientation": "Paysage"
+        },
+        {
+            "dimensions": "1344*704",
+            "orientation": "Paysage"
+        },
+        {
+            "dimensions": "1344*768",
+            "orientation": "Paysage"
+        },
+        {
+            "dimensions": "1280*768",
+            "orientation": "Paysage"
+        },
+        {
+            "dimensions": "1216*832",
+            "orientation": "Paysage"
+        },
+        {
+            "dimensions": "1152*832",
+            "orientation": "Paysage"
+        },
+        {
+            "dimensions": "1152*896",
+            "orientation": "Paysage"
+        }
+    ],
+    "OPEN_BROWSER": "yes",
+    "GRADIO_THEME": "Default",
+    "SHARE": "No",
+    "LANGUAGE": "fr",
+    "PRESETS_PER_PAGE": 12,
+    "PRESET_COLS_PER_ROW": 4,
+    "MAX_GENERATIONS_BEFORE_RELOAD": 40
+}

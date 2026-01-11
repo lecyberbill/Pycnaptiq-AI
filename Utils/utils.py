@@ -362,49 +362,52 @@ def finalize_html_report_if_needed(chemin_fichier_html_to_finalize: str, transla
 
 
 def charger_configuration():
-    """Loads the configuration from the config.json file.
-        Args:
-        chemin_image (str): config.json file
-        Return:
-        Return a dictionary with the configuration values
-    """
-
+    """Charge la configuration depuis le fichier config.json et applique les surcharges locales."""
     try:
-        # Get the script's directory
         root_dir = Path(__file__).parent.parent
         config_dir = root_dir / "config"
         config_json = config_dir / "config.json"
+        config_local_json = config_dir / "config_local.json"
         chemin_styles = config_dir / "styles.json"
         
-        with open(config_json, "r", encoding="utf-8") as f:
-            config = json.load(f)
+        config = {}
+        
+        # 1. Charger la configuration par défaut (GitHub)
+        if os.path.exists(config_json):
+            with open(config_json, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        else:
+            print(txt_color("[AVERTISSEMENT] ","warning"), "config.json non trouvé, utilisation d'une config vide.")
+
+        # 2. Charger et fusionner la configuration locale (ignorée par Git)
+        if os.path.exists(config_local_json):
+            try:
+                with open(config_local_json, "r", encoding="utf-8") as f:
+                    local_config = json.load(f)
+                    config.update(local_config)
+                print(txt_color("[OK] ","ok"), "Configuration locale chargée et appliquée")
+            except Exception as e:
+                print(txt_color("[ERREUR] ","erreur"), f"Erreur lors du chargement de config_local.json : {e}")
             
-        # Convert relative paths to absolute paths if necessary
+        # Convertir les chemins relatifs en chemins absolus si nécessaire
         for key in ["MODELS_DIR", "VAE_DIR", "SAVE_DIR", "LORAS_DIR", "INPAINT_MODELS_DIR", "CONTROLNET_DIR", "IP_ADAPTER_DIR"]:
-            if key in config:  # Check if the key exists
+            if key in config:
                 if not os.path.isabs(config[key]):
-                    # If it's a relative path, join it with the root directory
                     config[key] = os.path.abspath(os.path.join(root_dir, config[key]))
 
         # Chargement des styles
         if os.path.exists(chemin_styles):
              with open(chemin_styles, "r", encoding="utf-8") as fichier_styles:
                 config["STYLES"] = json.load(fichier_styles)
-
         else:
              print(f"{txt_color('[ERREUR]','erreur')}", f"Error: styles.json not found at {chemin_styles}")
         
-        print(txt_color("[OK] ","ok"),"Configuration successfully loaded")       
+        print(txt_color("[OK] ","ok"), "Configuration chargée avec succès")       
         return config
 
-    except FileNotFoundError:
-        print(txt_color("[ERREUR] ","erreur"), f"Error loading configuration: config file not found")
-        return {}
-    except json.JSONDecodeError as e:
-        print(txt_color("[ERREUR] ","erreur"), f"Error loading configuration: JSON decode error: {e}")
-        return {}
     except Exception as e:
-        print(txt_color("[ERREUR] ","erreur"), f"Error loading configuration: An error occurred: {e}")
+        print(txt_color("[ERREUR] ","erreur"), f"Erreur lors du chargement de la configuration : {e}")
+        traceback.print_exc()
         return {}
 
         
