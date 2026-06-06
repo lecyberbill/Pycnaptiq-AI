@@ -18,7 +18,7 @@ torchsde==0.2.6
 tqdm==4.67.1
 peft==0.15.2
 compel==2.0.3
-modelscope==1.25.0
+modelscope==1.27.0
 huggingface_hub==0.30.2
 onnxruntime-gpu==1.21.1
 rembg[gpu]==2.0.65
